@@ -6,9 +6,10 @@ import { IncomingFeed } from '@/components/command/IncomingFeed';
 import { ReportDetail } from '@/components/command/ReportDetail';
 import { CommandStatus } from '@/components/command/CommandStatus';
 import { MapTab } from '@/components/command/MapTab';
+import { TrainingTab } from '@/components/command/TrainingTab';
 import type { MapTabHandle } from '@/components/command/MapTab';
 
-type MobileTab = 'feed' | 'detail' | 'status' | 'map';
+type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training';
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
 
 function useViewMode(): ViewMode {
@@ -47,7 +48,6 @@ export default function Command() {
   const handleSelect = useCallback((id: string) => {
     setSelectedId(id);
     if (viewMode === 'mobile') setMobileTab('detail');
-    // Fly to marker on map
     const report = reports.find((r) => r.id === id);
     if (report && mapRef.current) {
       mapRef.current.flyToReport(report);
@@ -64,7 +64,7 @@ export default function Command() {
     return (
       <button
         onClick={() => setMobileTab(id)}
-        className="flex-1 h-12 font-heading text-base font-bold tracking-[0.08em]"
+        className="flex-1 h-12 font-heading text-[10px] font-bold tracking-[0.08em]"
         style={{
           color: active ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
           borderTop: active ? '2px solid hsl(var(--primary))' : '2px solid transparent',
@@ -76,7 +76,7 @@ export default function Command() {
     );
   };
 
-  // DESKTOP: status top, then feed | detail | map
+  // DESKTOP
   if (viewMode === 'desktop') {
     return (
       <div className="flex flex-col h-screen bg-background">
@@ -107,17 +107,15 @@ export default function Command() {
     );
   }
 
-  // TABLET: map top, feed left + detail right below
+  // TABLET
   if (viewMode === 'tablet') {
     return (
       <div className="flex flex-col h-screen bg-background">
         <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
         <div className="flex flex-col flex-1 overflow-hidden p-2 gap-2">
-          {/* Map across the top */}
           <div className="flex-shrink-0 h-[40%] rounded-lg border border-border bg-card shadow-sm overflow-hidden">
             <MapTab ref={mapRef} reports={reports} onSelectReport={handleMapSelect} />
           </div>
-          {/* Feed left + Detail right */}
           <div className="flex flex-1 overflow-hidden min-w-0 gap-2">
             <div className="flex flex-col overflow-hidden min-w-0 w-2/5 rounded-lg border border-border bg-card shadow-sm">
               <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
@@ -131,7 +129,7 @@ export default function Command() {
     );
   }
 
-  // MOBILE: tabbed layout
+  // MOBILE
   return (
     <div className="flex flex-col h-screen bg-background">
       <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
@@ -162,11 +160,17 @@ export default function Command() {
             <MapTab ref={mapRef} reports={reports} onSelectReport={handleMapSelect} />
           </div>
         )}
+        {mobileTab === 'training' && (
+          <div className="h-full">
+            <TrainingTab reports={reports} />
+          </div>
+        )}
       </div>
       <div className="flex flex-shrink-0 border-t border-border bg-card">
         {mobileTabBtn('feed', 'FEED')}
         {mobileTabBtn('detail', 'DETAIL')}
         {mobileTabBtn('map', 'MAP')}
+        {mobileTabBtn('training', 'TRAIN')}
         {mobileTabBtn('status', 'STATUS')}
       </div>
     </div>

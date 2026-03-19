@@ -35,6 +35,10 @@ export function useHeraldSync() {
             lat: report.lat,
             lng: report.lng,
             location_accuracy: report.location_accuracy,
+            original_assessment: (report as any).original_assessment ?? null,
+            final_assessment: (report as any).final_assessment ?? null,
+            diff: (report as any).diff ?? null,
+            edited: (report as any).edited ?? false,
           });
           if (ok) {
             markSynced(report.id);

@@ -20,12 +20,16 @@ export type Database = {
           confirmed_at: string | null
           created_at: string | null
           device_id: string | null
+          diff: Json | null
+          edited: boolean | null
+          final_assessment: Json | null
           headline: string | null
           id: string
           lat: number | null
           lng: number | null
           location_accuracy: number | null
           operator_id: string | null
+          original_assessment: Json | null
           priority: string | null
           service: string | null
           synced: boolean | null
@@ -37,12 +41,16 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string | null
           device_id?: string | null
+          diff?: Json | null
+          edited?: boolean | null
+          final_assessment?: Json | null
           headline?: string | null
           id?: string
           lat?: number | null
           lng?: number | null
           location_accuracy?: number | null
           operator_id?: string | null
+          original_assessment?: Json | null
           priority?: string | null
           service?: string | null
           synced?: boolean | null
@@ -54,12 +62,16 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string | null
           device_id?: string | null
+          diff?: Json | null
+          edited?: boolean | null
+          final_assessment?: Json | null
           headline?: string | null
           id?: string
           lat?: number | null
           lng?: number | null
           location_accuracy?: number | null
           operator_id?: string | null
+          original_assessment?: Json | null
           priority?: string | null
           service?: string | null
           synced?: boolean | null
