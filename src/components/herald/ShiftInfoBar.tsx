@@ -35,29 +35,13 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
   }
 
   return (
-    <div className="flex-shrink-0" style={{ background: '#0D1117', borderTop: '1px solid #0F1820' }}>
-      {confirming ? (
-        <div className="flex items-center justify-center gap-4 py-2">
-          <span style={{ color: '#FF9500', fontSize: 18, fontWeight: 700 }}>END SHIFT?</span>
-          <button
-            onClick={handleEndShift}
-            style={{ color: '#FF9500', fontSize: 18, fontWeight: 700, background: 'transparent', border: 'none', cursor: 'pointer' }}
-          >
-            YES
-          </button>
-          <button
-            onClick={() => setConfirming(false)}
-            style={{ color: '#FF9500', fontSize: 18, fontWeight: 700, background: 'transparent', border: 'none', cursor: 'pointer' }}
-          >
-            CANCEL
-          </button>
-        </div>
-      ) : (
+    <>
+      <div className="flex-shrink-0" style={{ background: '#0D1117', borderTop: '1px solid #0F1820' }}>
         <button
           onClick={() => setConfirming(true)}
           className="w-full py-2"
           style={{
-            color: '#4A6058',
+            color: '#FF3B30',
             fontSize: 18,
             background: 'transparent',
             border: 'none',
@@ -67,7 +51,56 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
         >
           END SHIFT
         </button>
+      </div>
+
+      {confirming && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
+          style={{ background: '#080B10' }}
+        >
+          <span style={{ color: '#FF3B30', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 8 }}>
+            END SHIFT?
+          </span>
+          <p style={{ color: '#4A6058', fontSize: 18, textAlign: 'center', marginBottom: 40 }}>
+            This will end your current shift as {session.callsign}.
+          </p>
+
+          <button
+            onClick={handleEndShift}
+            className="w-full max-w-xs mb-4"
+            style={{
+              padding: 16,
+              background: 'rgba(255,59,48,0.1)',
+              border: '1px solid #FF3B30',
+              color: '#FF3B30',
+              fontSize: 18,
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              borderRadius: 3,
+              cursor: 'pointer',
+            }}
+          >
+            CONFIRM END SHIFT
+          </button>
+
+          <button
+            onClick={() => setConfirming(false)}
+            className="w-full max-w-xs"
+            style={{
+              padding: 16,
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.15)',
+              color: '#C8D0CC',
+              fontSize: 18,
+              letterSpacing: '0.15em',
+              borderRadius: 3,
+              cursor: 'pointer',
+            }}
+          >
+            CANCEL
+          </button>
+        </div>
       )}
-    </div>
+    </>
   );
 }
