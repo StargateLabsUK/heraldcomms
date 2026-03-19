@@ -168,13 +168,15 @@ export default function Command() {
     );
   };
 
-  const filterBar = (
+  const filterSlot = (
     <CommandFilterBar
       services={uniqueServices}
       callsigns={uniqueCallsigns}
       onFilterChange={setFilters}
     />
   );
+
+  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} filterSlot={filterSlot} />;
 
   // EXPANDED FULL-PAGE OVERLAY (desktop & tablet)
   if (expandedPanel && viewMode !== 'mobile') {
