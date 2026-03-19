@@ -161,7 +161,7 @@ export function AuthScreen({ variant, onSignIn }: Props) {
                 type="button"
                 onClick={() => setShowAccessInfo(!showAccessInfo)}
                 style={{
-                  color: '#1E3028',
+                  color: '#FFFFFF',
                   fontSize: 9,
                   letterSpacing: '0.15em',
                   background: 'none',
@@ -172,13 +172,13 @@ export function AuthScreen({ variant, onSignIn }: Props) {
                 REQUEST ACCESS
               </button>
               {showAccessInfo && (
-                <p style={{ color: '#1E3028', fontSize: 10, marginTop: 8 }}>
+                <p style={{ color: '#FFFFFF', fontSize: 10, marginTop: 8, opacity: 0.7 }}>
                   CONTACT YOUR TRUST ADMINISTRATOR TO CREATE AN ACCOUNT
                 </p>
               )}
             </>
           ) : (
-            <p style={{ color: '#1E3028', fontSize: 9, letterSpacing: '0.1em' }}>
+            <p style={{ color: '#FFFFFF', fontSize: 9, letterSpacing: '0.1em', opacity: 0.7 }}>
               FIELD OPERATORS SIGN IN AT THE HERALD FIELD APP
             </p>
           )}
