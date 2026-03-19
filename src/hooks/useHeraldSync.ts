@@ -32,6 +32,9 @@ export function useHeraldSync() {
             headline: report.assessment?.headline,
             priority: report.assessment?.priority,
             service: report.assessment?.service,
+            lat: report.lat,
+            lng: report.lng,
+            accuracy: report.accuracy,
           });
           if (ok) {
             markSynced(report.id);
