@@ -11,11 +11,13 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
   useEffect(() => {
     const tick = () => {
       const n = new Date();
-      setUtc(
-        n.getUTCHours().toString().padStart(2, '0') + ':' +
+      const date = n.getUTCDate().toString().padStart(2, '0') + '/' +
+        (n.getUTCMonth() + 1).toString().padStart(2, '0') + '/' +
+        n.getUTCFullYear();
+      const time = n.getUTCHours().toString().padStart(2, '0') + ':' +
         n.getUTCMinutes().toString().padStart(2, '0') + ':' +
-        n.getUTCSeconds().toString().padStart(2, '0') + 'Z'
-      );
+        n.getUTCSeconds().toString().padStart(2, '0') + 'Z';
+      setUtc(date + ' ' + time);
     };
     tick();
     const id = setInterval(tick, 1000);
