@@ -52,6 +52,8 @@ const Index = () => {
             onReportSaved={refreshReports}
             externalState={liveState}
             setExternalState={setLiveState}
+            micStatus={micStatus}
+            initMic={initMic}
           />
         ) : (
           <ReportsTab reports={reports} />
