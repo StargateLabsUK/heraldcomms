@@ -123,5 +123,5 @@ export function useAudioCapture(
     return blobToBase64(wav);
   }, []);
 
-  return { micStatus, isCapturing, initMic, startCapture, getAudioBase64, rmsLevel };
+  return { micStatus, isCapturing, initMic, startCapture, stopCapture, getAudioBase64, rmsLevel };
 }
