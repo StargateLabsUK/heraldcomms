@@ -90,72 +90,74 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
 
       {open && (
         <div
-          className="absolute top-full right-0 mt-2 z-50 rounded-lg shadow-xl"
+          className="fixed left-0 right-0 z-50 shadow-xl"
           style={{
+            top: ref.current?.getBoundingClientRect().bottom ?? 0,
             background: '#0D1117',
-            border: '1px solid #0F1820',
-            padding: 16,
-            minWidth: 280,
+            borderBottom: '1px solid #0F1820',
+            padding: '16px 20px',
           }}
         >
-          <div className="mb-4">
-            <label style={labelStyle}>SERVICE</label>
-            <select
-              value={service}
-              onChange={(e) => { setService(e.target.value); update(e.target.value, callsign, timeRange); }}
-              style={selectStyle}
-            >
-              {SERVICE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[160px]">
+              <label style={labelStyle}>SERVICE</label>
+              <select
+                value={service}
+                onChange={(e) => { setService(e.target.value); update(e.target.value, callsign, timeRange); }}
+                style={selectStyle}
+              >
+                {SERVICE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="mb-4">
-            <label style={labelStyle}>UNIT</label>
-            <select
-              value={callsign}
-              onChange={(e) => { setCallsign(e.target.value); update(service, e.target.value, timeRange); }}
-              style={selectStyle}
-            >
-              <option value="">ALL UNITS</option>
-              {callsigns.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+            <div className="flex-1 min-w-[160px]">
+              <label style={labelStyle}>UNIT</label>
+              <select
+                value={callsign}
+                onChange={(e) => { setCallsign(e.target.value); update(service, e.target.value, timeRange); }}
+                style={selectStyle}
+              >
+                <option value="">ALL UNITS</option>
+                {callsigns.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
 
-          <div className="mb-4">
-            <label style={labelStyle}>TIME RANGE</label>
-            <select
-              value={timeRange}
-              onChange={(e) => { const v = e.target.value as 'today' | '24h' | 'all'; setTimeRange(v); update(service, callsign, v); }}
-              style={selectStyle}
-            >
-              {TIME_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
+            <div className="flex-1 min-w-[160px]">
+              <label style={labelStyle}>TIME RANGE</label>
+              <select
+                value={timeRange}
+                onChange={(e) => { const v = e.target.value as 'today' | '24h' | 'all'; setTimeRange(v); update(service, callsign, v); }}
+                style={selectStyle}
+              >
+                {TIME_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
 
-          {hasActiveFilter && (
-            <button
-              onClick={() => {
-                setService('');
-                setCallsign('');
-                setTimeRange('today');
-                update('', '', 'today');
-              }}
-              className="w-full text-lg font-bold tracking-wide py-2 rounded-sm cursor-pointer"
-              style={{
-                color: '#FF9500',
-                border: '1px solid rgba(255,149,0,0.3)',
-                background: 'rgba(255,149,0,0.08)',
-              }}
-            >
-              RESET FILTERS
-            </button>
-          )}
+            {hasActiveFilter && (
+              <button
+                onClick={() => {
+                  setService('');
+                  setCallsign('');
+                  setTimeRange('today');
+                  update('', '', 'today');
+                }}
+                className="text-lg font-bold tracking-wide py-2 px-4 rounded-sm cursor-pointer"
+                style={{
+                  color: '#FF9500',
+                  border: '1px solid rgba(255,149,0,0.3)',
+                  background: 'rgba(255,149,0,0.08)',
+                }}
+              >
+                RESET
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
