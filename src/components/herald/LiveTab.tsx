@@ -386,12 +386,12 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
         <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
           <svg width="220" height="220" viewBox="0 0 200 200" className="absolute inset-0">
-            <circle cx="100" cy="100" fill="none" stroke="#FF3B30" strokeWidth="1.5"
-              style={{ animation: 'wave-circle 1.2s ease-in-out infinite' }} />
-            <circle cx="100" cy="100" fill="none" stroke="#FF3B30" strokeWidth="1"
-              style={{ animation: 'wave-circle-2 1.4s ease-in-out infinite 0.2s' }} />
-            <circle cx="100" cy="100" fill="none" stroke="#FF3B30" strokeWidth="0.7"
-              style={{ animation: 'wave-circle-3 1.6s ease-in-out infinite 0.4s' }} />
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#FF3B30" strokeWidth="1.5"
+              style={{ animation: 'wave-circle 1.2s ease-in-out infinite' } as React.CSSProperties} />
+            <circle cx="100" cy="100" r="65" fill="none" stroke="#FF3B30" strokeWidth="1"
+              style={{ animation: 'wave-circle-2 1.4s ease-in-out infinite 0.2s' } as React.CSSProperties} />
+            <circle cx="100" cy="100" r="60" fill="none" stroke="#FF3B30" strokeWidth="0.7"
+              style={{ animation: 'wave-circle-3 1.6s ease-in-out infinite 0.4s' } as React.CSSProperties} />
           </svg>
           <div className="flex flex-col items-center justify-center z-10">
             <span style={{ fontSize: 36, filter: 'drop-shadow(0 0 12px #FF3B30)' }}>🎙️</span>
