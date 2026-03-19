@@ -50,7 +50,6 @@ export const SERVICE_LABELS: Record<string, string> = {
 
 export const TEST_TRANSMISSIONS = [
   {
-    emoji: '⚔️',
     label: 'MILITARY',
     text: 'Control this is Delta Two. Casualty male approximately 35. GSW right thigh arterial bleed tourniquet applied 1423 Zulu. Airway clear breathing fast pulse weak. Request immediate CASEVAC Grid 456789.',
   },
