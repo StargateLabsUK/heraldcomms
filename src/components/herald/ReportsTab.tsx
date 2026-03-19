@@ -33,7 +33,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
   if (reports.length === 0 && session) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-4">
-        <span className="text-[48px] mb-4">{session.service_emoji}</span>
+        <span className="text-lg uppercase font-bold mb-4" style={{ color: '#4A6058' }}>{SERVICE_LABELS[session.service] ?? session.service}</span>
         <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginBottom: 8 }}>
           NO REPORTS THIS SHIFT
         </p>
