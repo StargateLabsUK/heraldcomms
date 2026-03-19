@@ -22,7 +22,7 @@ export function ReportsTab({ reports }: ReportsTabProps) {
       )}
 
       {reports.map((r) => {
-        const a = r.assessment as Record<string, unknown> | null;
+        const a = r.assessment as unknown as Record<string, unknown> | null;
         const pc = PRIORITY_COLORS[a?.priority as string] || PRIORITY_COLORS[r.priority as string] || '#3A5048';
         const emoji = SERVICE_EMOJIS[a?.service as string] || SERVICE_EMOJIS[r.service as string] || '📻';
         const expanded = expandedId === r.id;
