@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import * as React from 'react';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { useHeraldCommand } from '@/hooks/useHeraldCommand';
 import { CommandTopBar } from '@/components/command/CommandTopBar';
 import { IncomingFeed } from '@/components/command/IncomingFeed';
@@ -13,6 +14,7 @@ import type { MapTabHandle } from '@/components/command/MapTab';
 
 type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training';
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
+type ExpandedPanel = 'feed' | 'detail' | 'map' | null;
 
 function useViewMode(): ViewMode {
   const [mode, setMode] = useState<ViewMode>('desktop');
@@ -35,20 +37,14 @@ function applyFilters(
   filters: CommandFilters
 ) {
   let filtered = [...reports];
-
-  // Service filter
   if (filters.service) {
     filtered = filtered.filter(
       (r) => (r.assessment?.service ?? r.service ?? r.session_service) === filters.service
     );
   }
-
-  // Callsign filter
   if (filters.callsign) {
     filtered = filtered.filter((r) => r.session_callsign === filters.callsign);
   }
-
-  // Time range filter
   if (filters.timeRange === 'today') {
     const today = new Date().toDateString();
     filtered = filtered.filter(
@@ -60,8 +56,20 @@ function applyFilters(
       (r) => new Date(r.created_at ?? r.timestamp).getTime() > cutoff
     );
   }
-
   return filtered;
+}
+
+/** Expand/collapse button for panel top-right */
+function ExpandButton({ expanded, onClick }: { expanded: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="absolute top-2 right-2 z-10 p-1.5 rounded bg-card/80 border border-border hover:bg-card cursor-pointer transition-colors"
+      title={expanded ? 'Collapse' : 'Expand'}
+    >
+      {expanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+    </button>
+  );
 }
 
 export default function Command() {
@@ -81,13 +89,13 @@ export default function Command() {
     callsign: '',
     timeRange: 'today',
   });
+  const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
   const viewMode = useViewMode();
   const mapRef = useRef<MapTabHandle>(null);
 
   const filteredReports = useMemo(() => applyFilters(reports, filters), [reports, filters]);
   const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
 
-  // Get unique callsigns from today's reports for filter dropdown
   const uniqueCallsigns = useMemo(() => {
     const set = new Set<string>();
     todayReports.forEach((r) => {
@@ -105,7 +113,6 @@ export default function Command() {
     return Array.from(set).sort();
   }, [todayReports]);
 
-  // Recompute stats from filtered reports
   const filteredPriorityCounts = useMemo(() => {
     const counts = { P1: 0, P2: 0, P3: 0 };
     filteredReports.forEach((r) => {
@@ -140,6 +147,10 @@ export default function Command() {
     if (viewMode === 'mobile') setMobileTab('detail');
   }, [viewMode]);
 
+  const toggleExpand = useCallback((panel: ExpandedPanel) => {
+    setExpandedPanel((prev) => (prev === panel ? null : panel));
+  }, []);
+
   const mobileTabBtn = (id: MobileTab, label: string) => {
     const active = mobileTab === id;
     return (
@@ -165,6 +176,32 @@ export default function Command() {
     />
   );
 
+  // EXPANDED FULL-PAGE OVERLAY (desktop & tablet)
+  if (expandedPanel && viewMode !== 'mobile') {
+    return (
+      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+        <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
+        {filterBar}
+        <div className="flex-1 overflow-hidden p-3 relative">
+          <ExpandButton expanded onClick={() => setExpandedPanel(null)} />
+          <div className="h-full rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+            {expandedPanel === 'feed' && (
+              <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
+            )}
+            {expandedPanel === 'detail' && (
+              <div className="h-full overflow-y-auto">
+                <ReportDetail report={selectedReport} />
+              </div>
+            )}
+            {expandedPanel === 'map' && (
+              <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // DESKTOP
   if (viewMode === 'desktop') {
     return (
@@ -182,13 +219,16 @@ export default function Command() {
             />
           </div>
           <div className="flex flex-1 overflow-hidden min-w-0 gap-3">
-            <div className="flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
+            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
+              <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
               <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
-            <div className="flex flex-col overflow-hidden min-w-0 w-1/3">
+            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/3">
+              <ExpandButton expanded={false} onClick={() => toggleExpand('detail')} />
               <ReportDetail report={selectedReport} />
             </div>
-            <div className="flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
+            <div className="relative flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
+              <ExpandButton expanded={false} onClick={() => toggleExpand('map')} />
               <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
             </div>
           </div>
@@ -204,14 +244,17 @@ export default function Command() {
         <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
         {filterBar}
         <div className="flex flex-col flex-1 overflow-hidden p-2 gap-2">
-          <div className="flex-shrink-0 h-[40%] rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+          <div className="relative flex-shrink-0 h-[40%] rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+            <ExpandButton expanded={false} onClick={() => toggleExpand('map')} />
             <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
           </div>
           <div className="flex flex-1 overflow-hidden min-w-0 gap-2">
-            <div className="flex flex-col overflow-hidden min-w-0 w-2/5 rounded-lg border border-border bg-card shadow-sm">
+            <div className="relative flex flex-col overflow-hidden min-w-0 w-2/5 rounded-lg border border-border bg-card shadow-sm">
+              <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
               <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
             </div>
-            <div className="flex flex-col overflow-hidden min-w-0 w-3/5">
+            <div className="relative flex flex-col overflow-hidden min-w-0 w-3/5">
+              <ExpandButton expanded={false} onClick={() => toggleExpand('detail')} />
               <ReportDetail report={selectedReport} />
             </div>
           </div>
@@ -220,7 +263,7 @@ export default function Command() {
     );
   }
 
-  // MOBILE
+  // MOBILE (already full-page tabs, no expand needed)
   return (
     <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
       <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
