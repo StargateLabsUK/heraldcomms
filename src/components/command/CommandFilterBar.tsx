@@ -98,7 +98,7 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
         <div
           className="fixed left-0 right-0 z-50 shadow-xl"
           style={{
-            top: ref.current?.getBoundingClientRect().bottom ?? 0,
+            top: dropdownTop,
             background: '#0D1117',
             borderBottom: '1px solid #0F1820',
             padding: '16px 20px',
