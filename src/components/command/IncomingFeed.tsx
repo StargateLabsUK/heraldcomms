@@ -33,7 +33,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-3 pt-3 pb-2 flex-shrink-0">
-        <div className="flex gap-1 mb-2">
+        <div className="flex gap-1 mb-4">
           {FILTERS.map((f) => {
             const active = filter === f;
             const col = f === 'ALL' ? 'hsl(var(--foreground))' : getColor(f);
