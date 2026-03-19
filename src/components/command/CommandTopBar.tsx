@@ -4,10 +4,9 @@ interface Props {
   priorityCounts: { P1: number; P2: number; P3: number };
   connected: boolean;
   filterSlot?: React.ReactNode;
-  onSignOut?: () => void;
 }
 
-export function CommandTopBar({ priorityCounts, connected, filterSlot, onSignOut }: Props) {
+export function CommandTopBar({ priorityCounts, connected, filterSlot }: Props) {
   const [utc, setUtc] = useState('');
 
   useEffect(() => {
@@ -74,23 +73,6 @@ export function CommandTopBar({ priorityCounts, connected, filterSlot, onSignOut
             {connected ? 'LIVE' : 'OFF'}
           </span>
         </div>
-        {onSignOut && (
-          <button
-            onClick={onSignOut}
-            style={{
-              color: '#1E3028',
-              fontSize: 9,
-              border: '1px solid #0F1820',
-              padding: '4px 12px',
-              borderRadius: 2,
-              background: 'transparent',
-              cursor: 'pointer',
-              letterSpacing: '0.1em',
-            }}
-          >
-            SIGN OUT
-          </button>
-        )}
       </div>
     </div>
   );
