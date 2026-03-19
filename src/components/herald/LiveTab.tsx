@@ -338,8 +338,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               style={{ animation: 'wave-idle-2 3.5s ease-in-out infinite' } as React.CSSProperties} />
           </svg>
           <div className="flex flex-col items-center justify-center z-10">
-            <span style={{ fontSize: 32 }}>🎙️</span>
-            <span style={{ color: '#3DFF8C', fontSize: 18, letterSpacing: '0.2em', marginTop: 6, fontWeight: 700 }}>
+            <span style={{ color: '#3DFF8C', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
               START
             </span>
           </div>
