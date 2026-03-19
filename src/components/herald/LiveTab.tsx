@@ -244,9 +244,12 @@ export function LiveTab({
         <p style={{ fontSize: 10, color: '#1E3028', letterSpacing: '0.2em', marginTop: 16 }}>
           RUNNING INTELLIGENCE ASSESSMENT
         </p>
+        <p style={{ fontSize: 9, color: '#1E3028', marginTop: 8, opacity: 0.5 }}>
+          THIS MAY TAKE 15-30 SECONDS
+        </p>
         {transcript && (
           <p style={{ fontSize: 12, color: '#2A4038', fontStyle: 'italic', marginTop: 12, textAlign: 'center', padding: '0 24px' }}>
-            {transcript}
+            "{transcript}"
           </p>
         )}
       </div>
