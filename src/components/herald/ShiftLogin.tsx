@@ -71,22 +71,13 @@ export function ShiftLogin({ onShiftStarted }: Props) {
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         {/* Wordmark */}
-        <h1
-          style={{
-            fontFamily: "'Barlow Condensed', 'Inter', sans-serif",
-            fontWeight: 800,
-            fontSize: 28,
-            color: '#FFFFFF',
-            textAlign: 'center',
-            marginBottom: 8,
-          }}
-        >
+        <h1 className="font-heading text-2xl text-foreground tracking-[0.08em] text-center mb-1">
           HERALD
         </h1>
         <p
           style={{
-            color: '#1E3028',
-            fontSize: 18,
+            color: '#4A6058',
+            fontSize: 14,
             letterSpacing: '0.25em',
             textAlign: 'center',
             marginBottom: 48,
