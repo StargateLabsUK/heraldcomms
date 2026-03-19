@@ -338,8 +338,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               style={{ animation: 'wave-idle-2 3.5s ease-in-out infinite' } as React.CSSProperties} />
           </svg>
           <div className="flex flex-col items-center justify-center z-10">
-            <span style={{ fontSize: 32 }}>🎙️</span>
-            <span style={{ color: '#3DFF8C', fontSize: 18, letterSpacing: '0.2em', marginTop: 6, fontWeight: 700 }}>
+            <span style={{ color: '#3DFF8C', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
               START
             </span>
           </div>
@@ -394,8 +393,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               style={{ animation: 'wave-circle-3 1.6s ease-in-out infinite 0.4s' } as React.CSSProperties} />
           </svg>
           <div className="flex flex-col items-center justify-center z-10">
-            <span style={{ fontSize: 36, filter: 'drop-shadow(0 0 12px #FF3B30)' }}>🎙️</span>
-            <span style={{ color: '#FF3B30', fontSize: 18, fontWeight: 700, letterSpacing: '0.2em', marginTop: 4 }}>
+            <span style={{ color: '#FF3B30', fontSize: 18, fontWeight: 700, letterSpacing: '0.2em' }}>
               RECORDING
             </span>
           </div>
