@@ -28,6 +28,9 @@ export function LiveTab({
   setExternalState,
   micStatus,
   initMic,
+  startCapture,
+  stopCapture,
+  isCapturing,
 }: LiveTabProps) {
   const state = externalState || 'idle';
   const [transcript, setTranscript] = useState('');
