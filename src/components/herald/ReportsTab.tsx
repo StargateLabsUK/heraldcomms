@@ -62,6 +62,11 @@ export function ReportsTab({ reports }: ReportsTabProps) {
               className="w-full text-left p-3"
             >
               <div className="flex items-center gap-2 md:gap-3">
+                {expanded ? (
+                  <ChevronDown size={18} className="text-foreground opacity-50 flex-shrink-0" />
+                ) : (
+                  <ChevronRight size={18} className="text-foreground opacity-50 flex-shrink-0" />
+                )}
                 <span className="text-base md:text-xl">{emoji}</span>
                 <div className="flex-1 min-w-0">
                   <p className="truncate text-sm md:text-base text-foreground">
