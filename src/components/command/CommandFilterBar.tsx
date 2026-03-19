@@ -90,14 +90,15 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
 
       {open && (
         <div
-          className="absolute top-full right-0 mt-2 z-50 rounded-lg shadow-xl"
+          className="fixed left-0 right-0 z-50 shadow-xl"
           style={{
+            top: ref.current?.getBoundingClientRect().bottom ?? 0,
             background: '#0D1117',
-            border: '1px solid #0F1820',
-            padding: 16,
-            minWidth: 280,
+            borderBottom: '1px solid #0F1820',
+            padding: '16px 20px',
           }}
         >
+          <div className="flex flex-wrap gap-4 items-end">
           <div className="mb-4">
             <label style={labelStyle}>SERVICE</label>
             <select
