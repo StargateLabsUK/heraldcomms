@@ -229,28 +229,7 @@ export function LiveTab({
   }
 
   if (state === 'processing') {
-    return (
-      <div className="flex flex-col items-center justify-center flex-1">
-        <div
-          className="animate-spin-herald"
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: '50%',
-            border: '2px solid #0F1820',
-            borderTopColor: '#3DFF8C',
-          }}
-        />
-        <p style={{ fontSize: 10, color: '#1E3028', letterSpacing: '0.2em', marginTop: 16 }}>
-          RUNNING INTELLIGENCE ASSESSMENT
-        </p>
-        {transcript && (
-          <p style={{ fontSize: 12, color: '#2A4038', fontStyle: 'italic', marginTop: 12, textAlign: 'center', padding: '0 24px' }}>
-            {transcript}
-          </p>
-        )}
-      </div>
-    );
+    return <ProcessingView transcript={transcript} />;
   }
 
   if (state === 'ready' && assessment) {
