@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
-import { SERVICE_EMOJIS, PRIORITY_COLORS } from '@/lib/herald-types';
+import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
 
 interface Props {
   reports: CommandReport[];
