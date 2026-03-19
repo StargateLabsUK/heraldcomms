@@ -77,27 +77,17 @@ export function LiveTab({
   );
 
   const handleConfirm = useCallback(() => {
-    if (!assessment) return;
-    const report: HeraldReport = {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      transcript,
-      assessment,
-      synced: false,
-      confirmed_at: new Date().toISOString(),
-      headline: assessment.headline,
-      priority: assessment.priority,
-      service: assessment.service,
-    };
-    saveReport(report);
+    if (!assessment || !currentReportId) return;
+    updateReport(currentReportId, { confirmed_at: new Date().toISOString() });
     onReportSaved();
     setExternalState('confirmed');
-  }, [assessment, transcript, onReportSaved, setExternalState]);
+  }, [assessment, currentReportId, onReportSaved, setExternalState]);
 
   const handleDiscard = useCallback(() => {
     setExternalState('idle');
     setAssessment(null);
     setTranscript('');
+    setCurrentReportId(null);
   }, [setExternalState]);
 
   // Listen for audio triggers from outside
