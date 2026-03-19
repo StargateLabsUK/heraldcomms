@@ -137,28 +137,37 @@ export function LiveTab({
           </>
         ) : (
           <>
-            {/* Outer circle */}
-            <div
+            {/* Tap to record / stop */}
+            <button
+              onClick={() => {
+                if (isCapturing) {
+                  stopCapture();
+                } else {
+                  startCapture();
+                }
+              }}
               className="relative flex items-center justify-center"
-              style={{ width: 160, height: 160, borderRadius: '50%', border: '1px solid #1E3028' }}
+              style={{ width: 160, height: 160, borderRadius: '50%', border: `2px solid ${isCapturing ? '#FF3B30' : '#1E3028'}`, background: 'transparent' }}
             >
-              {/* Inner circle */}
               <div
-                className="flex flex-col items-center justify-center animate-breathe"
+                className={`flex flex-col items-center justify-center ${isCapturing ? 'animate-pulse' : 'animate-breathe'}`}
                 style={{
                   width: 90,
                   height: 90,
                   borderRadius: '50%',
-                  border: '1px solid rgba(61,255,140,0.15)',
+                  border: `1px solid ${isCapturing ? 'rgba(255,59,48,0.4)' : 'rgba(61,255,140,0.15)'}`,
+                  background: isCapturing ? 'radial-gradient(circle, rgba(255,59,48,0.1), transparent)' : 'transparent',
                 }}
               >
-                <span style={{ fontSize: 28 }}>🎙️</span>
-                <span style={{ fontSize: 9, color: '#3DFF8C', letterSpacing: '0.2em', marginTop: 4 }}>
-                  LISTENING
+                <span style={{ fontSize: 28 }}>{isCapturing ? '⏹️' : '🎙️'}</span>
+                <span style={{ fontSize: 9, color: isCapturing ? '#FF3B30' : '#3DFF8C', letterSpacing: '0.2em', marginTop: 4, fontWeight: 700 }}>
+                  {isCapturing ? 'STOP' : 'RECORD'}
                 </span>
               </div>
-            </div>
-            <p style={{ fontSize: 10, color: '#1E3028', marginTop: 16 }}>HERALD IS LISTENING</p>
+            </button>
+            <p style={{ fontSize: 10, color: isCapturing ? '#FF3B30' : '#1E3028', marginTop: 16 }}>
+              {isCapturing ? 'TAP TO STOP RECORDING' : 'TAP TO START RECORDING'}
+            </p>
           </>
         )}
 
