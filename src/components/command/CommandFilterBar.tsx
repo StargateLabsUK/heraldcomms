@@ -101,7 +101,7 @@ export function CommandFilterBar({ services, callsigns, onFilterChange }: Props)
             top: dropdownTop,
             background: '#0D1117',
             borderBottom: '1px solid #0F1820',
-            padding: '16px 20px',
+            padding: '28px 32px',
           }}
         >
           <div className="flex flex-wrap gap-4 items-end">
