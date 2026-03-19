@@ -208,7 +208,7 @@ export default function Command() {
     return (
       <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
-        
+
         <div className="flex flex-col flex-1 overflow-hidden p-3 gap-3">
           <div className="flex-shrink-0 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
             <CommandStatus
@@ -243,7 +243,7 @@ export default function Command() {
     return (
       <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
-        
+
         <div className="flex flex-col flex-1 overflow-hidden p-2 gap-2">
           <div className="relative flex-shrink-0 h-[40%] rounded-lg border border-border bg-card shadow-sm overflow-hidden">
             <ExpandButton expanded={false} onClick={() => toggleExpand('map')} />
@@ -268,7 +268,7 @@ export default function Command() {
   return (
     <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
       {topBar}
-      
+
       <div className="flex-1 overflow-hidden">
         {mobileTab === 'feed' && (
           <div className="h-full p-2">
