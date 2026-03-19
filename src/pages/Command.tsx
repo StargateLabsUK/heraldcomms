@@ -50,7 +50,7 @@ export default function Command() {
   };
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: '#080B10' }}>
+    <div className="flex flex-col h-screen bg-background">
       <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
 
       {!isMobile ? (
