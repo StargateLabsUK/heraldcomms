@@ -20,6 +20,8 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
   const getPriority = (r: CommandReport) => r.assessment?.priority ?? r.priority ?? 'P3';
   const getColor = (p: string) => PRIORITY_COLORS[p] ?? '#34C759';
   const getService = (r: CommandReport) => r.assessment?.service ?? r.service ?? 'unknown';
+  const getCallsign = (r: CommandReport) => r.assessment?.structured?.callsign ?? null;
+  const getIncident = (r: CommandReport) => r.assessment?.structured?.incident_number ?? null;
   const getHeadline = (r: CommandReport) => r.assessment?.headline ?? r.headline ?? 'No headline';
   const getTime = (r: CommandReport) => {
     const d = new Date(r.created_at ?? r.timestamp);
@@ -112,8 +114,18 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                     {p}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 mt-1.5">
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                   <span style={{ fontSize: 18, color: '#FFFFFF' }}>{getTime(r)}</span>
+                  {getCallsign(r) && (
+                    <span style={{ fontSize: 14, color: col, border: `1px solid ${col}66`, padding: '1px 8px', borderRadius: 2, fontWeight: 600 }}>
+                      {getCallsign(r)}
+                    </span>
+                  )}
+                  {getIncident(r) && (
+                    <span style={{ fontSize: 14, color: '#FFFFFF', border: '1px solid #0F1820', padding: '1px 8px', borderRadius: 2, fontWeight: 600 }}>
+                      #{getIncident(r)}
+                    </span>
+                  )}
                   {r.operator_id && (
                     <span style={{ fontSize: 18, color: '#FFFFFF' }}>{r.operator_id}</span>
                   )}
