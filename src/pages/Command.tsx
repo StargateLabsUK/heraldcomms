@@ -131,7 +131,7 @@ export default function Command() {
 
   // MOBILE
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
       <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
       <div className="flex-1 overflow-hidden">
         {mobileTab === 'feed' && (
