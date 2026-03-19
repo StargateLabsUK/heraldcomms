@@ -1,5 +1,5 @@
 import type { CommandReport } from '@/hooks/useHeraldCommand';
-import { SERVICE_EMOJIS } from '@/lib/herald-types';
+import { SERVICE_LABELS } from '@/lib/herald-types';
 
 interface Props {
   todayReports: CommandReport[];
