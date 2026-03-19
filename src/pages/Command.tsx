@@ -96,21 +96,6 @@ export default function Command() {
   const viewMode = useViewMode();
   const mapRef = useRef<MapTabHandle>(null);
 
-  // Auth gates (after all hooks)
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen" style={{ background: '#080B10' }}>
-        <div
-          className="animate-spin-herald rounded-full"
-          style={{ width: 32, height: 32, border: '2px solid #0F1820', borderTopColor: '#3DFF8C' }}
-        />
-      </div>
-    );
-  }
-  if (!authSession || !user) {
-    return <AuthScreen variant="command" onSignIn={signIn} />;
-  }
-
   const filteredReports = useMemo(() => applyFilters(reports, filters), [reports, filters]);
   const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
 
@@ -168,6 +153,21 @@ export default function Command() {
   const toggleExpand = useCallback((panel: ExpandedPanel) => {
     setExpandedPanel((prev) => (prev === panel ? null : panel));
   }, []);
+
+  // Auth gates (after all hooks)
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#080B10' }}>
+        <div
+          className="animate-spin-herald rounded-full"
+          style={{ width: 32, height: 32, border: '2px solid #0F1820', borderTopColor: '#3DFF8C' }}
+        />
+      </div>
+    );
+  }
+  if (!authSession || !user) {
+    return <AuthScreen variant="command" onSignIn={signIn} />;
+  }
 
   const mobileTabBtn = (id: MobileTab, label: string) => {
     const active = mobileTab === id;
