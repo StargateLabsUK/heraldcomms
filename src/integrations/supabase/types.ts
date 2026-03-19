@@ -39,6 +39,7 @@ export type Database = {
           synced: boolean | null
           timestamp: string
           transcript: string | null
+          user_id: string | null
         }
         Insert: {
           assessment?: Json | null
@@ -64,6 +65,7 @@ export type Database = {
           synced?: boolean | null
           timestamp: string
           transcript?: string | null
+          user_id?: string | null
         }
         Update: {
           assessment?: Json | null
@@ -89,6 +91,7 @@ export type Database = {
           synced?: boolean | null
           timestamp?: string
           transcript?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
