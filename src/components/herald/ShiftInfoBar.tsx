@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { HeraldSession } from '@/lib/herald-session';
 import { clearSession } from '@/lib/herald-session';
+import { SERVICE_LABELS } from '@/lib/herald-types';
 
 interface Props {
   session: HeraldSession;
