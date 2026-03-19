@@ -57,7 +57,7 @@ export default function Command() {
         <div className="flex flex-1 overflow-hidden">
           <div
             className="flex flex-col overflow-hidden"
-            style={{ width: '35%', borderRight: '1px solid #0F1820' }}
+            style={{ width: '35%', borderRight: '1px solid hsl(var(--border))' }}
           >
             <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
           </div>
