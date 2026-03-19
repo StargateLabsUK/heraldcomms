@@ -49,7 +49,7 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
         </span>
       </div>
 
-      <div className="hidden md:flex items-center gap-2">
+      <div className="hidden lg:flex items-center gap-2">
         {pill('P1', priorityCounts.P1, '#FF3B30')}
         {pill('P2', priorityCounts.P2, '#FF9500')}
         {pill('P3', priorityCounts.P3, '#34C759')}
