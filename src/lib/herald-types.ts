@@ -10,6 +10,9 @@ export interface HeraldReport {
   device_id?: string;
   priority?: string;
   service?: string;
+  lat?: number;
+  lng?: number;
+  accuracy?: number;
 }
 
 export interface Assessment {

@@ -5,6 +5,17 @@ import { transcribeAudio, assessTranscript } from '@/lib/herald-api';
 import { saveReport, updateReport } from '@/lib/herald-storage';
 import type { HeraldReport } from '@/lib/herald-types';
 
+function getLocation(): Promise<{ lat?: number; lng?: number; accuracy?: number }> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) return resolve({});
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      () => resolve({}),
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  });
+}
+
 interface LiveTabProps {
   onTrigger: () => void;
   onSilence: () => void;
@@ -63,6 +74,7 @@ export function LiveTab({
         setAssessment(result);
         onAiStatus('ok');
 
+        const loc = await getLocation();
         const report: HeraldReport = {
           id: crypto.randomUUID(),
           timestamp: new Date().toISOString(),
@@ -73,6 +85,7 @@ export function LiveTab({
           headline: result.headline,
           priority: result.priority,
           service: result.service,
+          ...loc,
         };
         saveReport(report);
         setCurrentReportId(report.id);
@@ -134,6 +147,7 @@ export function LiveTab({
             headline: result.headline,
             priority: result.priority,
             service: result.service,
+            ...(await getLocation()),
           };
           saveReport(report);
           setCurrentReportId(report.id);
