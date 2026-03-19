@@ -16,12 +16,15 @@ export type Database = {
     Tables: {
       herald_reports: {
         Row: {
+          accuracy: number | null
           assessment: Json | null
           confirmed_at: string | null
           created_at: string | null
           device_id: string | null
           headline: string | null
           id: string
+          lat: number | null
+          lng: number | null
           operator_id: string | null
           priority: string | null
           service: string | null
@@ -30,12 +33,15 @@ export type Database = {
           transcript: string | null
         }
         Insert: {
+          accuracy?: number | null
           assessment?: Json | null
           confirmed_at?: string | null
           created_at?: string | null
           device_id?: string | null
           headline?: string | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           operator_id?: string | null
           priority?: string | null
           service?: string | null
@@ -44,12 +50,15 @@ export type Database = {
           transcript?: string | null
         }
         Update: {
+          accuracy?: number | null
           assessment?: Json | null
           confirmed_at?: string | null
           created_at?: string | null
           device_id?: string | null
           headline?: string | null
           id?: string
+          lat?: number | null
+          lng?: number | null
           operator_id?: string | null
           priority?: string | null
           service?: string | null
