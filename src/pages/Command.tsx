@@ -183,7 +183,6 @@ export default function Command() {
     return (
       <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
-        
         <div className="flex-1 overflow-hidden p-3 relative">
           <ExpandButton expanded onClick={() => setExpandedPanel(null)} />
           <div className="h-full rounded-lg border border-border bg-card shadow-sm overflow-hidden">
