@@ -17,7 +17,7 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
   return (
     <button
       onClick={copy}
-      className="text-foreground border border-border px-3.5 py-1.5 rounded-sm bg-transparent cursor-pointer tracking-wide text-lg hover:border-primary transition-colors"
+      className="text-sm md:text-lg text-foreground border border-border px-3 py-1.5 rounded-sm bg-transparent cursor-pointer tracking-wide hover:border-primary transition-colors"
     >
       {copied ? 'COPIED' : label}
     </button>
