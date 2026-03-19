@@ -113,3 +113,8 @@
 .animate-spin-herald {
   animation: spin-herald 0.8s linear infinite;
 }
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}

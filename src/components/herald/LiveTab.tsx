@@ -6,6 +6,8 @@ import { saveReport, updateReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
 import type { HeraldReport } from '@/lib/herald-types';
 
+const MAX_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
 function getLocation(): Promise<{ lat?: number; lng?: number; location_accuracy?: number }> {
   return new Promise((resolve) => {
     if (!navigator.geolocation) return resolve({});
@@ -17,38 +19,47 @@ function getLocation(): Promise<{ lat?: number; lng?: number; location_accuracy?
   });
 }
 
-interface LiveTabProps {
-  onTrigger: () => void;
-  onSilence: () => void;
-  getAudioBase64: () => Promise<string | null>;
-  onAiStatus: (s: 'ok' | 'error') => void;
-  onReportSaved: () => void;
-  externalState?: LiveState;
-  setExternalState: (s: LiveState) => void;
-  micStatus: 'pending' | 'granted' | 'denied';
-  initMic: () => Promise<void>;
-  startCapture: () => void;
-  stopCapture: () => void;
-  isCapturing: boolean;
+function getSupportedMimeType(): string {
+  const types = ['audio/webm', 'audio/ogg', 'audio/wav'];
+  for (const t of types) {
+    if (MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return '';
 }
 
-export function LiveTab({
-  getAudioBase64,
-  onAiStatus,
-  onReportSaved,
-  externalState,
-  setExternalState,
-  micStatus,
-  initMic,
-  startCapture,
-  stopCapture,
-  isCapturing,
-}: LiveTabProps) {
-  const state = externalState || 'idle';
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.split(',')[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function formatDuration(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+  const s = (totalSec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+interface LiveTabProps {
+  onAiStatus: (s: 'ok' | 'error') => void;
+  onReportSaved: () => void;
+}
+
+export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
+  const [state, setState] = useState<LiveState>('idle');
   const [transcript, setTranscript] = useState('');
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [error, setError] = useState('');
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [capturedDuration, setCapturedDuration] = useState(0);
+  const [maxReached, setMaxReached] = useState(false);
 
   // Editable state
   const [editHeadline, setEditHeadline] = useState('');
@@ -57,6 +68,15 @@ export function LiveTab({
   const [editFormattedReport, setEditFormattedReport] = useState('');
   const [originalAssessment, setOriginalAssessment] = useState<Assessment | null>(null);
   const [hasEdits, setHasEdits] = useState(false);
+
+  // Recording refs
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const mimeTypeRef = useRef('');
+  const recordingStartRef = useRef(0);
+  const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize editable state when assessment arrives
   useEffect(() => {
@@ -69,14 +89,7 @@ export function LiveTab({
     }
   }, [assessment, state]);
 
-  // Track if edits exist
-  useEffect(() => {
-    if (!originalAssessment || !assessment) return;
-    const current = buildFinalAssessment();
-    const diff = computeDiff(originalAssessment, current);
-    setHasEdits(diff.has_edits);
-  }, [editHeadline, editStructured, editActions, editFormattedReport, originalAssessment]);
-
+  // Track edits
   const buildFinalAssessment = useCallback((): Assessment => {
     return {
       ...assessment!,
@@ -87,124 +100,94 @@ export function LiveTab({
     };
   }, [assessment, editHeadline, editStructured, editActions, editFormattedReport]);
 
-  const processTransmission = useCallback(
-    async (text: string, isTest: boolean) => {
-      setExternalState('triggered');
-      setError('');
-      setTranscript('');
-      setAssessment(null);
-      setCurrentReportId(null);
-      setOriginalAssessment(null);
-      setHasEdits(false);
-
-      await new Promise((r) => setTimeout(r, 300));
-      setExternalState('processing');
-
-      try {
-        let finalTranscript = text;
-        if (!isTest) {
-          await new Promise((r) => setTimeout(r, 400));
-          const audio = await getAudioBase64();
-          if (!audio) throw new Error('No audio');
-          finalTranscript = await transcribeAudio(audio);
-        }
-        setTranscript(finalTranscript);
-
-        const result = await assessTranscript(finalTranscript);
-        setAssessment(result);
-        onAiStatus('ok');
-
-        const loc = await getLocation();
-        const report: HeraldReport = {
-          id: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          transcript: finalTranscript,
-          assessment: result,
-          synced: false,
-          confirmed_at: null as unknown as string,
-          headline: result.headline,
-          priority: result.priority,
-          service: result.service,
-          ...loc,
-        };
-        saveReport(report);
-        setCurrentReportId(report.id);
-        onReportSaved();
-
-        await new Promise((r) => setTimeout(r, isTest ? 2000 : 500));
-        setExternalState('ready');
-      } catch {
-        onAiStatus('error');
-        setError('Intelligence assessment failed');
-        setTimeout(() => {
-          setError('');
-          setExternalState('idle');
-        }, 3000);
-      }
-    },
-    [getAudioBase64, onAiStatus, setExternalState, onReportSaved]
-  );
-
-  const handleConfirm = useCallback(() => {
-    if (!assessment || !currentReportId || !originalAssessment) return;
-    const finalAssessment = buildFinalAssessment();
-    const diff = computeDiff(originalAssessment, finalAssessment);
-
-    updateReport(currentReportId, {
-      confirmed_at: new Date().toISOString(),
-      assessment: finalAssessment as unknown as Assessment,
-      headline: finalAssessment.headline,
-      priority: finalAssessment.priority,
-      service: finalAssessment.service,
-    });
-
-    // Store extra fields in localStorage for sync
-    try {
-      const raw = localStorage.getItem('herald_reports');
-      if (raw) {
-        const reports = JSON.parse(raw);
-        const idx = reports.findIndex((r: any) => r.id === currentReportId);
-        if (idx !== -1) {
-          reports[idx].original_assessment = originalAssessment;
-          reports[idx].final_assessment = finalAssessment;
-          reports[idx].diff = diff;
-          reports[idx].edited = diff.has_edits;
-          localStorage.setItem('herald_reports', JSON.stringify(reports));
-        }
-      }
-    } catch { /* silent */ }
-
-    onReportSaved();
-    setExternalState('confirmed');
-  }, [assessment, currentReportId, onReportSaved, setExternalState, originalAssessment, buildFinalAssessment]);
-
-  const handleDiscard = useCallback(() => {
-    setExternalState('idle');
-    setAssessment(null);
-    setTranscript('');
-    setCurrentReportId(null);
-    setOriginalAssessment(null);
-    setHasEdits(false);
-  }, [setExternalState]);
-
-  const processAudioRef = useRef(processTransmission);
-  processAudioRef.current = processTransmission;
-
-  const hasStartedProcessing = useRef(false);
   useEffect(() => {
-    if (state === 'processing' && !hasStartedProcessing.current) {
-      hasStartedProcessing.current = true;
-      (async () => {
+    if (!originalAssessment || !assessment) return;
+    const current = buildFinalAssessment();
+    const diff = computeDiff(originalAssessment, current);
+    setHasEdits(diff.has_edits);
+  }, [editHeadline, editStructured, editActions, editFormattedReport, originalAssessment, assessment, buildFinalAssessment]);
+
+  // Auto-resize textarea
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [editFormattedReport]);
+
+  const cleanupRecording = useCallback(() => {
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current);
+      durationIntervalRef.current = null;
+    }
+    if (maxTimerRef.current) {
+      clearTimeout(maxTimerRef.current);
+      maxTimerRef.current = null;
+    }
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    try {
+      if (!streamRef.current) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+      }
+      const mime = getSupportedMimeType();
+      mimeTypeRef.current = mime;
+      const recorder = new MediaRecorder(streamRef.current, mime ? { mimeType: mime } : {});
+      mediaRecorderRef.current = recorder;
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.start(1000); // collect in 1s chunks
+      recordingStartRef.current = Date.now();
+      setRecordingDuration(0);
+      setMaxReached(false);
+
+      durationIntervalRef.current = setInterval(() => {
+        setRecordingDuration(Date.now() - recordingStartRef.current);
+      }, 200);
+
+      // Max duration auto-stop
+      maxTimerRef.current = setTimeout(() => {
+        setMaxReached(true);
+        setTimeout(() => stopRecordingAndProcess(), 1000);
+      }, MAX_DURATION_MS);
+
+      setState('recording');
+    } catch {
+      setError('Microphone access denied');
+      setTimeout(() => setError(''), 3000);
+    }
+  }, []);
+
+  const stopRecordingAndProcess = useCallback(async () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === 'inactive') return;
+
+    const duration = Date.now() - recordingStartRef.current;
+    setCapturedDuration(duration);
+    cleanupRecording();
+
+    return new Promise<void>((resolve) => {
+      recorder.onstop = async () => {
+        setState('processing');
         try {
-          const audio = await getAudioBase64();
-          if (!audio) throw new Error('No audio captured');
-          setTranscript('');
-          const t = await transcribeAudio(audio);
+          const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current || 'audio/webm' });
+          const base64 = await blobToBase64(blob);
+
+          const t = await transcribeAudio(base64);
           setTranscript(t);
+
           const result = await assessTranscript(t);
           setAssessment(result);
           onAiStatus('ok');
 
+          const loc = await getLocation();
           const report: HeraldReport = {
             id: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
@@ -215,114 +198,166 @@ export function LiveTab({
             headline: result.headline,
             priority: result.priority,
             service: result.service,
-            ...(await getLocation()),
+            ...loc,
           };
           saveReport(report);
           setCurrentReportId(report.id);
           onReportSaved();
-
-          setExternalState('ready');
+          setState('ready');
         } catch {
           onAiStatus('error');
           setError('Intelligence assessment failed');
           setTimeout(() => {
             setError('');
-            setExternalState('idle');
+            setState('idle');
           }, 3000);
-        } finally {
-          hasStartedProcessing.current = false;
         }
-      })();
-    }
-    if (state !== 'processing') {
-      hasStartedProcessing.current = false;
-    }
-  }, [state, getAudioBase64, onAiStatus, setExternalState, onReportSaved]);
+        resolve();
+      };
+      recorder.stop();
+    });
+  }, [cleanupRecording, onAiStatus, onReportSaved]);
 
-  // Auto-resize textarea ref
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
-    }
-  }, [editFormattedReport]);
+  const processTestTransmission = useCallback(async (text: string) => {
+    setState('processing');
+    setTranscript('');
+    setAssessment(null);
+    setCurrentReportId(null);
+    setOriginalAssessment(null);
+    setHasEdits(false);
+    setCapturedDuration(0);
+    setError('');
 
+    try {
+      setTranscript(text);
+      const result = await assessTranscript(text);
+      setAssessment(result);
+      onAiStatus('ok');
+
+      const loc = await getLocation();
+      const report: HeraldReport = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        transcript: text,
+        assessment: result,
+        synced: false,
+        confirmed_at: null as unknown as string,
+        headline: result.headline,
+        priority: result.priority,
+        service: result.service,
+        ...loc,
+      };
+      saveReport(report);
+      setCurrentReportId(report.id);
+      onReportSaved();
+      setState('ready');
+    } catch {
+      onAiStatus('error');
+      setError('Intelligence assessment failed');
+      setTimeout(() => {
+        setError('');
+        setState('idle');
+      }, 3000);
+    }
+  }, [onAiStatus, onReportSaved]);
+
+  const handleConfirm = useCallback(async () => {
+    if (!assessment || !currentReportId || !originalAssessment) return;
+    const finalAssessment = buildFinalAssessment();
+    const diff = computeDiff(originalAssessment, finalAssessment);
+
+    const loc = await getLocation();
+
+    updateReport(currentReportId, {
+      confirmed_at: new Date().toISOString(),
+      assessment: finalAssessment as unknown as Assessment,
+      headline: finalAssessment.headline,
+      priority: finalAssessment.priority,
+      service: finalAssessment.service,
+      ...loc,
+    });
+
+    // Store diff fields in localStorage
+    try {
+      const raw = localStorage.getItem('herald_reports');
+      if (raw) {
+        const reports = JSON.parse(raw);
+        const idx = reports.findIndex((r: any) => r.id === currentReportId);
+        if (idx !== -1) {
+          reports[idx].original_assessment = originalAssessment;
+          reports[idx].final_assessment = finalAssessment;
+          reports[idx].diff = diff;
+          reports[idx].edited = diff.has_edits;
+          if (loc.lat) reports[idx].lat = loc.lat;
+          if (loc.lng) reports[idx].lng = loc.lng;
+          if (loc.location_accuracy) reports[idx].location_accuracy = loc.location_accuracy;
+          localStorage.setItem('herald_reports', JSON.stringify(reports));
+        }
+      }
+    } catch { /* silent */ }
+
+    onReportSaved();
+    setState('confirmed');
+  }, [assessment, currentReportId, onReportSaved, originalAssessment, buildFinalAssessment]);
+
+  const handleDiscard = useCallback(() => {
+    setState('idle');
+    setAssessment(null);
+    setTranscript('');
+    setCurrentReportId(null);
+    setOriginalAssessment(null);
+    setHasEdits(false);
+  }, []);
+
+  // ─── STATE 1: IDLE ───
   if (state === 'idle') {
-    const micReady = micStatus === 'granted';
-
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-4 overflow-auto">
-        {!micReady ? (
-          <>
-            <button
-              onClick={initMic}
-              className="relative flex items-center justify-center w-32 h-32 md:w-40 md:h-40 rounded-full border border-foreground bg-transparent"
-            >
-              <div
-                className="flex flex-col items-center justify-center w-20 h-20 md:w-[90px] md:h-[90px] rounded-full"
-                style={{
-                  border: micStatus === 'denied' ? '1px solid rgba(255,59,48,0.3)' : '1px solid rgba(61,255,140,0.15)',
-                }}
-              >
-                <span className="text-2xl md:text-3xl">🎙️</span>
-                <span className="text-sm md:text-base tracking-[0.2em] mt-1" style={{ color: micStatus === 'denied' ? '#FF3B30' : 'hsl(var(--primary))' }}>
-                  {micStatus === 'denied' ? 'DENIED' : 'TAP'}
-                </span>
-              </div>
-            </button>
-            <p className="text-sm md:text-base mt-4" style={{ color: micStatus === 'denied' ? '#FF3B30' : 'hsl(var(--primary))' }}>
-              {micStatus === 'denied' ? 'MICROPHONE ACCESS DENIED' : 'TAP TO ENABLE MICROPHONE'}
-            </p>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => {
-                if (isCapturing) {
-                  stopCapture();
-                } else {
-                  startCapture();
-                }
-              }}
-              className="relative flex items-center justify-center w-32 h-32 md:w-40 md:h-40 rounded-full bg-transparent"
-              style={{ border: `2px solid ${isCapturing ? '#FF3B30' : 'hsl(var(--foreground))'}` }}
-            >
-              <div
-                className={`flex flex-col items-center justify-center w-20 h-20 md:w-[90px] md:h-[90px] rounded-full ${isCapturing ? 'animate-pulse' : 'animate-breathe'}`}
-                style={{
-                  border: `1px solid ${isCapturing ? 'rgba(255,59,48,0.4)' : 'rgba(61,255,140,0.15)'}`,
-                  background: isCapturing ? 'radial-gradient(circle, rgba(255,59,48,0.1), transparent)' : 'transparent',
-                }}
-              >
-                <span className="text-2xl md:text-3xl">{isCapturing ? '⏹️' : '🎙️'}</span>
-                <span className="text-sm md:text-base tracking-[0.2em] mt-1 font-bold" style={{ color: isCapturing ? '#FF3B30' : 'hsl(var(--primary))' }}>
-                  {isCapturing ? 'STOP' : 'RECORD'}
-                </span>
-              </div>
-            </button>
-            <p className="text-sm md:text-base mt-4" style={{ color: isCapturing ? '#FF3B30' : 'hsl(var(--foreground))' }}>
-              {isCapturing ? 'TAP TO STOP RECORDING' : 'TAP TO START RECORDING'}
-            </p>
-          </>
-        )}
+        {/* Main tap target */}
+        <button
+          onClick={startRecording}
+          className="relative flex items-center justify-center bg-transparent"
+          style={{ width: 160, height: 160, borderRadius: '50%', border: '1px solid #1E3028' }}
+        >
+          <div
+            className="flex flex-col items-center justify-center animate-breathe"
+            style={{
+              width: 90,
+              height: 90,
+              borderRadius: '50%',
+              border: '1px solid rgba(61,255,140,0.15)',
+            }}
+          >
+            <span style={{ fontSize: 28 }}>🎙️</span>
+            <span style={{ color: '#3DFF8C', fontSize: 9, letterSpacing: '0.2em', marginTop: 4, fontWeight: 700 }}>
+              READY
+            </span>
+          </div>
+        </button>
+
+        <p style={{ color: '#1E3028', fontSize: 10, letterSpacing: '0.2em', marginTop: 16, textAlign: 'center' }}>
+          TAP TO START RECORDING
+        </p>
 
         {error && (
-          <p className="text-sm md:text-base mt-2" style={{ color: '#FF9500' }}>{error}</p>
+          <p className="mt-2" style={{ color: '#FF9500', fontSize: 10, letterSpacing: '0.2em' }}>{error}</p>
         )}
 
         <div className="w-full max-w-lg mt-6 md:mt-8">
-          <p className="text-sm md:text-base text-foreground tracking-[0.1em] mb-2">
+          <p style={{ color: '#1E3028', fontSize: 9, letterSpacing: '0.25em', marginBottom: 8 }}>
             TEST TRANSMISSIONS
           </p>
           {TEST_TRANSMISSIONS.map((t, i) => (
             <button
               key={i}
-              onClick={() => processTransmission(t.text, true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                processTestTransmission(t.text);
+              }}
               className="w-full text-left p-3 mb-2 border border-border bg-transparent rounded-sm"
             >
               <span className="text-sm md:text-base text-foreground font-semibold">
-                {t.label}
+                {t.emoji} {t.label}
               </span>
               <p className="text-xs md:text-sm text-foreground mt-1 leading-relaxed line-clamp-2">
                 {t.text}
@@ -334,56 +369,128 @@ export function LiveTab({
     );
   }
 
-  if (state === 'triggered') {
+  // ─── STATE 2: RECORDING ───
+  if (state === 'recording') {
     return (
-      <div className="flex flex-col items-center justify-center flex-1">
-        <div className="relative flex items-center justify-center">
+      <div
+        className="flex flex-col items-center justify-center flex-1 px-4 cursor-pointer"
+        onClick={stopRecordingAndProcess}
+      >
+        {/* Top shimmer bar */}
+        <div
+          className="fixed top-0 left-0 right-0 z-50 overflow-hidden"
+          style={{ height: 2, background: 'rgba(255,59,48,0.2)' }}
+        >
           <div
-            className="absolute animate-pulse-ring w-32 h-32 md:w-40 md:h-40 rounded-full"
+            className="h-full"
+            style={{
+              width: '40%',
+              background: '#FF3B30',
+              animation: 'shimmer 1.5s ease-in-out infinite',
+            }}
+          />
+        </div>
+
+        {maxReached && (
+          <p className="mb-4" style={{ color: '#FF9500', fontSize: 10, letterSpacing: '0.2em', fontWeight: 700 }}>
+            MAX DURATION REACHED
+          </p>
+        )}
+
+        <div className="relative flex items-center justify-center" style={{ width: 160, height: 160 }}>
+          {/* Pulse ring */}
+          <div
+            className="absolute inset-0 rounded-full animate-pulse-ring"
             style={{ border: '2px solid #FF3B30' }}
           />
+          {/* Outer circle */}
           <div
-            className="flex flex-col items-center justify-center w-32 h-32 md:w-40 md:h-40 rounded-full"
+            className="absolute inset-0 rounded-full"
             style={{
+              border: '2px solid #FF3B30',
+              boxShadow: '0 0 40px rgba(255,59,48,0.2)',
+            }}
+          />
+          {/* Inner circle */}
+          <div
+            className="flex flex-col items-center justify-center"
+            style={{
+              width: 90,
+              height: 90,
+              borderRadius: '50%',
               border: '2px solid #FF3B30',
               background: 'radial-gradient(circle, rgba(255,59,48,0.12), transparent)',
             }}
           >
-            <span className="text-2xl md:text-3xl" style={{ filter: 'drop-shadow(0 0 8px #FF3B30)' }}>🎙️</span>
-            <span className="animate-pulse text-sm md:text-base tracking-[0.1em] font-bold mt-1" style={{ color: '#FF3B30' }}>
-              CAPTURING
+            <span style={{ fontSize: 32, filter: 'drop-shadow(0 0 8px #FF3B30)' }}>🎙️</span>
+            <span style={{ color: '#FF3B30', fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', marginTop: 2 }}>
+              RECORDING
             </span>
           </div>
         </div>
+
+        {/* Duration counter */}
+        <p
+          style={{
+            color: '#FF3B30',
+            fontSize: 12,
+            fontVariantNumeric: 'tabular-nums',
+            marginTop: 16,
+          }}
+        >
+          {formatDuration(recordingDuration)}
+        </p>
+
+        <p style={{ color: '#FF3B30', fontSize: 10, letterSpacing: '0.2em', marginTop: 8 }}>
+          TAP TO STOP AND PROCESS
+        </p>
       </div>
     );
   }
 
+  // ─── STATE 3: PROCESSING ───
   if (state === 'processing') {
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-4">
         <div
-          className="animate-spin-herald w-10 h-10 md:w-12 md:h-12 rounded-full"
+          className="animate-spin-herald rounded-full"
           style={{
-            border: '2px solid hsl(var(--border))',
-            borderTopColor: 'hsl(var(--primary))',
+            width: 48,
+            height: 48,
+            border: '2px solid #0F1820',
+            borderTopColor: '#3DFF8C',
           }}
         />
-        <p className="text-sm md:text-base text-foreground tracking-[0.2em] mt-4 text-center">
+        <p style={{ color: '#1E3028', fontSize: 10, letterSpacing: '0.2em', marginTop: 16, textAlign: 'center' }}>
           RUNNING INTELLIGENCE ASSESSMENT
         </p>
-        <p className="text-xs md:text-sm text-foreground mt-2 opacity-50 text-center">
-          THIS MAY TAKE 15-30 SECONDS
-        </p>
-        {transcript && (
-          <p className="text-sm md:text-base text-foreground italic mt-3 text-center px-4">
-            "{transcript}"
+        {capturedDuration > 0 && (
+          <p style={{ color: '#1E3028', fontSize: 9, marginTop: 8 }}>
+            CAPTURED: {formatDuration(capturedDuration)}
           </p>
+        )}
+        {transcript && (
+          <div
+            className="mt-4 mx-4 max-w-md"
+            style={{
+              border: '1px solid #0F1820',
+              padding: 12,
+              borderRadius: 4,
+            }}
+          >
+            <p className="line-clamp-3 text-center" style={{ color: '#2A4038', fontSize: 12, fontStyle: 'italic' }}>
+              "{transcript}"
+            </p>
+          </div>
+        )}
+        {error && (
+          <p className="mt-2" style={{ color: '#FF9500', fontSize: 10 }}>{error}</p>
         )}
       </div>
     );
   }
 
+  // ─── STATE 4: READY ───
   if (state === 'ready' && assessment) {
     const pc = PRIORITY_COLORS[assessment.priority] || 'hsl(var(--foreground))';
     const emoji = SERVICE_EMOJIS[assessment.service] || '📻';
@@ -393,33 +500,20 @@ export function LiveTab({
         {/* Priority banner */}
         <div
           className="flex items-center justify-between px-3 md:px-4 flex-shrink-0 py-3 md:py-4"
-          style={{
-            background: `${pc}1F`,
-            borderBottom: `2px solid ${pc}`,
-          }}
+          style={{ background: `${pc}1F`, borderBottom: `2px solid ${pc}` }}
         >
-          <div>
-            <div className="flex items-baseline gap-2 md:gap-3">
-              <span className="text-2xl md:text-4xl">{emoji}</span>
-              <span className="font-heading text-3xl md:text-5xl" style={{ color: pc }}>
-                {assessment.priority}
-              </span>
-              <span className="font-heading text-lg md:text-[28px]" style={{ color: pc }}>
-                {assessment.priority_label}
-              </span>
-            </div>
+          <div className="flex items-baseline gap-2 md:gap-3">
+            <span className="text-2xl md:text-4xl">{emoji}</span>
+            <span className="font-heading text-3xl md:text-5xl" style={{ color: pc }}>{assessment.priority}</span>
+            <span className="font-heading text-lg md:text-[28px]" style={{ color: pc }}>{assessment.priority_label}</span>
           </div>
-          <span className="text-sm md:text-base text-foreground uppercase font-bold">
-            {assessment.service}
-          </span>
+          <span className="text-sm md:text-base text-foreground uppercase font-bold">{assessment.service}</span>
         </div>
 
         {/* Edited indicator */}
         {hasEdits && (
           <div className="mx-3 md:mx-4 mt-2 flex items-center gap-1">
-            <span style={{ fontSize: '9px', color: '#FF9500', letterSpacing: '0.2em', fontWeight: 700 }}>
-              ✏️ EDITED
-            </span>
+            <span style={{ fontSize: 9, color: '#FF9500', letterSpacing: '0.2em', fontWeight: 700 }}>✏️ EDITED</span>
           </div>
         )}
 
@@ -430,24 +524,16 @@ export function LiveTab({
             onChange={(e) => setEditHeadline(e.target.value)}
             placeholder="Tap to edit"
             className="w-full bg-transparent text-sm md:text-base text-foreground leading-relaxed p-3 md:p-4 resize-none outline-none"
-            style={{
-              minHeight: '48px',
-            }}
-            onFocus={(e) => {
-              (e.target as HTMLTextAreaElement).style.background = 'rgba(61,255,140,0.04)';
-              (e.target as HTMLTextAreaElement).style.borderColor = 'rgba(61,255,140,0.2)';
-            }}
-            onBlur={(e) => {
-              (e.target as HTMLTextAreaElement).style.background = 'transparent';
-              (e.target as HTMLTextAreaElement).style.borderColor = '';
-            }}
+            style={{ minHeight: 48 }}
+            onFocus={(e) => { e.currentTarget.style.background = 'rgba(61,255,140,0.04)'; }}
+            onBlur={(e) => { e.currentTarget.style.background = 'transparent'; }}
             rows={2}
           />
         </div>
 
         {/* Two column grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mx-3 md:mx-4 mt-3">
-          {/* Protocol fields — editable values */}
+          {/* Protocol fields */}
           <div>
             <p className="text-xs md:text-sm font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
@@ -461,19 +547,15 @@ export function LiveTab({
                     className="w-full bg-transparent text-sm md:text-base text-foreground outline-none py-0.5"
                     style={{ borderBottom: '1px solid transparent' }}
                     placeholder="Tap to edit"
-                    onFocus={(e) => {
-                      (e.target as HTMLInputElement).style.borderBottom = '1px solid rgba(61,255,140,0.3)';
-                    }}
-                    onBlur={(e) => {
-                      (e.target as HTMLInputElement).style.borderBottom = '1px solid transparent';
-                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderBottom = '1px solid transparent'; }}
                   />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Actions — editable with add/remove */}
+          {/* Actions */}
           <div>
             <p className="text-xs md:text-sm font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>IMMEDIATE ACTIONS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
@@ -490,29 +572,21 @@ export function LiveTab({
                     }}
                     className="flex-1 bg-transparent text-sm md:text-base text-foreground outline-none"
                     style={{ borderBottom: '1px solid transparent' }}
-                    onFocus={(e) => {
-                      (e.target as HTMLInputElement).style.borderBottom = '1px solid rgba(61,255,140,0.3)';
-                    }}
-                    onBlur={(e) => {
-                      (e.target as HTMLInputElement).style.borderBottom = '1px solid transparent';
-                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderBottom = '1px solid transparent'; }}
                   />
                   <button
                     onClick={() => setEditActions(editActions.filter((_, idx) => idx !== i))}
                     className="text-xs opacity-50 hover:opacity-100 flex-shrink-0 mt-0.5"
                     style={{ color: '#FF3B30' }}
-                  >
-                    ✕
-                  </button>
+                  >✕</button>
                 </div>
               ))}
               <button
                 onClick={() => setEditActions([...editActions, ''])}
                 className="text-xs mt-2 px-2 py-1 rounded-sm"
                 style={{ color: 'hsl(var(--primary))', border: '1px solid rgba(61,255,140,0.2)' }}
-              >
-                + ADD ACTION
-              </button>
+              >+ ADD ACTION</button>
               {assessment.transmit_to && (
                 <>
                   <div className="border-t border-border my-2" />
@@ -534,13 +608,9 @@ export function LiveTab({
               value={editFormattedReport}
               onChange={(e) => setEditFormattedReport(e.target.value)}
               className="w-full bg-transparent text-sm md:text-base text-foreground leading-7 whitespace-pre-wrap p-3 md:p-4 resize-none outline-none"
-              style={{ minHeight: '100px' }}
-              onFocus={(e) => {
-                (e.target as HTMLTextAreaElement).style.background = 'rgba(61,255,140,0.04)';
-              }}
-              onBlur={(e) => {
-                (e.target as HTMLTextAreaElement).style.background = 'transparent';
-              }}
+              style={{ minHeight: 100 }}
+              onFocus={(e) => { e.currentTarget.style.background = 'rgba(61,255,140,0.04)'; }}
+              onBlur={(e) => { e.currentTarget.style.background = 'transparent'; }}
             />
           </div>
         </div>
@@ -550,7 +620,7 @@ export function LiveTab({
           <p className="text-xs md:text-sm font-bold text-foreground tracking-[0.1em] mb-2">RAW TRANSMISSION</p>
           <div className="p-3 md:p-4 border border-border rounded bg-card">
             <p className="text-sm md:text-base text-foreground italic">"{transcript}"</p>
-            {assessment.confidence && (
+            {assessment.confidence != null && (
               <p className="text-sm md:text-base text-foreground mt-2 opacity-70">
                 Confidence: {Math.round(assessment.confidence * 100)}%
               </p>
@@ -563,9 +633,7 @@ export function LiveTab({
           <button
             onClick={handleDiscard}
             className="flex-1 font-heading py-3 md:py-4 bg-transparent border border-border text-foreground text-sm md:text-base font-bold rounded-sm"
-          >
-            DISCARD
-          </button>
+          >DISCARD</button>
           <button
             onClick={handleConfirm}
             className="font-heading py-3 md:py-4 text-base md:text-lg font-bold rounded-sm"
@@ -576,28 +644,25 @@ export function LiveTab({
               color: pc,
               boxShadow: `0 0 24px ${pc}33`,
             }}
-          >
-            ✦ HERALD
-          </button>
+          >✦ HERALD</button>
         </div>
       </div>
     );
   }
 
+  // ─── STATE 5: CONFIRMED ───
   if (state === 'confirmed') {
     return (
       <div className="flex flex-col items-center justify-center flex-1 px-4">
         <button
-          onClick={() => setExternalState('idle')}
+          onClick={() => setState('idle')}
           className="w-full max-w-xs font-heading py-3 md:py-4 text-sm md:text-base font-bold rounded-sm"
           style={{
             background: 'rgba(61,255,140,0.06)',
             border: '1px solid rgba(61,255,140,0.2)',
             color: 'hsl(var(--primary))',
           }}
-        >
-          ✓ HERALDED — RETURN TO LISTEN
-        </button>
+        >✓ HERALDED — RETURN TO LISTEN</button>
       </div>
     );
   }
