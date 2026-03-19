@@ -11,11 +11,11 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
         onClick={() => onTabChange(id)}
         className="flex-1 h-14 font-heading text-sm tracking-widest"
         style={{
-          color: active ? '#3DFF8C' : '#1E3028',
+          color: active ? '#3DFF8C' : '#FFFFFF',
           borderBottom: active ? '2px solid #3DFF8C' : '2px solid transparent',
           fontWeight: 700,
           background: 'transparent',
-          fontSize: 13,
+          fontSize: 18,
         }}
       >
         {label}

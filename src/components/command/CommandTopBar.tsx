@@ -31,7 +31,7 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
         borderRadius: 2,
       }}
     >
-      <span style={{ fontSize: 11, fontWeight: 700, color, fontFamily: 'IBM Plex Mono, monospace' }}>
+      <span style={{ fontSize: 18, fontWeight: 700, color }}>
         {label} · {count}
       </span>
     </div>
@@ -44,10 +44,10 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
     >
       {/* Left */}
       <div className="flex flex-col">
-        <span className="font-heading" style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '0.08em' }}>
+        <span className="font-heading" style={{ fontSize: 24, color: '#fff', letterSpacing: '0.08em' }}>
           HERALD COMMAND
         </span>
-        <span style={{ fontSize: 9, color: '#1E3028', letterSpacing: '0.05em' }}>
+        <span style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.05em' }}>
           REAL-TIME FIELD INTELLIGENCE
         </span>
       </div>
@@ -69,11 +69,11 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
               animation: connected ? 'breathe 2s ease-in-out infinite' : 'none',
             }}
           />
-          <span style={{ fontSize: 9, color: connected ? '#3DFF8C' : '#FF3B30', letterSpacing: '0.05em' }}>
+          <span style={{ fontSize: 18, color: connected ? '#3DFF8C' : '#FF3B30', letterSpacing: '0.05em' }}>
             {connected ? 'LIVE' : 'OFFLINE'}
           </span>
         </div>
-        <span className="font-mono" style={{ fontSize: 11, color: '#3A5048' }}>{utc}</span>
+        <span style={{ fontSize: 18, color: '#FFFFFF' }}>{utc}</span>
       </div>
     </div>
   );

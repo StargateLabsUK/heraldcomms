@@ -36,10 +36,10 @@ export default function Command() {
         onClick={() => setMobileTab(id)}
         className="flex-1 h-12 font-heading"
         style={{
-          fontSize: 13,
+          fontSize: 18,
           fontWeight: 700,
           letterSpacing: '0.08em',
-          color: active ? '#3DFF8C' : '#1E3028',
+          color: active ? '#3DFF8C' : '#FFFFFF',
           borderTop: active ? '2px solid #3DFF8C' : '2px solid transparent',
           background: 'transparent',
         }}
@@ -53,10 +53,8 @@ export default function Command() {
     <div className="flex flex-col h-screen" style={{ background: '#080B10' }}>
       <CommandTopBar priorityCounts={priorityCounts} connected={connected} />
 
-      {/* Desktop 3-col */}
       {!isMobile ? (
         <div className="flex flex-1 overflow-hidden">
-          {/* Left 35% */}
           <div
             className="flex flex-col overflow-hidden"
             style={{ width: '35%', borderRight: '1px solid #0F1820' }}
@@ -64,7 +62,6 @@ export default function Command() {
             <IncomingFeed reports={reports} selectedId={selectedId} onSelect={handleSelect} />
           </div>
 
-          {/* Centre 40% */}
           <div
             className="flex flex-col overflow-hidden"
             style={{ width: '40%', borderRight: '1px solid #0F1820' }}
@@ -72,7 +69,6 @@ export default function Command() {
             <ReportDetail report={selectedReport} />
           </div>
 
-          {/* Right 25% */}
           <div className="flex flex-col overflow-hidden" style={{ width: '25%' }}>
             <CommandStatus
               todayReports={todayReports}
@@ -84,7 +80,6 @@ export default function Command() {
           </div>
         </div>
       ) : (
-        /* Mobile tabbed */
         <>
           <div className="flex-1 overflow-hidden">
             {mobileTab === 'feed' && (

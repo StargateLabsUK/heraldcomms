@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,25 +7,25 @@
 @layer base {
   :root {
     --background: 216 33% 5%;
-    --foreground: 150 8% 77%;
+    --foreground: 0 0% 100%;
 
     --card: 215 30% 7%;
-    --card-foreground: 150 8% 77%;
+    --card-foreground: 0 0% 100%;
 
     --popover: 215 30% 7%;
-    --popover-foreground: 150 8% 77%;
+    --popover-foreground: 0 0% 100%;
 
     --primary: 147 100% 62%;
     --primary-foreground: 216 33% 5%;
 
     --secondary: 160 15% 14%;
-    --secondary-foreground: 150 8% 77%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 160 15% 27%;
-    --muted-foreground: 160 12% 40%;
+    --muted-foreground: 0 0% 100%;
 
     --accent: 160 15% 14%;
-    --accent-foreground: 150 8% 77%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 100% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -39,9 +39,9 @@
     --herald-bg: #080B10;
     --herald-surface: #0D1117;
     --herald-border: #0F1820;
-    --herald-text: #C8D0CC;
-    --herald-muted: #3A5048;
-    --herald-dim: #1E3028;
+    --herald-text: #FFFFFF;
+    --herald-muted: #FFFFFF;
+    --herald-dim: #FFFFFF;
     --herald-green: #3DFF8C;
     --herald-red: #FF3B30;
     --herald-amber: #FF9500;
@@ -65,7 +65,8 @@
   body {
     background: var(--herald-bg);
     color: var(--herald-text);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior: none;
@@ -77,11 +78,12 @@
 
 @layer utilities {
   .font-heading {
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
   }
 
   .font-mono {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Inter', sans-serif;
   }
 }
 
