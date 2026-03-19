@@ -54,6 +54,9 @@ const Index = () => {
             setExternalState={setLiveState}
             micStatus={micStatus}
             initMic={initMic}
+            startCapture={startCapture}
+            stopCapture={stopCapture}
+            isCapturing={isCapturing}
           />
         ) : (
           <ReportsTab reports={reports} />
