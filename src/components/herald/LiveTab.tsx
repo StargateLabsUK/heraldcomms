@@ -15,6 +15,9 @@ interface LiveTabProps {
   setExternalState: (s: LiveState) => void;
   micStatus: 'pending' | 'granted' | 'denied';
   initMic: () => Promise<void>;
+  startCapture: () => void;
+  stopCapture: () => void;
+  isCapturing: boolean;
 }
 
 export function LiveTab({
@@ -25,6 +28,9 @@ export function LiveTab({
   setExternalState,
   micStatus,
   initMic,
+  startCapture,
+  stopCapture,
+  isCapturing,
 }: LiveTabProps) {
   const state = externalState || 'idle';
   const [transcript, setTranscript] = useState('');
@@ -97,6 +103,39 @@ export function LiveTab({
   const processAudioRef = useRef(processTransmission);
   processAudioRef.current = processTransmission;
 
+  // When mic recording stops (state goes to 'processing'), run transcription + assessment
+  const hasStartedProcessing = useRef(false);
+  useEffect(() => {
+    if (state === 'processing' && !hasStartedProcessing.current) {
+      hasStartedProcessing.current = true;
+      (async () => {
+        try {
+          const audio = await getAudioBase64();
+          if (!audio) throw new Error('No audio captured');
+          setTranscript('');
+          const t = await transcribeAudio(audio);
+          setTranscript(t);
+          const result = await assessTranscript(t);
+          setAssessment(result);
+          onAiStatus('ok');
+          setExternalState('ready');
+        } catch {
+          onAiStatus('error');
+          setError('Intelligence assessment failed');
+          setTimeout(() => {
+            setError('');
+            setExternalState('idle');
+          }, 3000);
+        } finally {
+          hasStartedProcessing.current = false;
+        }
+      })();
+    }
+    if (state !== 'processing') {
+      hasStartedProcessing.current = false;
+    }
+  }, [state, getAudioBase64, onAiStatus, setExternalState]);
+
   if (state === 'idle') {
     const micReady = micStatus === 'granted';
 
@@ -131,28 +170,37 @@ export function LiveTab({
           </>
         ) : (
           <>
-            {/* Outer circle */}
-            <div
+            {/* Tap to record / stop */}
+            <button
+              onClick={() => {
+                if (isCapturing) {
+                  stopCapture();
+                } else {
+                  startCapture();
+                }
+              }}
               className="relative flex items-center justify-center"
-              style={{ width: 160, height: 160, borderRadius: '50%', border: '1px solid #1E3028' }}
+              style={{ width: 160, height: 160, borderRadius: '50%', border: `2px solid ${isCapturing ? '#FF3B30' : '#1E3028'}`, background: 'transparent' }}
             >
-              {/* Inner circle */}
               <div
-                className="flex flex-col items-center justify-center animate-breathe"
+                className={`flex flex-col items-center justify-center ${isCapturing ? 'animate-pulse' : 'animate-breathe'}`}
                 style={{
                   width: 90,
                   height: 90,
                   borderRadius: '50%',
-                  border: '1px solid rgba(61,255,140,0.15)',
+                  border: `1px solid ${isCapturing ? 'rgba(255,59,48,0.4)' : 'rgba(61,255,140,0.15)'}`,
+                  background: isCapturing ? 'radial-gradient(circle, rgba(255,59,48,0.1), transparent)' : 'transparent',
                 }}
               >
-                <span style={{ fontSize: 28 }}>🎙️</span>
-                <span style={{ fontSize: 9, color: '#3DFF8C', letterSpacing: '0.2em', marginTop: 4 }}>
-                  LISTENING
+                <span style={{ fontSize: 28 }}>{isCapturing ? '⏹️' : '🎙️'}</span>
+                <span style={{ fontSize: 9, color: isCapturing ? '#FF3B30' : '#3DFF8C', letterSpacing: '0.2em', marginTop: 4, fontWeight: 700 }}>
+                  {isCapturing ? 'STOP' : 'RECORD'}
                 </span>
               </div>
-            </div>
-            <p style={{ fontSize: 10, color: '#1E3028', marginTop: 16 }}>HERALD IS LISTENING</p>
+            </button>
+            <p style={{ fontSize: 10, color: isCapturing ? '#FF3B30' : '#1E3028', marginTop: 16 }}>
+              {isCapturing ? 'TAP TO STOP RECORDING' : 'TAP TO START RECORDING'}
+            </p>
           </>
         )}
 

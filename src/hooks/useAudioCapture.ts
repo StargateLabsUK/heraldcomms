@@ -6,6 +6,7 @@ interface UseAudioCaptureReturn {
   isCapturing: boolean;
   initMic: () => Promise<void>;
   startCapture: () => void;
+  stopCapture: () => void;
   getAudioBase64: () => Promise<string | null>;
   rmsLevel: number;
 }
@@ -100,6 +101,14 @@ export function useAudioCapture(
     setIsCapturing(true);
   }, []);
 
+  const stopCapture = useCallback(() => {
+    if (capturingRef.current) {
+      capturingRef.current = false;
+      setIsCapturing(false);
+      onSilence();
+    }
+  }, [onSilence]);
+
   const getAudioBase64 = useCallback(async () => {
     if (capturedRef.current.length === 0) return null;
     const total = capturedRef.current.reduce((a, b) => a + b.length, 0);
@@ -114,5 +123,5 @@ export function useAudioCapture(
     return blobToBase64(wav);
   }, []);
 
-  return { micStatus, isCapturing, initMic, startCapture, getAudioBase64, rmsLevel };
+  return { micStatus, isCapturing, initMic, startCapture, stopCapture, getAudioBase64, rmsLevel };
 }

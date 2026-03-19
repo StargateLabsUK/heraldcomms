@@ -23,7 +23,7 @@ const Index = () => {
     setLiveState('processing');
   }, []);
 
-  const { micStatus, initMic, getAudioBase64 } = useAudioCapture(onTrigger, onSilence);
+  const { micStatus, initMic, getAudioBase64, startCapture, stopCapture, isCapturing } = useAudioCapture(onTrigger, onSilence);
 
   // Don't auto-init — require user gesture for mic access
 
@@ -54,6 +54,9 @@ const Index = () => {
             setExternalState={setLiveState}
             micStatus={micStatus}
             initMic={initMic}
+            startCapture={startCapture}
+            stopCapture={stopCapture}
+            isCapturing={isCapturing}
           />
         ) : (
           <ReportsTab reports={reports} />
