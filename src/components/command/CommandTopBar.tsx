@@ -7,7 +7,7 @@ interface Props {
   onSignOut?: () => void;
 }
 
-export function CommandTopBar({ priorityCounts, connected, filterSlot }: Props) {
+export function CommandTopBar({ priorityCounts, connected, filterSlot, onSignOut }: Props) {
   const [utc, setUtc] = useState('');
 
   useEffect(() => {
