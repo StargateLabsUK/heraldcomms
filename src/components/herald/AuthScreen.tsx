@@ -19,7 +19,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 const labelStyle: React.CSSProperties = {
-  color: '#1E3028',
+  color: '#FFFFFF',
   fontSize: 9,
   letterSpacing: '0.2em',
   marginBottom: 6,
