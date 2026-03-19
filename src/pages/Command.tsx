@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import * as React from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { useHeraldCommand } from '@/hooks/useHeraldCommand';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthScreen } from '@/components/herald/AuthScreen';
 import { CommandTopBar } from '@/components/command/CommandTopBar';
 import { IncomingFeed } from '@/components/command/IncomingFeed';
 import { ReportDetail } from '@/components/command/ReportDetail';
