@@ -20,8 +20,8 @@ function Divider() {
 function Row({ left, right, color }: { left: React.ReactNode; right: React.ReactNode; color?: string }) {
   return (
     <div className="flex items-center justify-between py-1">
-      <span style={{ fontSize: 11, color: color ?? '#4A6058' }}>{left}</span>
-      <span style={{ fontSize: 11, color: color ?? '#4A6058', fontWeight: 700 }}>{right}</span>
+      <span style={{ fontSize: 18, color: color ?? '#FFFFFF' }}>{left}</span>
+      <span style={{ fontSize: 18, color: color ?? '#FFFFFF', fontWeight: 700 }}>{right}</span>
     </div>
   );
 }
@@ -42,10 +42,10 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
     <div className="h-full overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
       {/* Today's Activity */}
       <Section>
-        <div className="font-heading" style={{ fontSize: 48, color: '#C8D0CC', fontWeight: 700 }}>
+        <div className="font-heading" style={{ fontSize: 48, color: '#FFFFFF', fontWeight: 700 }}>
           {todayReports.length}
         </div>
-        <div style={{ fontSize: 9, color: '#1E3028', letterSpacing: '0.25em', marginBottom: 10 }}>
+        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 10 }}>
           TRANSMISSIONS TODAY
         </div>
         <Row left="P1" right={priorityCounts.P1} color="#FF3B30" />
@@ -57,7 +57,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
 
       {/* By Service */}
       <Section>
-        <div style={{ fontSize: 9, color: '#1E3028', letterSpacing: '0.25em', marginBottom: 8 }}>
+        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 8 }}>
           BY SERVICE
         </div>
         {Object.entries(serviceCounts).map(([s, c]) => (
@@ -68,7 +68,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
           />
         ))}
         {Object.keys(serviceCounts).length === 0 && (
-          <span style={{ fontSize: 10, color: '#1E3028' }}>No reports today</span>
+          <span style={{ fontSize: 18, color: '#FFFFFF' }}>No reports today</span>
         )}
       </Section>
 
@@ -76,11 +76,11 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
 
       {/* Recent Timeline */}
       <Section>
-        <div style={{ fontSize: 9, color: '#1E3028', letterSpacing: '0.25em', marginBottom: 8 }}>
+        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 8 }}>
           RECENT TIMELINE
         </div>
         {recent.length === 0 ? (
-          <span style={{ fontSize: 10, color: '#1E3028' }}>No recent activity</span>
+          <span style={{ fontSize: 18, color: '#FFFFFF' }}>No recent activity</span>
         ) : (
           recent.map((r) => {
             const p = r.assessment?.priority ?? r.priority ?? 'P3';
@@ -90,12 +90,12 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
             const h = (r.assessment?.headline ?? r.headline ?? '').slice(0, 30);
             return (
               <div key={r.id} className="flex items-center gap-2 py-1">
-                <span style={{ fontSize: 10, color: '#1E3028', width: 42, flexShrink: 0 }}>{t}</span>
+                <span style={{ fontSize: 18, color: '#FFFFFF', width: 60, flexShrink: 0 }}>{t}</span>
                 <div
                   className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{ backgroundColor: getColor(p) }}
                 />
-                <span className="truncate" style={{ fontSize: 11, color: '#4A6058' }}>{h}</span>
+                <span className="truncate" style={{ fontSize: 18, color: '#FFFFFF' }}>{h}</span>
               </div>
             );
           })
@@ -106,7 +106,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
 
       {/* System Status */}
       <Section>
-        <div style={{ fontSize: 9, color: '#1E3028', letterSpacing: '0.25em', marginBottom: 8 }}>
+        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 8 }}>
           SYSTEM STATUS
         </div>
         <Row left="FIELD DEVICES" right={<span>{uniqueDevices} ACTIVE</span>} />

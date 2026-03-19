@@ -31,22 +31,21 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-3 pt-3 pb-2 flex-shrink-0">
-        <div style={{ fontSize: 9, color: '#1E3028', letterSpacing: '0.25em', marginBottom: 8 }}>
+        <div style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.25em', marginBottom: 8 }}>
           INCOMING TRANSMISSIONS
         </div>
         <div className="flex gap-1">
           {FILTERS.map((f) => {
             const active = filter === f;
-            const col = f === 'ALL' ? '#3A5048' : getColor(f);
+            const col = f === 'ALL' ? '#FFFFFF' : getColor(f);
             return (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 style={{
-                  fontSize: 10,
+                  fontSize: 18,
                   fontWeight: 700,
-                  fontFamily: 'IBM Plex Mono, monospace',
-                  color: active ? col : '#1E3028',
+                  color: active ? col : '#FFFFFF',
                   border: `1px solid ${active ? col : '#0F1820'}`,
                   background: 'transparent',
                   padding: '3px 10px',
@@ -67,7 +66,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2">
             <span className="animate-breathe" style={{ fontSize: 32 }}>📻</span>
-            <span style={{ fontSize: 10, color: '#1E3028', letterSpacing: '0.2em' }}>AWAITING TRANSMISSIONS</span>
+            <span style={{ fontSize: 18, color: '#FFFFFF', letterSpacing: '0.2em' }}>AWAITING TRANSMISSIONS</span>
           </div>
         ) : (
           filtered.map((r) => {
@@ -93,16 +92,16 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 16 }}>{SERVICE_EMOJIS[getService(r)] ?? '📻'}</span>
+                  <span style={{ fontSize: 18 }}>{SERVICE_EMOJIS[getService(r)] ?? '📻'}</span>
                   <span
                     className="flex-1 truncate"
-                    style={{ fontSize: 12, color: '#8A9890' }}
+                    style={{ fontSize: 18, color: '#FFFFFF' }}
                   >
                     {getHeadline(r)}
                   </span>
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: 18,
                       fontWeight: 700,
                       color: col,
                       border: `1px solid ${col}66`,
@@ -114,9 +113,9 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                   </span>
                 </div>
                 <div className="flex items-center gap-3 mt-1.5">
-                  <span style={{ fontSize: 10, color: '#1E3028' }}>{getTime(r)}</span>
+                  <span style={{ fontSize: 18, color: '#FFFFFF' }}>{getTime(r)}</span>
                   {r.operator_id && (
-                    <span style={{ fontSize: 10, color: '#1E3028' }}>{r.operator_id}</span>
+                    <span style={{ fontSize: 18, color: '#FFFFFF' }}>{r.operator_id}</span>
                   )}
                 </div>
               </button>
