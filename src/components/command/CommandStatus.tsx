@@ -31,7 +31,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
           <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
             TODAY
           </div>
-          <div className="font-heading text-4xl md:text-6xl text-foreground font-bold leading-none flex-1 flex items-center justify-center">
+          <div className="font-heading text-4xl md:text-6xl text-foreground font-bold leading-none text-center mt-1">
             {todayReports.length}
           </div>
         </div>
