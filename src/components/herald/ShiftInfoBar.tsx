@@ -37,41 +37,23 @@ export function ShiftInfoBar({ session, onEndShift, onSignOut, position }: Props
             {session.station}
           </span>
         )}
-        <div className="flex items-center gap-3 mt-2">
-          <button
-            onClick={() => setConfirming('shift')}
-            style={{
-              padding: '8px 24px',
-              background: '#FF3B30',
-              color: '#FFFFFF',
-              fontSize: 18,
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              border: 'none',
-              borderRadius: 3,
-              cursor: 'pointer',
-            }}
-          >
-            END SHIFT
-          </button>
-          {onSignOut && (
-            <button
-              onClick={() => setConfirming('signout')}
-              style={{
-                color: '#1E3028',
-                fontSize: 9,
-                border: '1px solid #0F1820',
-                padding: '3px 10px',
-                borderRadius: 2,
-                background: 'transparent',
-                cursor: 'pointer',
-                letterSpacing: '0.1em',
-              }}
-            >
-              SIGN OUT
-            </button>
-          )}
-        </div>
+        <button
+          onClick={() => setConfirming('shift')}
+          className="mt-2"
+          style={{
+            padding: '8px 24px',
+            background: '#FF3B30',
+            color: '#FFFFFF',
+            fontSize: 18,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            border: 'none',
+            borderRadius: 3,
+            cursor: 'pointer',
+          }}
+        >
+          END SHIFT
+        </button>
       </div>
 
       {confirming && (
