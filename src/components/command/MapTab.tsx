@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
-import { PRIORITY_COLORS, SERVICE_EMOJIS } from '@/lib/herald-types';
+import { PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
