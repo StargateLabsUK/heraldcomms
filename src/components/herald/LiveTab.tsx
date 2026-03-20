@@ -96,6 +96,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       setEditActions([...(assessment.actions || [])]);
       setEditFormattedReport(assessment.formatted_report || '');
       setOriginalAssessment(JSON.parse(JSON.stringify(assessment)));
+
+      // Detect session vs transcript mismatches
+      const session = getSession();
+      if (session) {
+        const detected = detectMismatches(
+          { service: session.service, callsign: session.callsign, operator_id: session.operator_id },
+          assessment
+        );
+        setMismatches(detected);
+      } else {
+        setMismatches([]);
+      }
     }
   }, [assessment, state]);
 
