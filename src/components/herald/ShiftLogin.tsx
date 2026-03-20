@@ -161,7 +161,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
         {/* BEGIN SHIFT */}
         <button
           onClick={handleBeginShift}
-          disabled={!canSubmit}
+          disabled={!canSubmit || submitting}
           style={{
             width: '100%',
             padding: 12,
