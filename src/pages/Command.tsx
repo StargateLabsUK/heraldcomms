@@ -8,11 +8,12 @@ import { ReportDetail } from '@/components/command/ReportDetail';
 import { CommandStatus } from '@/components/command/CommandStatus';
 import { MapTab } from '@/components/command/MapTab';
 import { TrainingTab } from '@/components/command/TrainingTab';
+import { OpsLogTab } from '@/components/command/OpsLogTab';
 import { CommandFilterBar } from '@/components/command/CommandFilterBar';
 import type { CommandFilters } from '@/components/command/CommandFilterBar';
 import type { MapTabHandle } from '@/components/command/MapTab';
 
-type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training';
+type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops';
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
 type ExpandedPanel = 'feed' | 'detail' | 'map' | null;
 
