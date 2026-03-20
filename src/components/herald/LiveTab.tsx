@@ -107,7 +107,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   useEffect(() => {
     if (assessment && state === 'ready') {
       setEditHeadline(assessment.headline || '');
-      setEditStructured({ ...(assessment.structured || {}) });
+      // Flatten nested objects/arrays to readable strings for editing
+      const flatStructured: Record<string, string> = {};
+      for (const [k, v] of Object.entries(assessment.structured || {})) {
+        if (v === null || v === undefined) {
+          flatStructured[k] = '';
+        } else if (typeof v === 'object') {
+          flatStructured[k] = JSON.stringify(v, null, 0);
+        } else {
+          flatStructured[k] = String(v);
+        }
+      }
+      setEditStructured(flatStructured);
       setEditActions([...(assessment.actions || [])]);
       setEditFormattedReport(assessment.formatted_report || '');
       setOriginalAssessment(JSON.parse(JSON.stringify(assessment)));
