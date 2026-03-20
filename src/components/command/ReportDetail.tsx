@@ -78,7 +78,7 @@ export function ReportDetail({ report }: Props) {
   const priorityLabel = a?.priority_label ?? '';
 
   const location = structured['E'] ?? structured['Location'] ?? structured['grid'] ?? 'Not specified';
-  const clinicalFindings = Object.entries(structured).map(([k, v]) => `${k}: ${v}`).join('. ');
+  const clinicalFindings = Object.entries(structured).map(([k, v]) => `${k}: ${v == null ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join('. ');
   const treatmentGiven = actions.join('. ');
   const eprfText = `INCIDENT DATE/TIME: ${dateStr} ${timeStr}
 INCIDENT TYPE: ${protocol}
