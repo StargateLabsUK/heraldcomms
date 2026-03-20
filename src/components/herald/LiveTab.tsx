@@ -334,6 +334,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setOriginalAssessment(null);
     setHasEdits(false);
     setMismatches([]);
+  }, []);
 
   // ─── STATE 1: IDLE & STATE 2: RECORDING (same layout) ───
   if (state === 'idle' || state === 'recording') {
