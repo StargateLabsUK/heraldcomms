@@ -100,6 +100,15 @@ Ambulance/Fire: M, E, T, H, A, N, E (METHANE fields)
 
 Police: Location, Incident_type, Hazards, Resources, Actions
 
+ATMIST (use when a casualty is described in detail, alongside primary protocol):
+  A (Age), T (Time of injury), M (Mechanism of injury), I (Injuries found), S (Signs/vitals), T (Treatment given)
+
+SBAR (use for clinical handover / structured situation reports):
+  S (Situation), B (Background), A (Assessment), R (Recommendation)
+
+If the transmission contains casualty details, include ATMIST fields in the structured object in addition to the primary protocol fields.
+If the transmission is a clinical handover or situation report, use SBAR as the primary protocol.
+
 Always put callsign, incident_number, and operator_id first in the structured object before the protocol fields.`;
 
 const TRAINING_ANALYSIS_PROMPT = `You are reviewing corrections made by trained emergency services operators to AI-generated field reports. Each correction shows what the AI originally produced and what the human changed it to.
