@@ -565,20 +565,21 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>IMMEDIATE ACTIONS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
               {editActions.map((a, i) => (
-                <div key={i} className="flex gap-2 mb-1.5 items-start">
+                <div key={i} className="flex gap-2 mb-1.5 items-start min-w-0">
                   <span className="text-lg md:text-lg font-bold flex-shrink-0 mt-0.5" style={{ color: pc }}>{i + 1}.</span>
-                  <input
-                    type="text"
+                  <textarea
                     value={a}
                     onChange={(e) => {
                       const next = [...editActions];
                       next[i] = e.target.value;
                       setEditActions(next);
                     }}
-                    className="flex-1 bg-transparent text-lg md:text-lg text-foreground outline-none"
-                    style={{ borderBottom: '1px solid transparent' }}
+                    className="flex-1 min-w-0 bg-transparent text-lg md:text-lg text-foreground outline-none resize-none leading-relaxed"
+                    style={{ borderBottom: '1px solid transparent', overflow: 'hidden' }}
+                    rows={Math.max(1, Math.ceil((a?.length || 0) / 30))}
                     onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
                     onBlur={(e) => { e.currentTarget.style.borderBottom = '1px solid transparent'; }}
+                    onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
                   />
                   <button
                     onClick={() => setEditActions(editActions.filter((_, idx) => idx !== i))}
