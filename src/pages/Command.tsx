@@ -333,12 +333,17 @@ export default function Command() {
             <TrainingTab reports={filteredReports} />
           </div>
         )}
+        {mobileTab === 'ops' && (
+          <div className="h-full">
+            <OpsLogTab />
+          </div>
+        )}
       </div>
       <div className="flex flex-shrink-0 border-t border-border bg-card">
         {mobileTabBtn('feed', 'FEED')}
         {mobileTabBtn('detail', 'DETAIL')}
         {mobileTabBtn('map', 'MAP')}
-        {mobileTabBtn('training', 'TRAIN')}
+        {mobileTabBtn('ops', 'OPS')}
         {mobileTabBtn('status', 'STATUS')}
       </div>
     </div>
