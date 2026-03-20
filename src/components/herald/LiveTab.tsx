@@ -233,24 +233,15 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           onAiStatus('ok');
 
           const loc = await getLocation();
-          const sessionFields = getSessionFields();
-          const report: HeraldReport = {
-            id: crypto.randomUUID(),
+          const reportId = crypto.randomUUID();
+          setCurrentReportId(reportId);
+          // Store location and timestamp for use at confirm time
+          pendingReportRef.current = {
+            id: reportId,
             timestamp: new Date().toISOString(),
             transcript: t,
-            assessment: result,
-            synced: false,
-            confirmed_at: null as unknown as string,
-            headline: result.headline,
-            priority: result.priority,
-            service: result.service,
             ...loc,
-            ...sessionFields,
           };
-          saveReport(report);
-          void syncNow(report.id);
-          setCurrentReportId(report.id);
-          onReportSaved();
           setState('ready');
         } catch {
           onAiStatus('error');
