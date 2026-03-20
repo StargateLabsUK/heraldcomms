@@ -491,7 +491,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     const serviceLabel = SERVICE_LABELS[assessment.service] || assessment.service.toUpperCase();
 
     return (
-      <div className="flex flex-col flex-1 overflow-auto pb-20">
+      <div className="flex flex-col flex-1 overflow-auto pb-20 min-w-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
         <div
           className="flex items-center justify-between px-3 md:px-4 flex-shrink-0 py-3 md:py-4"
           style={{ background: `${pc}1F`, borderBottom: `2px solid ${pc}` }}
