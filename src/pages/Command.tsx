@@ -213,13 +213,43 @@ export default function Command() {
 
         <div className="flex flex-col flex-1 overflow-hidden p-3 gap-3">
           <div className="flex-shrink-0 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-            <CommandStatus
-              todayReports={filteredReports}
-              priorityCounts={filteredPriorityCounts}
-              serviceCounts={filteredServiceCounts}
-              uniqueDevices={uniqueDevices}
-              connected={connected}
-            />
+            <div className="flex border-b border-border">
+              <button
+                onClick={() => setDesktopUpperTab('status')}
+                className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                style={{
+                  color: desktopUpperTab === 'status' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  borderBottom: desktopUpperTab === 'status' ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                  background: 'transparent',
+                }}
+              >
+                STATUS
+              </button>
+              <button
+                onClick={() => setDesktopUpperTab('ops')}
+                className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                style={{
+                  color: desktopUpperTab === 'ops' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  borderBottom: desktopUpperTab === 'ops' ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                  background: 'transparent',
+                }}
+              >
+                OPS LOG
+              </button>
+            </div>
+            {desktopUpperTab === 'status' ? (
+              <CommandStatus
+                todayReports={filteredReports}
+                priorityCounts={filteredPriorityCounts}
+                serviceCounts={filteredServiceCounts}
+                uniqueDevices={uniqueDevices}
+                connected={connected}
+              />
+            ) : (
+              <div style={{ height: 320 }}>
+                <OpsLogTab />
+              </div>
+            )}
           </div>
           <div className="flex flex-1 overflow-hidden min-w-0 gap-3">
             <div className="relative flex flex-col overflow-hidden min-w-0 w-1/3 rounded-lg border border-border bg-card shadow-sm">
