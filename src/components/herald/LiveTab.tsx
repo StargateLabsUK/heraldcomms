@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import type { Assessment, LiveState } from '@/lib/herald-types';
-import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS } from '@/lib/herald-types';
+import type { Assessment, LiveState, Mismatch } from '@/lib/herald-types';
+import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS, detectMismatches } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript } from '@/lib/herald-api';
 import { saveReport, updateReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
