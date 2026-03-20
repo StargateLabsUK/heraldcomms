@@ -296,45 +296,39 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   }, [onAiStatus, onReportSaved, syncNow]);
 
   const handleConfirm = useCallback(async () => {
-    if (!assessment || !currentReportId || !originalAssessment) return;
+    if (!assessment || !currentReportId || !originalAssessment || !pendingReportRef.current) return;
     const finalAssessment = buildFinalAssessment();
     const diff = computeDiff(originalAssessment, finalAssessment);
 
     const loc = await getLocation();
     const sessionFields = getSessionFields();
+    const pending = pendingReportRef.current;
 
-    updateReport(currentReportId, {
-      confirmed_at: new Date().toISOString(),
+    // Now create and save the report for the first time
+    const report: HeraldReport = {
+      id: pending.id,
+      timestamp: pending.timestamp,
+      transcript: pending.transcript,
       assessment: finalAssessment as unknown as Assessment,
+      synced: false,
+      confirmed_at: new Date().toISOString(),
       headline: finalAssessment.headline,
       priority: finalAssessment.priority,
       service: finalAssessment.service,
-      ...loc,
+      lat: loc.lat ?? pending.lat,
+      lng: loc.lng ?? pending.lng,
+      location_accuracy: loc.location_accuracy ?? pending.location_accuracy,
+      original_assessment: originalAssessment as any,
+      final_assessment: finalAssessment as any,
+      diff: { ...diff, mismatches } as any,
+      edited: diff.has_edits,
       ...sessionFields,
-    });
+    };
 
-    try {
-      const raw = localStorage.getItem('herald_reports');
-      if (raw) {
-        const reports = JSON.parse(raw);
-        const idx = reports.findIndex((r: any) => r.id === currentReportId);
-        if (idx !== -1) {
-          reports[idx].original_assessment = originalAssessment;
-          reports[idx].final_assessment = finalAssessment;
-          reports[idx].diff = { ...diff, mismatches };
-          reports[idx].edited = diff.has_edits;
-          if (loc.lat) reports[idx].lat = loc.lat;
-          if (loc.lng) reports[idx].lng = loc.lng;
-          if (loc.location_accuracy) reports[idx].location_accuracy = loc.location_accuracy;
-          // Ensure session fields are on the report
-          Object.assign(reports[idx], sessionFields);
-          localStorage.setItem('herald_reports', JSON.stringify(reports));
-        }
-      }
-    } catch { /* silent */ }
-
-    await syncNow(currentReportId);
+    saveReport(report);
+    await syncNow(report.id);
     onReportSaved();
+    pendingReportRef.current = null;
     setState('confirmed');
   }, [assessment, currentReportId, onReportSaved, originalAssessment, buildFinalAssessment, mismatches, syncNow]);
 
