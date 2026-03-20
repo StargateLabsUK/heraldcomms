@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Assessment, LiveState, Mismatch } from '@/lib/herald-types';
 import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS, detectMismatches } from '@/lib/herald-types';
-import { transcribeAudio, assessTranscript } from '@/lib/herald-api';
-import { saveReport, updateReport } from '@/lib/herald-storage';
+import { transcribeAudio, assessTranscript, syncReport } from '@/lib/herald-api';
+import { getReports, markSynced, saveReport, updateReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
 import { getSession } from '@/lib/herald-session';
+import { toSyncPayload } from '@/lib/herald-sync';
 import type { HeraldReport } from '@/lib/herald-types';
 
 const MAX_DURATION_MS = 5 * 60 * 1000;
@@ -88,6 +89,20 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const recordingStartRef = useRef(0);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const syncNow = useCallback(async (reportId: string) => {
+    try {
+      const report = getReports().find((r) => r.id === reportId);
+      if (!report) return;
+
+      const ok = await syncReport(toSyncPayload(report));
+      if (ok) {
+        markSynced(reportId);
+      }
+    } catch {
+      // interval sync will retry
+    }
+  }, []);
 
   useEffect(() => {
     if (assessment && state === 'ready') {
@@ -222,6 +237,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             ...sessionFields,
           };
           saveReport(report);
+          void syncNow(report.id);
           setCurrentReportId(report.id);
           onReportSaved();
           setState('ready');
@@ -237,7 +253,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       };
       recorder.stop();
     });
-  }, [cleanupRecording, onAiStatus, onReportSaved]);
+  }, [cleanupRecording, onAiStatus, onReportSaved, syncNow]);
 
   const processTestTransmission = useCallback(async (text: string) => {
     setState('processing');
@@ -272,6 +288,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         ...sessionFields,
       };
       saveReport(report);
+      void syncNow(report.id);
       setCurrentReportId(report.id);
       onReportSaved();
       setState('ready');
@@ -283,7 +300,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         setState('idle');
       }, 3000);
     }
-  }, [onAiStatus, onReportSaved]);
+  }, [onAiStatus, onReportSaved, syncNow]);
 
   const handleConfirm = useCallback(async () => {
     if (!assessment || !currentReportId || !originalAssessment) return;
@@ -323,9 +340,10 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       }
     } catch { /* silent */ }
 
+    await syncNow(currentReportId);
     onReportSaved();
     setState('confirmed');
-  }, [assessment, currentReportId, onReportSaved, originalAssessment, buildFinalAssessment]);
+  }, [assessment, currentReportId, onReportSaved, originalAssessment, buildFinalAssessment, mismatches, syncNow]);
 
   const handleDiscard = useCallback(() => {
     setState('idle');
