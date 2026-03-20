@@ -214,13 +214,33 @@ serve(async (req) => {
 
     const data = await response.json();
     const raw = data.content?.[0]?.text ?? "";
+    console.log("Claude raw response length:", raw.length, "first 200 chars:", raw.substring(0, 200));
     const clean = raw.replace(/```json|```/g, "").trim();
+
+    if (!clean) {
+      // Claude returned empty — provide a fallback assessment
+      return new Response(
+        JSON.stringify({
+          service: "unknown",
+          protocol: "METHANE",
+          priority: "P3",
+          priority_label: "ROUTINE",
+          headline: transcript.substring(0, 80),
+          structured: { callsign: null, incident_number: null, operator_id: null },
+          actions: ["Review transmission — could not be assessed automatically"],
+          transmit_to: "Control",
+          formatted_report: transcript,
+          confidence: 0.0,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     let assessment;
     try {
       assessment = JSON.parse(clean);
     } catch {
-      throw new Error(`Failed to parse response: ${raw}`);
+      throw new Error(`Failed to parse response: ${clean.substring(0, 300)}`);
     }
 
     return new Response(
