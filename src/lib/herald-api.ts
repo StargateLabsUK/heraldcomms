@@ -29,12 +29,9 @@ export async function assessTranscript(transcript: string) {
 }
 
 export async function syncReport(report: Record<string, unknown>): Promise<boolean> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/herald_reports`, {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-report`, {
     method: 'POST',
-    headers: {
-      ...headers,
-      Prefer: 'return=minimal',
-    },
+    headers,
     body: JSON.stringify(report),
   });
   return res.status === 201;
