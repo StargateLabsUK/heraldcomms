@@ -24,6 +24,14 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
   const getCallsign = (r: CommandReport) => r.assessment?.structured?.callsign ?? null;
   const getIncident = (r: CommandReport) => r.assessment?.structured?.incident_number ?? null;
   const getHeadline = (r: CommandReport) => r.assessment?.headline ?? r.headline ?? 'No headline';
+  const getMismatches = (r: CommandReport): Mismatch[] => {
+    const diff = r as any;
+    if (diff.diff && Array.isArray(diff.diff.mismatches)) return diff.diff.mismatches;
+    // Also check assessment-level diff from Supabase
+    const d = (r as any).diff;
+    if (d && typeof d === 'object' && Array.isArray(d.mismatches)) return d.mismatches;
+    return [];
+  };
   const getTime = (r: CommandReport) => {
     const d = new Date(r.created_at ?? r.timestamp);
     return d.getUTCHours().toString().padStart(2, '0') + ':' +
