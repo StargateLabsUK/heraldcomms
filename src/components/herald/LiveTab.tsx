@@ -623,7 +623,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         <div className="mx-3 md:mx-4 mt-3">
           <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.1em] mb-2">RAW TRANSMISSION</p>
           <div className="p-3 md:p-4 border border-border rounded bg-card">
-            <p className="text-lg md:text-lg text-foreground italic">"{transcript}"</p>
+            <p className="text-lg md:text-lg text-foreground italic break-words">"{transcript}"</p>
             {assessment.confidence != null && (
               <p className="text-lg md:text-lg text-foreground mt-2 opacity-70">
                 Confidence: {Math.round(assessment.confidence * 100)}%
