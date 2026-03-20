@@ -497,6 +497,21 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           <span className="text-lg md:text-lg text-foreground uppercase font-bold">{assessment.service}</span>
         </div>
 
+        {mismatches.length > 0 && (
+          <div className="mx-3 md:mx-4 mt-2 p-3 rounded border" style={{ background: 'rgba(255,149,0,0.08)', borderColor: '#FF9500' }}>
+            <p className="text-lg font-bold mb-1" style={{ color: '#FF9500', letterSpacing: '0.15em' }}>⚠ DATA MISMATCH</p>
+            {mismatches.map((m) => (
+              <div key={m.field} className="mb-1 last:mb-0">
+                <p className="text-lg font-bold uppercase" style={{ color: '#FF9500' }}>{m.field.replace('_', ' ')}</p>
+                <p className="text-lg text-foreground">
+                  Session: <span className="font-bold">{m.session_value}</span> &nbsp;|&nbsp; Transcript: <span className="font-bold">{m.transcript_value}</span>
+                </p>
+              </div>
+            ))}
+            <p className="text-lg mt-1 opacity-70 text-foreground">Transcript values kept — edit fields above to override</p>
+          </div>
+        )}
+
         {hasEdits && (
           <div className="mx-3 md:mx-4 mt-2 flex items-center gap-1">
             <span style={{ fontSize: 18, color: '#FF9500', letterSpacing: '0.2em', fontWeight: 700 }}>✏️ EDITED</span>
