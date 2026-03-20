@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import type { Assessment, LiveState, Mismatch } from '@/lib/herald-types';
 import { TEST_TRANSMISSIONS, PRIORITY_COLORS, SERVICE_LABELS, detectMismatches } from '@/lib/herald-types';
 import { transcribeAudio, assessTranscript, syncReport } from '@/lib/herald-api';
-import { getReports, markSynced, saveReport, updateReport } from '@/lib/herald-storage';
+import { getReports, markSynced, saveReport } from '@/lib/herald-storage';
 import { computeDiff } from '@/lib/herald-diff';
 import { getSession } from '@/lib/herald-session';
 import { toSyncPayload } from '@/lib/herald-sync';
