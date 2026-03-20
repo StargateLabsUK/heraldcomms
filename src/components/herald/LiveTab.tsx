@@ -491,7 +491,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     const serviceLabel = SERVICE_LABELS[assessment.service] || assessment.service.toUpperCase();
 
     return (
-      <div className="flex flex-col flex-1 overflow-auto pb-20">
+      <div className="flex flex-col flex-1 overflow-auto pb-20 min-w-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
         <div
           className="flex items-center justify-between px-3 md:px-4 flex-shrink-0 py-3 md:py-4"
           style={{ background: `${pc}1F`, borderBottom: `2px solid ${pc}` }}
@@ -510,7 +510,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             {mismatches.map((m) => (
               <div key={m.field} className="mb-1 last:mb-0">
                 <p className="text-lg font-bold uppercase" style={{ color: '#FF9500' }}>{m.field.replace('_', ' ')}</p>
-                <p className="text-lg text-foreground">
+                <p className="text-lg text-foreground break-words">
                   Session: <span className="font-bold">{m.session_value}</span> &nbsp;|&nbsp; Transcript: <span className="font-bold">{m.transcript_value}</span>
                 </p>
               </div>
@@ -543,17 +543,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
               {Object.entries(editStructured).map(([k, v]) => (
-                <div key={k} className="mb-2">
+                <div key={k} className="mb-2 min-w-0">
                   <p className="text-lg md:text-lg font-bold" style={{ color: pc }}>{k}</p>
-                  <input
-                    type="text"
+                  <textarea
                     value={v}
                     onChange={(e) => setEditStructured((prev) => ({ ...prev, [k]: e.target.value }))}
-                    className="w-full bg-transparent text-lg md:text-lg text-foreground outline-none py-0.5"
-                    style={{ borderBottom: '1px solid transparent' }}
+                    className="w-full bg-transparent text-lg md:text-lg text-foreground outline-none py-0.5 resize-none leading-relaxed"
+                    style={{ borderBottom: '1px solid transparent', overflow: 'hidden' }}
                     placeholder="Tap to edit"
+                    rows={Math.max(1, Math.ceil((v?.length || 0) / 35))}
                     onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
                     onBlur={(e) => { e.currentTarget.style.borderBottom = '1px solid transparent'; }}
+                    onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
                   />
                 </div>
               ))}
@@ -564,20 +565,21 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>IMMEDIATE ACTIONS</p>
             <div className="p-3 md:p-4 border border-border rounded bg-card">
               {editActions.map((a, i) => (
-                <div key={i} className="flex gap-2 mb-1.5 items-start">
+                <div key={i} className="flex gap-2 mb-1.5 items-start min-w-0">
                   <span className="text-lg md:text-lg font-bold flex-shrink-0 mt-0.5" style={{ color: pc }}>{i + 1}.</span>
-                  <input
-                    type="text"
+                  <textarea
                     value={a}
                     onChange={(e) => {
                       const next = [...editActions];
                       next[i] = e.target.value;
                       setEditActions(next);
                     }}
-                    className="flex-1 bg-transparent text-lg md:text-lg text-foreground outline-none"
-                    style={{ borderBottom: '1px solid transparent' }}
+                    className="flex-1 min-w-0 bg-transparent text-lg md:text-lg text-foreground outline-none resize-none leading-relaxed"
+                    style={{ borderBottom: '1px solid transparent', overflow: 'hidden' }}
+                    rows={Math.max(1, Math.ceil((a?.length || 0) / 30))}
                     onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; }}
                     onBlur={(e) => { e.currentTarget.style.borderBottom = '1px solid transparent'; }}
+                    onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
                   />
                   <button
                     onClick={() => setEditActions(editActions.filter((_, idx) => idx !== i))}
@@ -621,7 +623,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         <div className="mx-3 md:mx-4 mt-3">
           <p className="text-lg md:text-lg font-bold text-foreground tracking-[0.1em] mb-2">RAW TRANSMISSION</p>
           <div className="p-3 md:p-4 border border-border rounded bg-card">
-            <p className="text-lg md:text-lg text-foreground italic">"{transcript}"</p>
+            <p className="text-lg md:text-lg text-foreground italic break-words">"{transcript}"</p>
             {assessment.confidence != null && (
               <p className="text-lg md:text-lg text-foreground mt-2 opacity-70">
                 Confidence: {Math.round(assessment.confidence * 100)}%
