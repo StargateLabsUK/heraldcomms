@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
+import type { Mismatch } from '@/lib/herald-types';
 
 interface Props {
   reports: CommandReport[];
