@@ -205,7 +205,7 @@ const selectStyle: React.CSSProperties = {
   WebkitAppearance: 'none' as const,
 };
 
-export function OpsLogTab() {
+export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) => void } = {}) {
   const { shifts, reports, loading, uniqueServices, uniqueStations } = useOpsLog();
   const [expandedShift, setExpandedShift] = useState<string | null>(null);
   const [filters, setFilters] = useState<OpsFilters>({
