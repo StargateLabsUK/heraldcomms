@@ -15,7 +15,7 @@ import type { MapTabHandle } from '@/components/command/MapTab';
 
 type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops';
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
-type ExpandedPanel = 'feed' | 'detail' | 'map' | null;
+type ExpandedPanel = 'feed' | 'detail' | 'map' | 'ops' | null;
 
 function useViewMode(): ViewMode {
   const [mode, setMode] = useState<ViewMode>('desktop');
@@ -199,6 +199,9 @@ export default function Command() {
             {expandedPanel === 'map' && (
               <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
             )}
+            {expandedPanel === 'ops' && (
+              <OpsLogTab />
+            )}
           </div>
         </div>
       </div>
@@ -246,7 +249,8 @@ export default function Command() {
                 connected={connected}
               />
             ) : (
-              <div style={{ maxHeight: 400, overflow: 'hidden' }}>
+              <div className="relative" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+                <ExpandButton expanded={false} onClick={() => toggleExpand('ops')} />
                 <OpsLogTab />
               </div>
             )}
