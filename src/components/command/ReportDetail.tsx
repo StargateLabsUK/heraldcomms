@@ -1,10 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
-
-interface Props {
-  report: CommandReport | null;
-}
+import type { IncidentTransmission } from '@/lib/herald-types';
+import { supabase } from '@/integrations/supabase/client';
 
 function CopyBtn({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
