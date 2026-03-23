@@ -154,11 +154,11 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     }
   }, [reports, addMarker]);
 
-  if (!MAPBOX_TOKEN) {
+  if (!MAPBOX_TOKEN || webglFailed.current) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-foreground opacity-50 text-lg tracking-widest">
-          MAPBOX TOKEN NOT CONFIGURED
+          {!MAPBOX_TOKEN ? 'MAPBOX TOKEN NOT CONFIGURED' : 'MAP UNAVAILABLE — WEBGL NOT SUPPORTED'}
         </p>
       </div>
     );
