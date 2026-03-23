@@ -1,4 +1,6 @@
 import type { CommandReport } from '@/hooks/useHeraldCommand';
+import type { CommandShift } from '@/hooks/useHeraldCommand';
+import { SERVICE_LABELS } from '@/lib/herald-types';
 
 interface Props {
   todayReports: CommandReport[];
@@ -6,9 +8,10 @@ interface Props {
   serviceCounts?: Record<string, number>;
   uniqueDevices: number;
   connected: boolean;
+  activeShifts?: CommandShift[];
 }
 
-export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, connected }: Props) {
+export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, connected, activeShifts = [] }: Props) {
   const lastReport = todayReports[0];
   const lastTime = lastReport
     ? new Date(lastReport.created_at ?? lastReport.timestamp).getUTCHours().toString().padStart(2, '0') + ':' +
@@ -17,7 +20,7 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
 
   return (
     <div className="flex flex-col bg-card">
-      <div className="grid gap-0" style={{ gridTemplateColumns: 'auto auto 1fr' }}>
+      <div className="grid gap-0" style={{ gridTemplateColumns: 'auto auto 1fr 1fr' }}>
         {/* Total Transmissions */}
         <div className="px-3 py-2.5 md:px-4 md:py-3 border-r border-b md:border-b-0 border-border flex flex-col">
           <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
@@ -50,7 +53,7 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
         </div>
 
         {/* System Status */}
-        <div className="hidden md:block px-4 py-3">
+        <div className="hidden md:block px-4 py-3 border-r border-border">
           <div className="flex flex-col gap-0.5">
             <div className="flex justify-between">
               <span className="text-lg text-foreground">DEVICES</span>
@@ -72,11 +75,33 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
             </div>
           </div>
         </div>
+
+        {/* Active Shifts - desktop */}
+        <div className="hidden md:block px-4 py-3">
+          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-2 font-bold">
+            ACTIVE SHIFTS ({activeShifts.length})
+          </div>
+          {activeShifts.length === 0 ? (
+            <span className="text-lg text-foreground opacity-50">No active shifts</span>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {activeShifts.map((s) => (
+                <div key={s.id} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
+                  <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
+                  <span className="text-lg text-muted-foreground">
+                    {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Mobile: System Status */}
+      {/* Mobile: System Status + Active Shifts */}
       <div className="md:hidden">
-        <div className="px-3 py-2.5">
+        <div className="px-3 py-2.5 border-b border-border">
           <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
             SYSTEM STATUS
           </div>
@@ -100,6 +125,27 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
               <span className="text-lg text-foreground font-bold">v1.0</span>
             </div>
           </div>
+        </div>
+
+        <div className="px-3 py-2.5">
+          <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
+            ACTIVE SHIFTS ({activeShifts.length})
+          </div>
+          {activeShifts.length === 0 ? (
+            <span className="text-lg text-foreground opacity-50">No active shifts</span>
+          ) : (
+            <div className="flex flex-col gap-1">
+              {activeShifts.map((s) => (
+                <div key={s.id} className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
+                  <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
+                  <span className="text-lg text-muted-foreground">
+                    {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
