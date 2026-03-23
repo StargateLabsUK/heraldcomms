@@ -320,6 +320,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
                 reports={filteredReports}
                 expanded={expandedShift === shift.id}
                 onToggle={() => setExpandedShift((prev) => (prev === shift.id ? null : shift.id))}
+                onSelectReport={onSelectReport}
               />
             ))}
 
