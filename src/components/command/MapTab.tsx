@@ -39,27 +39,34 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     },
   }));
 
+  const webglFailed = useRef(false);
+
   useEffect(() => {
     if (!containerRef.current || !MAPBOX_TOKEN) return;
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: 'mapbox://styles/mapbox/navigation-night-v1',
-      center: [-2.5, 54.5],
-      zoom: 6,
-      attributionControl: false,
-    });
+    try {
+      const map = new mapboxgl.Map({
+        container: containerRef.current,
+        style: 'mapbox://styles/mapbox/navigation-night-v1',
+        center: [-2.5, 54.5],
+        zoom: 6,
+        attributionControl: false,
+      });
 
-    map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-    mapRef.current = map;
+      map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+      mapRef.current = map;
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-      markersRef.current.clear();
-      fittedRef.current = false;
-    };
+      return () => {
+        map.remove();
+        mapRef.current = null;
+        markersRef.current.clear();
+        fittedRef.current = false;
+      };
+    } catch (e) {
+      console.warn('MapTab: WebGL not available, falling back to placeholder', e);
+      webglFailed.current = true;
+    }
   }, []);
 
   const addMarker = useCallback(
