@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
