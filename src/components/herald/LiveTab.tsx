@@ -7,6 +7,7 @@ import { computeDiff } from '@/lib/herald-diff';
 import { getSession } from '@/lib/herald-session';
 import { toSyncPayload } from '@/lib/herald-sync';
 import type { HeraldReport } from '@/lib/herald-types';
+import { supabase } from '@/integrations/supabase/client';
 
 const MAX_DURATION_MS = 5 * 60 * 1000;
 
@@ -81,7 +82,9 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const [originalAssessment, setOriginalAssessment] = useState<Assessment | null>(null);
   const [hasEdits, setHasEdits] = useState(false);
   const [mismatches, setMismatches] = useState<Mismatch[]>([]);
-
+  const [isFollowUp, setIsFollowUp] = useState(false);
+  const [followUpReportId, setFollowUpReportId] = useState<string | null>(null);
+  const [followUpIncidentNumber, setFollowUpIncidentNumber] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -108,7 +111,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   useEffect(() => {
     if (assessment && state === 'ready') {
       setEditHeadline(assessment.headline || '');
-      // Flatten nested objects/arrays to readable strings for editing
       const flatStructured: Record<string, string> = {};
       for (const [k, v] of Object.entries(assessment.structured || {})) {
         if (v === null || v === undefined) {
@@ -134,6 +136,34 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         setMismatches(detected);
       } else {
         setMismatches([]);
+      }
+
+      // Check for existing incident (follow-up detection)
+      const incidentNum = assessment.structured?.incident_number;
+      if (incidentNum && incidentNum !== 'null' && incidentNum !== '') {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        supabase
+          .from('herald_reports')
+          .select('id, incident_number')
+          .eq('incident_number', incidentNum)
+          .gte('created_at', todayStart.toISOString())
+          .limit(1)
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              setIsFollowUp(true);
+              setFollowUpReportId(data[0].id);
+              setFollowUpIncidentNumber(incidentNum);
+            } else {
+              setIsFollowUp(false);
+              setFollowUpReportId(null);
+              setFollowUpIncidentNumber(incidentNum);
+            }
+          });
+      } else {
+        setIsFollowUp(false);
+        setFollowUpReportId(null);
+        setFollowUpIncidentNumber(null);
       }
     }
   }, [assessment, state]);
@@ -304,7 +334,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     const sessionFields = getSessionFields();
     const pending = pendingReportRef.current;
 
-    // Now create and save the report for the first time
     const report: HeraldReport = {
       id: pending.id,
       timestamp: pending.timestamp,
@@ -322,15 +351,28 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       final_assessment: finalAssessment as any,
       diff: { ...diff, mismatches } as any,
       edited: diff.has_edits,
+      incident_number: followUpIncidentNumber ?? undefined,
       ...sessionFields,
     };
 
     saveReport(report);
-    await syncNow(report.id);
+
+    // Sync with follow-up awareness
+    try {
+      const payload = toSyncPayload(report, isFollowUp && followUpReportId ? followUpReportId : undefined);
+      const ok = await syncReport(payload);
+      if (ok) markSynced(report.id);
+    } catch {
+      // interval sync will retry
+    }
+
     onReportSaved();
     pendingReportRef.current = null;
+    setIsFollowUp(false);
+    setFollowUpReportId(null);
+    setFollowUpIncidentNumber(null);
     setState('confirmed');
-  }, [assessment, currentReportId, onReportSaved, originalAssessment, buildFinalAssessment, mismatches, syncNow]);
+  }, [assessment, currentReportId, onReportSaved, originalAssessment, buildFinalAssessment, mismatches, isFollowUp, followUpReportId, followUpIncidentNumber]);
 
   const handleDiscard = useCallback(() => {
     setState('idle');
@@ -340,6 +382,9 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setOriginalAssessment(null);
     setHasEdits(false);
     setMismatches([]);
+    setIsFollowUp(false);
+    setFollowUpReportId(null);
+    setFollowUpIncidentNumber(null);
     pendingReportRef.current = null;
   }, []);
 
@@ -503,6 +548,15 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           </div>
           <span className="text-lg md:text-lg text-foreground uppercase font-bold">{assessment.service}</span>
         </div>
+
+        {isFollowUp && followUpIncidentNumber && (
+          <div className="mx-3 md:mx-4 mt-2 p-3 rounded border" style={{ background: 'rgba(30,144,255,0.08)', borderColor: '#1E90FF' }}>
+            <p className="text-lg font-bold" style={{ color: '#1E90FF', letterSpacing: '0.15em' }}>
+              🔄 FOLLOW-UP — Incident #{followUpIncidentNumber}
+            </p>
+            <p className="text-lg text-foreground mt-1 opacity-70">This will be added to the existing incident log</p>
+          </div>
+        )}
 
         {mismatches.length > 0 && (
           <div className="mx-3 md:mx-4 mt-2 p-3 rounded border" style={{ background: 'rgba(255,149,0,0.08)', borderColor: '#FF9500' }}>
