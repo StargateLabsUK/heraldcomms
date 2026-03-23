@@ -98,6 +98,11 @@ export default function Command() {
 
   const filteredReports = useMemo(() => applyFilters(reports, filters), [reports, filters]);
   const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
+  const opsReport = useMemo(() => opsReportId ? reports.find((r) => r.id === opsReportId) ?? null : null, [opsReportId, reports]);
+
+  const handleOpsReportSelect = useCallback((id: string) => {
+    setOpsReportId(id);
+  }, []);
 
   const uniqueCallsigns = useMemo(() => {
     const set = new Set<string>();
