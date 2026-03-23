@@ -377,7 +377,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       ...sessionFields,
     };
 
-    saveReport(report);
+    if (isFollowUp && followUpReportId) {
+      // Update existing parent report in local storage instead of creating a duplicate
+      updateReport(followUpReportId, {
+        assessment: finalAssessment as unknown as Assessment,
+        headline: finalAssessment.headline,
+        priority: finalAssessment.priority,
+        latest_transmission_at: report.timestamp,
+        transmission_count: undefined, // we don't track this locally precisely
+      });
+    } else {
+      saveReport(report);
+    }
 
     // Sync with follow-up awareness
     try {
