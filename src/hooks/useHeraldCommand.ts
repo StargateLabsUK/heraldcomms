@@ -25,6 +25,8 @@ export interface CommandReport {
   incident_number: string | null;
   transmission_count: number | null;
   latest_transmission_at: string | null;
+  status: string | null;
+  shift_id: string | null;
   isNew?: boolean;
 }
 

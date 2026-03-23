@@ -33,3 +33,11 @@ export function markSynced(id: string): void {
 export function getUnsyncedReports(): HeraldReport[] {
   return getReports().filter((r) => !r.synced);
 }
+
+export function getShiftReports(callsign: string, sessionDate: string): HeraldReport[] {
+  return getReports().filter(
+    (r) =>
+      r.session_callsign === callsign &&
+      new Date(r.timestamp).toISOString().slice(0, 10) === sessionDate
+  );
+}

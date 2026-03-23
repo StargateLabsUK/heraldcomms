@@ -24,6 +24,7 @@ export interface HeraldReport {
   incident_number?: string;
   transmission_count?: number;
   latest_transmission_at?: string;
+  status?: 'active' | 'closed';
 }
 
 export interface IncidentTransmission {
