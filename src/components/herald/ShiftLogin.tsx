@@ -3,13 +3,6 @@ import { saveSession, startShiftRemote } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
 import { getStationsForService } from '@/lib/uk-stations';
 
-const SERVICE_OPTIONS = [
-  { value: 'ambulance', label: 'Ambulance' },
-  { value: 'police', label: 'Police' },
-  { value: 'fire', label: 'Fire & Rescue' },
-  { value: 'military', label: 'Military' },
-  { value: 'other', label: 'Other' },
-];
 
 interface Props {
   onShiftStarted: (session: HeraldSession) => void;
@@ -36,18 +29,13 @@ const labelStyle: React.CSSProperties = {
 };
 
 export function ShiftLogin({ onShiftStarted }: Props) {
-  const [service, setService] = useState('');
+  const service = 'ambulance';
   const [callsign, setCallsign] = useState('');
   const [collarNumber, setCollarNumber] = useState('');
   const [station, setStation] = useState('');
 
-  const canSubmit = service !== '' && callsign.trim() !== '';
+  const canSubmit = callsign.trim() !== '';
   const stationOptions = getStationsForService(service);
-
-  const handleServiceChange = (val: string) => {
-    setService(val);
-    setStation(''); // reset station when service changes
-  };
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -93,25 +81,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           START OF SHIFT SETUP
         </p>
 
-        {/* SERVICE */}
-        <div className="mb-5">
-          <label style={labelStyle}>SERVICE</label>
-          <select
-            value={service}
-            onChange={(e) => handleServiceChange(e.target.value)}
-            style={{
-              ...inputStyle,
-              color: service ? '#C8D0CC' : '#1E3028',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-            }}
-          >
-            <option value="" disabled>Select service</option>
-            {SERVICE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </div>
 
         {/* CALLSIGN */}
         <div className="mb-5">
@@ -149,9 +118,8 @@ export function ShiftLogin({ onShiftStarted }: Props) {
               appearance: 'none',
               WebkitAppearance: 'none',
             }}
-            disabled={!service}
           >
-            <option value="">{service ? 'Select station / trust' : 'Select a service first'}</option>
+            <option value="">Select station / trust</option>
             {stationOptions.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
