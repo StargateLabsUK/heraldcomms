@@ -256,16 +256,6 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
         </div>
         <div className="flex gap-2 flex-wrap">
           <select
-            value={filters.service}
-            onChange={(e) => updateFilter('service', e.target.value)}
-            style={{ ...selectStyle, width: 'auto', minWidth: 120 }}
-          >
-            <option value="">All services</option>
-            {uniqueServices.map((s) => (
-              <option key={s} value={s}>{SERVICE_LABELS[s] ?? s}</option>
-            ))}
-          </select>
-          <select
             value={filters.station}
             onChange={(e) => updateFilter('station', e.target.value)}
             style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
