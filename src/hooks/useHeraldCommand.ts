@@ -30,8 +30,20 @@ export interface CommandReport {
   isNew?: boolean;
 }
 
+export interface CommandShift {
+  id: string;
+  callsign: string | null;
+  operator_id: string | null;
+  service: string | null;
+  station: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  created_at: string | null;
+}
+
 export function useHeraldCommand() {
   const [reports, setReports] = useState<CommandReport[]>([]);
+  const [shifts, setShifts] = useState<CommandShift[]>([]);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const retryRef = useRef<ReturnType<typeof setInterval>>();
