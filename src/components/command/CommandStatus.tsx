@@ -121,8 +121,8 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
               </span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-lg text-foreground opacity-70">VER</span>
-              <span className="text-lg text-foreground font-bold">v1.0</span>
+              <span className="text-lg text-foreground opacity-70">SHIFTS</span>
+              <span className="text-lg text-foreground font-bold">{activeShifts.length}</span>
             </div>
           </div>
         </div>
