@@ -125,7 +125,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
     }
   },
   "treatment_given": [],
-  "action_items": [],
+  "action_items": ["open loop action item — what crew must do next"],
   "actions": ["immediate operational action 1", "action 2"],
   "transmit_to": "who needs this information",
   "formatted_report": "clean ePRF-ready report text",
