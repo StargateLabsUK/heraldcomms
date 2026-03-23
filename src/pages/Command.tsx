@@ -321,6 +321,7 @@ export default function Command() {
                 serviceCounts={filteredServiceCounts}
                 uniqueDevices={uniqueDevices}
                 connected={connected}
+                activeShifts={activeShifts}
               />
             ) : tabletTab === 'map' ? (
               <div className="flex-1 overflow-hidden h-full min-h-0">
