@@ -151,8 +151,39 @@ export function IncidentsTab({ session, onCloseIncident }: Props) {
               </div>
             )}
 
-            {/* Actions */}
-            {inc.assessment?.actions && inc.assessment.actions.length > 0 && (
+            {/* Action Items */}
+            {inc.assessment?.action_items && inc.assessment.action_items.length > 0 && (
+              <div className="mt-3">
+                <p className="text-lg font-bold tracking-[0.15em] mb-2" style={{ color: '#FF9500' }}>⚠ ACTION ITEMS</p>
+                <div className="flex flex-col gap-1.5">
+                  {inc.assessment.action_items.map((item, i) => {
+                    const itemObj = typeof item === 'object' ? (item as any) : null;
+                    const text = itemObj?.text || item;
+                    const openedAt = itemObj?.opened_at || inc.created_at || inc.timestamp;
+                    return (
+                      <div key={i} className="rounded p-2.5 flex gap-2 items-start"
+                        style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.2)' }}>
+                        <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-lg text-foreground">{text}</span>
+                          <span className="text-lg ml-1 opacity-50" style={{ color: '#FF9500' }}>
+                            — {formatActionAge(openedAt)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Resolved Action Items */}
+            {(inc.assessment as any)?.resolved_action_items?.length > 0 && (
+              <ResolvedActions items={(inc.assessment as any).resolved_action_items} />
+            )}
+
+            {/* Legacy Actions */}
+            {inc.assessment?.actions && inc.assessment.actions.length > 0 && !(inc.assessment?.action_items?.length) && (
               <div className="mt-3">
                 <p className="text-lg font-bold tracking-[0.15em] mb-2" style={{ color: col }}>ACTIONS</p>
                 <div className="p-3 border border-border rounded bg-card">
