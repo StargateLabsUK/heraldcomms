@@ -92,6 +92,7 @@ export default function Command() {
   });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
   const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops'>('status');
+  const [opsReportId, setOpsReportId] = useState<string | null>(null);
   const viewMode = useViewMode();
   const mapRef = useRef<MapTabHandle>(null);
 
