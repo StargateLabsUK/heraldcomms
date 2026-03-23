@@ -49,6 +49,7 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
             Real-time Field Intelligence
           </span>
         </div>
+      </div>
 
       <div className="hidden lg:flex items-center gap-2">
         {pill('P1', priorityCounts.P1, '#FF3B30')}
