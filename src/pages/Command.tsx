@@ -80,6 +80,7 @@ export default function Command() {
     serviceCounts,
     uniqueDevices,
     connected,
+    activeShifts,
   } = useHeraldCommand();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
