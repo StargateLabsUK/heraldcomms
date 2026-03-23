@@ -8,6 +8,7 @@ import { getSession } from '@/lib/herald-session';
 import { toSyncPayload } from '@/lib/herald-sync';
 import type { HeraldReport } from '@/lib/herald-types';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeAssessment } from '@/lib/sanitize-assessment';
 
 const MAX_DURATION_MS = 5 * 60 * 1000;
 
