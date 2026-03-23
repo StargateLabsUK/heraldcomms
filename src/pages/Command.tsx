@@ -285,7 +285,7 @@ export default function Command() {
             )}
           </div>
           {desktopUpperTab === 'status' && (
-          <div className="flex flex-1 overflow-hidden min-w-0 gap-3">
+          <div className="flex min-w-0 gap-3" style={{ height: '80vh' }}>
             <div className="relative flex flex-col overflow-hidden min-w-0 w-1/2 rounded-lg border border-border bg-card shadow-sm">
               <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
               <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
