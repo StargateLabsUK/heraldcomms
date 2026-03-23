@@ -128,13 +128,10 @@ export function ReportDetail({ report }: Props) {
   const actions = a?.actions ?? [];
   const formattedReport = a?.formatted_report ?? '';
   const headline = a?.headline ?? report.headline ?? '';
-  const confidence = a?.confidence ?? 0;
-  const transmitTo = a?.transmit_to ?? '';
-  const protocol = a?.protocol ?? '';
   const priorityLabel = a?.priority_label ?? '';
 
   // New ePRF fields
-  const incidentType = a?.incident_type ?? protocol ?? 'Unknown';
+  const incidentType = a?.incident_type ?? a?.protocol ?? 'Unknown';
   const majorIncident = a?.major_incident ?? false;
   const sceneLocation = a?.scene_location ?? structured['E'] ?? structured['Location'] ?? structured['grid'] ?? 'Not specified';
   const receivingHospital: string[] = a?.receiving_hospital ?? [];
@@ -143,6 +140,7 @@ export function ReportDetail({ report }: Props) {
   const treatmentGiven: string[] = a?.treatment_given ?? [];
   const actionItems: string[] = a?.action_items ?? [];
   const resolvedActionItems: ActionItem[] = (a as any)?.resolved_action_items ?? [];
+  const clinicalHistory = a?.clinical_history ?? '';
 
   // Build ePRF text
   const abcdeText = clinicalFindings
@@ -164,7 +162,7 @@ PRIORITY: ${priority} ${priorityLabel}
 CALLSIGN: ${structured.callsign ?? '—'}
 OPERATOR ID: ${structured.operator_id ?? '—'}
 CHIEF COMPLAINT: ${headline}
-HISTORY: ${report.transcript ?? 'N/A'}
+HISTORY: ${clinicalHistory || 'N/A'}
 CLINICAL FINDINGS (ABCDE):
 ${abcdeText}
 TREATMENT GIVEN: ${treatmentGiven.length > 0 ? treatmentGiven.join('; ') : 'None recorded'}
