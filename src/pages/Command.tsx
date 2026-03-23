@@ -199,6 +199,9 @@ export default function Command() {
             {expandedPanel === 'map' && (
               <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
             )}
+            {expandedPanel === 'ops' && (
+              <OpsLogTab />
+            )}
           </div>
         </div>
       </div>
