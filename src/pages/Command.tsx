@@ -9,11 +9,12 @@ import { CommandStatus } from '@/components/command/CommandStatus';
 import { MapTab } from '@/components/command/MapTab';
 import { TrainingTab } from '@/components/command/TrainingTab';
 import { OpsLogTab } from '@/components/command/OpsLogTab';
+import { UptimeTab } from '@/components/command/UptimeTab';
 import { CommandFilterBar } from '@/components/command/CommandFilterBar';
 import type { CommandFilters } from '@/components/command/CommandFilterBar';
 import type { MapTabHandle } from '@/components/command/MapTab';
 
-type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops';
+type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops' | 'sla';
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
 type ExpandedPanel = 'feed' | 'detail' | 'map' | 'ops' | null;
 
@@ -91,7 +92,7 @@ export default function Command() {
     timeRange: 'today',
   });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
-  const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops'>('status');
+  const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops' | 'sla'>('status');
   const [opsReportId, setOpsReportId] = useState<string | null>(null);
   const viewMode = useViewMode();
   const mapRef = useRef<MapTabHandle>(null);
@@ -247,7 +248,7 @@ export default function Command() {
         {topBar}
 
         <div className="flex flex-col flex-1 overflow-hidden p-3 gap-3">
-          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab === 'ops' ? 'flex-1 flex flex-col' : 'flex-shrink-0'}`}>
+          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab !== 'status' ? 'flex-1 flex flex-col' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
               <button
                 onClick={() => setDesktopUpperTab('status')}
@@ -271,6 +272,17 @@ export default function Command() {
               >
                 OPS LOG
               </button>
+              <button
+                onClick={() => setDesktopUpperTab('sla')}
+                className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                style={{
+                  color: desktopUpperTab === 'sla' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                  borderBottom: desktopUpperTab === 'sla' ? '2px solid hsl(var(--primary))' : '2px solid transparent',
+                  background: 'transparent',
+                }}
+              >
+                SLA
+              </button>
             </div>
             {desktopUpperTab === 'status' ? (
               <CommandStatus
@@ -280,9 +292,13 @@ export default function Command() {
                 uniqueDevices={uniqueDevices}
                 connected={connected}
               />
-            ) : (
+            ) : desktopUpperTab === 'ops' ? (
               <div className="flex-1 overflow-y-auto">
                 <OpsLogTab onSelectReport={handleOpsReportSelect} />
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto">
+                <UptimeTab />
               </div>
             )}
           </div>
@@ -375,12 +391,18 @@ export default function Command() {
             <OpsLogTab onSelectReport={handleOpsReportSelect} />
           </div>
         )}
+        {mobileTab === 'sla' && (
+          <div className="h-full">
+            <UptimeTab />
+          </div>
+        )}
       </div>
       <div className="flex flex-shrink-0 border-t border-border bg-card">
         {mobileTabBtn('feed', 'FEED')}
         {mobileTabBtn('detail', 'DETAIL')}
         {mobileTabBtn('map', 'MAP')}
         {mobileTabBtn('ops', 'OPS')}
+        {mobileTabBtn('sla', 'SLA')}
         {mobileTabBtn('status', 'STATUS')}
       </div>
     </div>
