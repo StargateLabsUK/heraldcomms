@@ -127,10 +127,10 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       setOriginalAssessment(JSON.parse(JSON.stringify(assessment)));
 
       // Detect session vs transcript mismatches
-      const session = getSession();
-      if (session) {
+      const currentSession = getSession();
+      if (currentSession) {
         const detected = detectMismatches(
-          { service: session.service, callsign: session.callsign, operator_id: session.operator_id },
+          { service: currentSession.service, callsign: currentSession.callsign, operator_id: currentSession.operator_id },
           assessment
         );
         setMismatches(detected);
@@ -144,9 +144,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       const txCallsign = assessment.structured?.callsign;
       const txIncidentType = assessment.incident_type;
       const txLocation = assessment.scene_location;
-      const session = getSession();
-      const shiftId = session?.shift_id;
-      const sessionCallsign = session?.callsign;
+      const shiftId = currentSession?.shift_id;
+      const sessionCallsign = currentSession?.callsign;
       const effectiveCallsign = (txCallsign && txCallsign !== 'null') ? txCallsign : sessionCallsign;
 
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
