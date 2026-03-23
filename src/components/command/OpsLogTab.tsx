@@ -132,7 +132,9 @@ function ShiftCard({
             const isActive = r.status === 'active';
             const isClosed = r.status === 'closed';
             return (
-              <div key={r.id} className="flex items-start gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0">
+              <div key={r.id}
+                onClick={() => onSelectReport?.(r.id)}
+                className="flex items-start gap-3 px-4 py-2.5 border-b border-border/50 last:border-b-0 cursor-pointer hover:bg-muted/50 transition-colors">
                 <span className="text-sm font-bold flex-shrink-0 mt-0.5" style={{ color, minWidth: 24 }}>
                   {p ?? '—'}
                 </span>
