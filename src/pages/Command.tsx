@@ -238,7 +238,7 @@ export default function Command() {
                 <button
                   key={tab}
                   onClick={() => setDesktopUpperTab(tab)}
-                  className="px-4 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                  className="px-4 py-2.5 text-lg font-bold tracking-widest cursor-pointer"
                   style={{
                     color: desktopUpperTab === tab ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
                     borderBottom: desktopUpperTab === tab ? '2px solid hsl(var(--primary))' : '2px solid transparent',
@@ -303,7 +303,7 @@ export default function Command() {
                 <button
                   key={tab}
                   onClick={() => setDesktopUpperTab(tab)}
-                  className="px-3 py-2 text-sm font-bold tracking-widest cursor-pointer"
+                  className="px-3 py-2.5 text-lg font-bold tracking-widest cursor-pointer"
                   style={{
                     color: tabletTab === tab ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
                     borderBottom: tabletTab === tab ? '2px solid hsl(var(--primary))' : '2px solid transparent',
