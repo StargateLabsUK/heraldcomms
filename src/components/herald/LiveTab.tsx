@@ -140,13 +140,35 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
       // Check for existing incident (follow-up detection)
       const incidentNum = assessment.structured?.incident_number;
-      if (incidentNum && incidentNum !== 'null' && incidentNum !== '') {
+      const shiftId = getSession()?.shift_id;
+      if (incidentNum && incidentNum !== 'null' && incidentNum !== '' && shiftId) {
+        supabase
+          .from('herald_reports')
+          .select('id, incident_number')
+          .eq('incident_number', incidentNum)
+          .eq('shift_id', shiftId)
+          .eq('status', 'active')
+          .limit(1)
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              setIsFollowUp(true);
+              setFollowUpReportId(data[0].id);
+              setFollowUpIncidentNumber(incidentNum);
+            } else {
+              setIsFollowUp(false);
+              setFollowUpReportId(null);
+              setFollowUpIncidentNumber(incidentNum);
+            }
+          });
+      } else if (incidentNum && incidentNum !== 'null' && incidentNum !== '') {
+        // No shift — fallback to today's date matching
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         supabase
           .from('herald_reports')
           .select('id, incident_number')
           .eq('incident_number', incidentNum)
+          .eq('status', 'active')
           .gte('created_at', todayStart.toISOString())
           .limit(1)
           .then(({ data }) => {
