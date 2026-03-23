@@ -25,6 +25,8 @@ export interface CommandReport {
   incident_number: string | null;
   transmission_count: number | null;
   latest_transmission_at: string | null;
+  status: string | null;
+  shift_id: string | null;
   isNew?: boolean;
 }
 
@@ -83,6 +85,8 @@ export function useHeraldCommand() {
             incident_number: r.incident_number ?? null,
             transmission_count: r.transmission_count ?? 1,
             latest_transmission_at: r.latest_transmission_at ?? null,
+            status: r.status ?? 'active',
+            shift_id: r.shift_id ?? null,
             isNew: true,
           };
           setReports((prev) => [report, ...prev]);
@@ -109,6 +113,7 @@ export function useHeraldCommand() {
                 incident_number: r.incident_number ?? p.incident_number,
                 transmission_count: r.transmission_count ?? p.transmission_count,
                 latest_transmission_at: r.latest_transmission_at ?? p.latest_transmission_at,
+                status: r.status ?? p.status,
                 priority: r.priority ?? p.priority,
                 headline: r.headline ?? p.headline,
                 isNew: true,

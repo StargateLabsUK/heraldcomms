@@ -1,10 +1,10 @@
 interface BottomNavProps {
-  activeTab: 'live' | 'reports';
-  onTabChange: (tab: 'live' | 'reports') => void;
+  activeTab: 'live' | 'reports' | 'incidents';
+  onTabChange: (tab: 'live' | 'reports' | 'incidents') => void;
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
-  const tab = (id: 'live' | 'reports', label: string) => {
+  const tab = (id: 'live' | 'reports' | 'incidents', label: string) => {
     const active = activeTab === id;
     return (
       <button
@@ -23,6 +23,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
     <div className="flex flex-shrink-0 border-t border-border">
       {tab('live', 'LIVE')}
+      {tab('incidents', 'INCIDENTS')}
       {tab('reports', 'REPORTS')}
     </div>
   );

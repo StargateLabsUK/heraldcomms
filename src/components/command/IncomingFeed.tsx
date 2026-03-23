@@ -90,7 +90,7 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                   transform: r.isNew ? 'scale(1.02)' : 'scale(1)',
                 }}
               >
-                {/* Row 1: Priority | Time | Service */}
+                {/* Row 1: Priority | Time | Service | Status */}
                 <div className="flex items-center gap-3" style={{ marginBottom: 4 }}>
                   <span
                     className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
@@ -104,6 +104,17 @@ export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
                   <span className="text-lg uppercase font-bold flex-shrink-0" style={{ color: '#4A6058' }}>
                     {SERVICE_LABELS[getService(r)] ?? getService(r)}
                   </span>
+                  {(r as any).status === 'closed' ? (
+                    <span className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                      style={{ color: '#888', border: '1px solid rgba(136,136,136,0.3)', background: 'rgba(136,136,136,0.08)' }}>
+                      CLOSED
+                    </span>
+                  ) : (r as any).status === 'active' && r.incident_number ? (
+                    <span className="text-lg font-bold rounded-sm px-1.5 py-0.5 flex-shrink-0"
+                      style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
+                      ACTIVE
+                    </span>
+                  ) : null}
                 </div>
 
                 {/* Row 2: Headline (always full width, truncated) */}
