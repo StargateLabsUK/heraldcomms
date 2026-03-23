@@ -549,6 +549,15 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           <span className="text-lg md:text-lg text-foreground uppercase font-bold">{assessment.service}</span>
         </div>
 
+        {isFollowUp && followUpIncidentNumber && (
+          <div className="mx-3 md:mx-4 mt-2 p-3 rounded border" style={{ background: 'rgba(30,144,255,0.08)', borderColor: '#1E90FF' }}>
+            <p className="text-lg font-bold" style={{ color: '#1E90FF', letterSpacing: '0.15em' }}>
+              🔄 FOLLOW-UP — Incident #{followUpIncidentNumber}
+            </p>
+            <p className="text-lg text-foreground mt-1 opacity-70">This will be added to the existing incident log</p>
+          </div>
+        )}
+
         {mismatches.length > 0 && (
           <div className="mx-3 md:mx-4 mt-2 p-3 rounded border" style={{ background: 'rgba(255,149,0,0.08)', borderColor: '#FF9500' }}>
             <p className="text-lg font-bold mb-1" style={{ color: '#FF9500', letterSpacing: '0.15em' }}>⚠ DATA MISMATCH</p>
