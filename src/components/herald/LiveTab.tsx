@@ -111,7 +111,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   useEffect(() => {
     if (assessment && state === 'ready') {
       setEditHeadline(assessment.headline || '');
-      // Flatten nested objects/arrays to readable strings for editing
       const flatStructured: Record<string, string> = {};
       for (const [k, v] of Object.entries(assessment.structured || {})) {
         if (v === null || v === undefined) {
@@ -137,6 +136,34 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         setMismatches(detected);
       } else {
         setMismatches([]);
+      }
+
+      // Check for existing incident (follow-up detection)
+      const incidentNum = assessment.structured?.incident_number;
+      if (incidentNum && incidentNum !== 'null' && incidentNum !== '') {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        supabase
+          .from('herald_reports')
+          .select('id, incident_number')
+          .eq('incident_number', incidentNum)
+          .gte('created_at', todayStart.toISOString())
+          .limit(1)
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              setIsFollowUp(true);
+              setFollowUpReportId(data[0].id);
+              setFollowUpIncidentNumber(incidentNum);
+            } else {
+              setIsFollowUp(false);
+              setFollowUpReportId(null);
+              setFollowUpIncidentNumber(incidentNum);
+            }
+          });
+      } else {
+        setIsFollowUp(false);
+        setFollowUpReportId(null);
+        setFollowUpIncidentNumber(null);
       }
     }
   }, [assessment, state]);
