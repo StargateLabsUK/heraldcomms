@@ -39,7 +39,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     },
   }));
 
-  const webglFailed = useRef(false);
+  const [webglFailed, setWebglFailed] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || !MAPBOX_TOKEN) return;
@@ -65,7 +65,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       };
     } catch (e) {
       console.warn('MapTab: WebGL not available, falling back to placeholder', e);
-      webglFailed.current = true;
+      setWebglFailed(true);
     }
   }, []);
 
@@ -154,7 +154,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     }
   }, [reports, addMarker]);
 
-  if (!MAPBOX_TOKEN || webglFailed.current) {
+  if (!MAPBOX_TOKEN || webglFailed) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-foreground opacity-50 text-lg tracking-widest">
