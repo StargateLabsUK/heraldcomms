@@ -1,6 +1,7 @@
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import type { CommandShift } from '@/hooks/useHeraldCommand';
 import { SERVICE_LABELS } from '@/lib/herald-types';
+import { getVehicleLabel } from '@/lib/vehicle-types';
 
 interface Props {
   todayReports: CommandReport[];
