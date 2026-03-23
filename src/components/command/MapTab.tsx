@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
@@ -39,27 +39,34 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     },
   }));
 
+  const webglFailed = useRef(false);
+
   useEffect(() => {
     if (!containerRef.current || !MAPBOX_TOKEN) return;
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: 'mapbox://styles/mapbox/navigation-night-v1',
-      center: [-2.5, 54.5],
-      zoom: 6,
-      attributionControl: false,
-    });
+    try {
+      const map = new mapboxgl.Map({
+        container: containerRef.current,
+        style: 'mapbox://styles/mapbox/navigation-night-v1',
+        center: [-2.5, 54.5],
+        zoom: 6,
+        attributionControl: false,
+      });
 
-    map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-    mapRef.current = map;
+      map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+      mapRef.current = map;
 
-    return () => {
-      map.remove();
-      mapRef.current = null;
-      markersRef.current.clear();
-      fittedRef.current = false;
-    };
+      return () => {
+        map.remove();
+        mapRef.current = null;
+        markersRef.current.clear();
+        fittedRef.current = false;
+      };
+    } catch (e) {
+      console.warn('MapTab: WebGL not available, falling back to placeholder', e);
+      webglFailed.current = true;
+    }
   }, []);
 
   const addMarker = useCallback(
@@ -147,11 +154,11 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     }
   }, [reports, addMarker]);
 
-  if (!MAPBOX_TOKEN) {
+  if (!MAPBOX_TOKEN || webglFailed.current) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-foreground opacity-50 text-lg tracking-widest">
-          MAPBOX TOKEN NOT CONFIGURED
+          {!MAPBOX_TOKEN ? 'MAPBOX TOKEN NOT CONFIGURED' : 'MAP UNAVAILABLE — WEBGL NOT SUPPORTED'}
         </p>
       </div>
     );
