@@ -61,7 +61,15 @@ treatment_given — completed clinical actions only. IV access, fluids, airway a
 
 atmist — generate per casualty for MCIs, keyed by priority (P1, P2, P3 etc.). Populate T_treatment from any interventions mentioned even if Age or Mechanism are unknown. Never leave T_treatment blank if treatment is mentioned. If only one casualty, use their priority as the key.
 
-action_items — extract any unresolved situations that require crew follow-up. Examples: unconfirmed receiving hospital, casualty status unknown, documentation required, scene hazard not resolved. These are important — do not bury them in findings.
+action_items — generate as open loops the crew must close. Frame each item as an unresolved task requiring crew action. Use these patterns:
+
+- Resource requested but not confirmed: "[Resource] not yet confirmed — chase Control"
+- Receiving hospital not confirmed: "No receiving hospital confirmed — contact Control"
+- Casualty requiring extrication: "P[X] trapped — extrication required before packaging and transport"
+- Unconfirmed casualty status: "P[X] status unconfirmed — verify with scene commander"
+- Any other pending item: describe what the crew must do next, not what has already happened
+
+Action items describe what the crew must do next. Never describe completed actions.
 
 major_incident — set to true if METHANE is declared, if JESIP is referenced, if scene involves multiple agencies, or if casualty count is 3 or more.
 
