@@ -241,10 +241,10 @@ export default function Command() {
   // DESKTOP
   if (viewMode === 'desktop') {
     return (
-      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+      <div className="flex flex-col min-h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
 
-        <div className="flex flex-col flex-1 overflow-hidden p-3 gap-3">
+        <div className="flex flex-col flex-1 p-3 gap-3" style={{ minHeight: '100vh' }}>
           <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab !== 'status' ? 'flex-1 flex flex-col' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
               {(['status', 'map', 'ops', 'sla'] as const).map((tab) => (
@@ -285,7 +285,7 @@ export default function Command() {
             )}
           </div>
           {desktopUpperTab === 'status' && (
-          <div className="flex flex-1 overflow-hidden min-w-0 gap-3">
+          <div className="flex min-w-0 gap-3" style={{ height: '80vh' }}>
             <div className="relative flex flex-col overflow-hidden min-w-0 w-1/2 rounded-lg border border-border bg-card shadow-sm">
               <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
               <IncomingFeed reports={filteredReports} selectedId={selectedId} onSelect={handleSelect} />
