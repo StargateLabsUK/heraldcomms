@@ -29,18 +29,13 @@ const labelStyle: React.CSSProperties = {
 };
 
 export function ShiftLogin({ onShiftStarted }: Props) {
-  const [service, setService] = useState('');
+  const service = 'ambulance';
   const [callsign, setCallsign] = useState('');
   const [collarNumber, setCollarNumber] = useState('');
   const [station, setStation] = useState('');
 
-  const canSubmit = service !== '' && callsign.trim() !== '';
+  const canSubmit = callsign.trim() !== '';
   const stationOptions = getStationsForService(service);
-
-  const handleServiceChange = (val: string) => {
-    setService(val);
-    setStation(''); // reset station when service changes
-  };
 
   const [submitting, setSubmitting] = useState(false);
 
