@@ -196,6 +196,8 @@ export function useHeraldCommand() {
 
   const uniqueDevices = new Set(todayReports.map((r) => r.device_id).filter(Boolean)).size;
 
+  const activeShifts = shifts.filter((s) => !s.ended_at);
+
   return {
     reports,
     todayReports,
@@ -204,5 +206,6 @@ export function useHeraldCommand() {
     uniqueDevices,
     connected,
     loading,
+    activeShifts,
   };
 }
