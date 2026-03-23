@@ -92,11 +92,17 @@ export default function Command() {
   });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
   const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops'>('status');
+  const [opsReportId, setOpsReportId] = useState<string | null>(null);
   const viewMode = useViewMode();
   const mapRef = useRef<MapTabHandle>(null);
 
   const filteredReports = useMemo(() => applyFilters(reports, filters), [reports, filters]);
   const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
+  const opsReport = useMemo(() => opsReportId ? reports.find((r) => r.id === opsReportId) ?? null : null, [opsReportId, reports]);
+
+  const handleOpsReportSelect = useCallback((id: string) => {
+    setOpsReportId(id);
+  }, []);
 
   const uniqueCallsigns = useMemo(() => {
     const set = new Set<string>();
@@ -180,6 +186,32 @@ export default function Command() {
 
   const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} filterSlot={filterSlot} />;
 
+  // OPS LOG REPORT DETAIL — full page with report + map
+  if (opsReport) {
+    const singleReports = [opsReport];
+    return (
+      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
+        {topBar}
+        <div className="flex-1 overflow-hidden p-3 relative">
+          <button
+            onClick={() => setOpsReportId(null)}
+            className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded bg-card/90 border border-border hover:bg-card cursor-pointer transition-colors text-sm font-bold tracking-widest text-foreground flex items-center gap-2"
+          >
+            <Minimize2 size={16} /> BACK TO OPS LOG
+          </button>
+          <div className="flex h-full gap-3">
+            <div className="flex-1 rounded-lg border border-border bg-card shadow-sm overflow-y-auto">
+              <ReportDetail report={opsReport} />
+            </div>
+            <div className="w-2/5 rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+              <MapTab reports={singleReports} onSelectReport={() => {}} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // EXPANDED FULL-PAGE OVERLAY (desktop & tablet)
   if (expandedPanel && viewMode !== 'mobile') {
     return (
@@ -200,7 +232,7 @@ export default function Command() {
               <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
             )}
             {expandedPanel === 'ops' && (
-              <OpsLogTab onSelectReport={(id) => { handleSelect(id); setExpandedPanel(null); }} />
+              <OpsLogTab onSelectReport={handleOpsReportSelect} />
             )}
           </div>
         </div>
@@ -251,7 +283,7 @@ export default function Command() {
             ) : (
               <div className="relative" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
                 <ExpandButton expanded={false} onClick={() => toggleExpand('ops')} />
-                <OpsLogTab onSelectReport={handleSelect} />
+                <OpsLogTab onSelectReport={handleOpsReportSelect} />
               </div>
             )}
           </div>
@@ -339,7 +371,7 @@ export default function Command() {
         )}
         {mobileTab === 'ops' && (
           <div className="h-full">
-            <OpsLogTab onSelectReport={(id) => { handleSelect(id); setMobileTab('detail'); }} />
+            <OpsLogTab onSelectReport={handleOpsReportSelect} />
           </div>
         )}
       </div>
