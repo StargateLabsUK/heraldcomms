@@ -369,7 +369,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
     try {
       setTranscript(text);
-      const result = await assessTranscript(text);
+      const sessionCtx = getSession();
+      const result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
       setAssessment(result);
       onAiStatus('ok');
 
