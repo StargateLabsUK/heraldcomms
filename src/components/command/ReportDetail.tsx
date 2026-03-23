@@ -4,6 +4,10 @@ import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
 import type { IncidentTransmission } from '@/lib/herald-types';
 import { supabase } from '@/integrations/supabase/client';
 
+interface Props {
+  report: CommandReport | null;
+}
+
 function CopyBtn({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
