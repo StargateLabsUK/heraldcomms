@@ -75,7 +75,8 @@ export function ReportDetail({ report }: Props) {
     );
   }
 
-  const a = report.assessment;
+  const rawA = report.assessment;
+  const a = rawA ? sanitizeAssessment(rawA) : null;
   const priority = a?.priority ?? report.priority ?? 'P3';
   const col = PRIORITY_COLORS[priority] ?? '#34C759';
   const service = a?.service ?? report.service ?? 'unknown';

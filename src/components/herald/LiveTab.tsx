@@ -110,9 +110,11 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
   useEffect(() => {
     if (assessment && state === 'ready') {
-      setEditHeadline(assessment.headline || '');
+      // Sanitize assessment before populating edit fields
+      const clean = sanitizeAssessment(assessment);
+      setEditHeadline(clean.headline || '');
       const flatStructured: Record<string, string> = {};
-      for (const [k, v] of Object.entries(assessment.structured || {})) {
+      for (const [k, v] of Object.entries(clean.structured || {})) {
         if (v === null || v === undefined) {
           flatStructured[k] = '';
         } else if (typeof v === 'object') {
@@ -122,9 +124,9 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         }
       }
       setEditStructured(flatStructured);
-      setEditActions([...(assessment.actions || [])]);
-      setEditFormattedReport(assessment.formatted_report || '');
-      setOriginalAssessment(JSON.parse(JSON.stringify(assessment)));
+      setEditActions([...(clean.actions || [])]);
+      setEditFormattedReport(clean.formatted_report || '');
+      setOriginalAssessment(JSON.parse(JSON.stringify(clean)));
 
       // Detect session vs transcript mismatches
       const currentSession = getSession();
