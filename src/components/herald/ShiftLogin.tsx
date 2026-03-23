@@ -3,13 +3,6 @@ import { saveSession, startShiftRemote } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
 import { getStationsForService } from '@/lib/uk-stations';
 
-const SERVICE_OPTIONS = [
-  { value: 'ambulance', label: 'Ambulance' },
-  { value: 'police', label: 'Police' },
-  { value: 'fire', label: 'Fire & Rescue' },
-  { value: 'military', label: 'Military' },
-  { value: 'other', label: 'Other' },
-];
 
 interface Props {
   onShiftStarted: (session: HeraldSession) => void;
