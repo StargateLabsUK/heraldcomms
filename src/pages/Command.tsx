@@ -15,7 +15,7 @@ import type { MapTabHandle } from '@/components/command/MapTab';
 
 type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops';
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
-type ExpandedPanel = 'feed' | 'detail' | 'map' | null;
+type ExpandedPanel = 'feed' | 'detail' | 'map' | 'ops' | null;
 
 function useViewMode(): ViewMode {
   const [mode, setMode] = useState<ViewMode>('desktop');
