@@ -1,0 +1,1 @@
+TRUNCATE public.incident_transmissions, public.herald_reports, public.shifts CASCADE;
