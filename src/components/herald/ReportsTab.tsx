@@ -69,6 +69,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
         const priorityLabel = (a?.priority_label as string) ?? '';
         const actionItems = (a?.action_items as string[]) ?? [];
         const atmist = (a?.atmist as Record<string, any>) ?? null;
+        const clinicalFindings = (a?.clinical_findings as Record<string, string>) ?? null;
 
         return (
           <div
