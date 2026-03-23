@@ -46,6 +46,20 @@ function DetailCard({ children, className = '' }: { children: React.ReactNode; c
 }
 
 export function ReportDetail({ report }: Props) {
+  const [transmissions, setTransmissions] = useState<IncidentTransmission[]>([]);
+
+  useEffect(() => {
+    if (!report?.id) { setTransmissions([]); return; }
+    supabase
+      .from('incident_transmissions')
+      .select('*')
+      .eq('report_id', report.id)
+      .order('timestamp', { ascending: true })
+      .then(({ data }) => {
+        setTransmissions((data as unknown as IncidentTransmission[]) ?? []);
+      });
+  }, [report?.id]);
+
   if (!report) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
