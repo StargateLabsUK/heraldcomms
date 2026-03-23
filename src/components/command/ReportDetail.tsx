@@ -105,6 +105,7 @@ export function ReportDetail({ report }: Props) {
   const atmist = a?.atmist ?? null;
   const treatmentGiven: string[] = a?.treatment_given ?? [];
   const actionItems: string[] = a?.action_items ?? [];
+  const resolvedActionItems: ActionItem[] = (a as any)?.resolved_action_items ?? [];
 
   // Build ePRF text
   const abcdeText = clinicalFindings
