@@ -158,7 +158,7 @@ export function useHeraldCommand() {
   }, []);
 
   useEffect(() => {
-    fetchReports();
+    fetchData();
     const channel = subscribe();
 
     retryRef.current = setInterval(() => {
