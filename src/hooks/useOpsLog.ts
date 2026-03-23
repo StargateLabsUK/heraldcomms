@@ -29,6 +29,10 @@ export interface OpsReport {
   session_service: string | null;
   session_station: string | null;
   created_at: string | null;
+  incident_number: string | null;
+  transmission_count: number | null;
+  latest_transmission_at: string | null;
+  status: string | null;
 }
 
 export interface OpsFilters {
