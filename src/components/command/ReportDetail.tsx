@@ -119,6 +119,11 @@ export function ReportDetail({ report }: Props) {
   const col = PRIORITY_COLORS[priority] ?? '#34C759';
   const service = a?.service ?? report.service ?? 'unknown';
   const serviceLabel = SERVICE_LABELS[service] ?? service.toUpperCase();
+  const vtCode = (report as any).vehicle_type;
+  const vtLabel = getVehicleLabel(vtCode);
+  const headerLabel = vtLabel && report.session_callsign
+    ? `${vtLabel} — ${report.session_callsign}`
+    : vtLabel || serviceLabel;
   const ts = new Date(report.created_at ?? report.timestamp);
   const timeStr = ts.getUTCHours().toString().padStart(2, '0') + ':' +
     ts.getUTCMinutes().toString().padStart(2, '0') + ':' +
