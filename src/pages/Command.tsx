@@ -14,7 +14,7 @@ import { CommandFilterBar } from '@/components/command/CommandFilterBar';
 import type { CommandFilters } from '@/components/command/CommandFilterBar';
 import type { MapTabHandle } from '@/components/command/MapTab';
 
-type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops';
+type MobileTab = 'feed' | 'detail' | 'status' | 'map' | 'training' | 'ops' | 'sla';
 type ViewMode = 'mobile' | 'tablet' | 'desktop';
 type ExpandedPanel = 'feed' | 'detail' | 'map' | 'ops' | null;
 
