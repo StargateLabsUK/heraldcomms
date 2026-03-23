@@ -80,6 +80,9 @@ export function useHeraldCommand() {
             session_operator_id: r.session_operator_id ?? null,
             session_service: r.session_service ?? null,
             session_station: r.session_station ?? null,
+            incident_number: r.incident_number ?? null,
+            transmission_count: r.transmission_count ?? 1,
+            latest_transmission_at: r.latest_transmission_at ?? null,
             isNew: true,
           };
           setReports((prev) => [report, ...prev]);
@@ -87,6 +90,34 @@ export function useHeraldCommand() {
           setTimeout(() => {
             setReports((prev) =>
               prev.map((p) => (p.id === report.id ? { ...p, isNew: false } : p))
+            );
+          }, 800);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'herald_reports' },
+        (payload) => {
+          const r = payload.new as any;
+          setReports((prev) =>
+            prev.map((p) => {
+              if (p.id !== r.id) return p;
+              return {
+                ...p,
+                ...r,
+                assessment: r.assessment ? (r.assessment as Assessment) : p.assessment,
+                incident_number: r.incident_number ?? p.incident_number,
+                transmission_count: r.transmission_count ?? p.transmission_count,
+                latest_transmission_at: r.latest_transmission_at ?? p.latest_transmission_at,
+                priority: r.priority ?? p.priority,
+                headline: r.headline ?? p.headline,
+                isNew: true,
+              };
+            })
+          );
+          setTimeout(() => {
+            setReports((prev) =>
+              prev.map((p) => (p.id === r.id ? { ...p, isNew: false } : p))
             );
           }, 800);
         }
