@@ -755,14 +755,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
                 className="text-lg mt-2 px-2 py-1 rounded-sm"
                 style={{ color: 'hsl(var(--primary))', border: '1px solid rgba(61,255,140,0.2)' }}
               >+ ADD ACTION</button>
-              {assessment.transmit_to && (
-                <>
-                  <div className="border-t border-border my-2" />
-                  <p className="text-lg md:text-lg text-foreground">
-                    <span className="font-bold" style={{ color: pc }}>TRANSMIT TO:</span> {assessment.transmit_to}
-                  </p>
-                </>
-              )}
             </div>
           </div>
         </div>
