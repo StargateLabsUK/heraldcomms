@@ -39,7 +39,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     },
   }));
 
-  const webglFailed = useRef(false);
+  const [webglFailed, setWebglFailed] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || !MAPBOX_TOKEN) return;
