@@ -70,8 +70,8 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-lg text-foreground">VER</span>
-              <span className="text-lg text-foreground font-bold">v1.0</span>
+              <span className="text-lg text-foreground">SHIFTS</span>
+              <span className="text-lg text-foreground font-bold">{activeShifts.length}</span>
             </div>
           </div>
         </div>
