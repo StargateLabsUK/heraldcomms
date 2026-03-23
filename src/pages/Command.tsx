@@ -80,6 +80,7 @@ export default function Command() {
     serviceCounts,
     uniqueDevices,
     connected,
+    activeShifts,
   } = useHeraldCommand();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -255,6 +256,7 @@ export default function Command() {
                 serviceCounts={filteredServiceCounts}
                 uniqueDevices={uniqueDevices}
                 connected={connected}
+                activeShifts={activeShifts}
               />
             ) : desktopUpperTab === 'map' ? (
               <div className="flex-1 overflow-hidden h-full min-h-0">
@@ -319,6 +321,7 @@ export default function Command() {
                 serviceCounts={filteredServiceCounts}
                 uniqueDevices={uniqueDevices}
                 connected={connected}
+                activeShifts={activeShifts}
               />
             ) : tabletTab === 'map' ? (
               <div className="flex-1 overflow-hidden h-full min-h-0">
@@ -374,6 +377,7 @@ export default function Command() {
                 serviceCounts={filteredServiceCounts}
                 uniqueDevices={uniqueDevices}
                 connected={connected}
+                activeShifts={activeShifts}
               />
             </div>
           </div>
