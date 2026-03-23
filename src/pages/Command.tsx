@@ -308,10 +308,6 @@ export default function Command() {
         {topBar}
 
         <div className="flex flex-col flex-1 overflow-hidden p-2 gap-2">
-          <div className="relative flex-shrink-0 h-[40%] rounded-lg border border-border bg-card shadow-sm overflow-hidden">
-            <ExpandButton expanded={false} onClick={() => toggleExpand('map')} />
-            <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
-          </div>
           <div className="flex flex-1 overflow-hidden min-w-0 gap-2">
             <div className="relative flex flex-col overflow-hidden min-w-0 w-2/5 rounded-lg border border-border bg-card shadow-sm">
               <ExpandButton expanded={false} onClick={() => toggleExpand('feed')} />
