@@ -4,7 +4,7 @@ import { SERVICE_LABELS } from '@/lib/herald-types';
 interface Props {
   todayReports: CommandReport[];
   priorityCounts: { P1: number; P2: number; P3: number };
-  serviceCounts: Record<string, number>;
+  serviceCounts?: Record<string, number>;
   uniqueDevices: number;
   connected: boolean;
 }
@@ -25,7 +25,7 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
   return (
     <div className="flex flex-col bg-card">
       {/* Top row: Transmissions + By Service */}
-      <div className="grid grid-cols-3 md:grid-cols-5 gap-0">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-0">
         {/* Total Transmissions */}
         <div className="px-3 py-2.5 md:px-4 md:py-3 border-r border-b md:border-b-0 border-border flex flex-col">
           <div className="text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
@@ -57,23 +57,6 @@ export function CommandStatus({ todayReports, priorityCounts, serviceCounts, uni
           </div>
         </div>
 
-        {/* By Service */}
-        <div className="px-3 py-2.5 md:px-4 md:py-3 md:border-r border-b md:border-b-0 border-border">
-          <div className="text-lg md:text-lg text-foreground opacity-70 tracking-[0.2em] mb-1.5 font-bold">
-            BY SERVICE
-          </div>
-          <div className="flex flex-col gap-0.5">
-            {Object.entries(serviceCounts).map(([s, c]) => (
-              <div key={s} className="flex items-center justify-between">
-                <span className="text-lg md:text-lg text-foreground">{SERVICE_LABELS[s] ?? s.toUpperCase()}</span>
-                <span className="font-heading text-lg text-foreground font-bold">{c}</span>
-              </div>
-            ))}
-            {Object.keys(serviceCounts).length === 0 && (
-              <span className="text-lg text-foreground opacity-50">No reports today</span>
-            )}
-          </div>
-        </div>
 
         {/* System Status - desktop: col 3 */}
         <div className="hidden md:block px-4 py-3 border-r border-border">
