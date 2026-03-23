@@ -377,6 +377,7 @@ export default function Command() {
                 serviceCounts={filteredServiceCounts}
                 uniqueDevices={uniqueDevices}
                 connected={connected}
+                activeShifts={activeShifts}
               />
             </div>
           </div>
