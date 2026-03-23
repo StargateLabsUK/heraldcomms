@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
+import { getVehicleLabel } from '@/lib/vehicle-types';
 import type { IncidentTransmission, ActionItem } from '@/lib/herald-types';
 import { renderStructuredValue } from '@/components/StructuredValue';
 import { supabase } from '@/integrations/supabase/client';
