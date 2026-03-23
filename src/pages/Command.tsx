@@ -171,15 +171,7 @@ export default function Command() {
     );
   };
 
-  const filterSlot = (
-    <CommandFilterBar
-      services={uniqueServices}
-      callsigns={uniqueCallsigns}
-      onFilterChange={setFilters}
-    />
-  );
-
-  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} filterSlot={filterSlot} />;
+  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} />;
 
   // OPS LOG REPORT DETAIL — full page with report + map
   if (opsReport) {
