@@ -7,6 +7,7 @@ import { IncidentsTab } from '@/components/herald/IncidentsTab';
 import { ShiftLogin } from '@/components/herald/ShiftLogin';
 import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
+import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports } from '@/lib/herald-storage';
 import { getSession } from '@/lib/herald-session';
 import type { HeraldReport } from '@/lib/herald-types';
@@ -19,13 +20,15 @@ const Index = () => {
   const [session, setSession] = useState<HeraldSession | null>(getSession());
   const syncStatus = useHeraldSync();
 
-  useEffect(() => {
-    setReports(getReports());
-  }, [activeTab]);
-
   const refreshReports = useCallback(() => {
     setReports(getReports());
   }, []);
+
+  useCommandPull(refreshReports);
+
+  useEffect(() => {
+    setReports(getReports());
+  }, [activeTab]);
 
   const handleShiftStarted = useCallback((s: HeraldSession) => {
     setSession(s);

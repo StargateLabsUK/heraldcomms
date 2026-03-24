@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Pencil, Check, X } from 'lucide-react';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
 import { SERVICE_LABELS, PRIORITY_COLORS } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
@@ -11,6 +12,8 @@ interface Props {
   report: CommandReport | null;
 }
 
+/* ── Small UI helpers ── */
+
 function CopyBtn({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
@@ -18,12 +21,9 @@ function CopyBtn({ text, label }: { text: string; label: string }) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [text]);
-
   return (
-    <button
-      onClick={copy}
-      className="text-lg text-foreground border border-border px-3 py-1.5 rounded-sm bg-transparent cursor-pointer tracking-wide hover:border-primary transition-colors"
-    >
+    <button onClick={copy}
+      className="text-lg text-foreground border border-border px-3 py-1.5 rounded-sm bg-transparent cursor-pointer tracking-wide hover:border-primary transition-colors">
       {copied ? 'COPIED' : label}
     </button>
   );
@@ -49,11 +49,9 @@ function ResolvedSection({ items }: { items: ActionItem[] }) {
   const [open, setOpen] = useState(false);
   return (
     <div>
-      <button
-        onClick={() => setOpen(!open)}
+      <button onClick={() => setOpen(!open)}
         className="flex items-center gap-2 text-lg font-bold tracking-[0.15em] mb-2 bg-transparent border-none cursor-pointer"
-        style={{ color: '#888' }}
-      >
+        style={{ color: '#888' }}>
         <span style={{ transform: open ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>▶</span>
         RESOLVED ({items.length})
       </button>
@@ -79,11 +77,96 @@ function ResolvedSection({ items }: { items: ActionItem[] }) {
   );
 }
 
+/* ── Inline editable field ── */
+
+function EditableField({
+  label,
+  value,
+  placeholder,
+  onSave,
+  color,
+  prominent,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onSave: (val: string) => Promise<void>;
+  color: string;
+  prominent?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setDraft(value); }, [value]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  const save = async () => {
+    if (draft.trim() === value) { setEditing(false); return; }
+    setSaving(true);
+    await onSave(draft.trim());
+    setSaving(false);
+    setEditing(false);
+  };
+
+  const cancel = () => { setDraft(value); setEditing(false); };
+
+  return (
+    <div>
+      <SectionLabel color={color}>{label}</SectionLabel>
+      <DetailCard className={prominent ? 'border-2' : ''}>
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') cancel(); }}
+              placeholder={placeholder}
+              className="flex-1 bg-transparent text-lg text-foreground border-b border-primary outline-none py-1"
+              disabled={saving}
+            />
+            <button onClick={save} disabled={saving}
+              className="p-1.5 rounded hover:bg-accent transition-colors cursor-pointer" style={{ color: '#34C759' }}>
+              <Check size={20} />
+            </button>
+            <button onClick={cancel}
+              className="p-1.5 rounded hover:bg-accent transition-colors cursor-pointer" style={{ color: '#FF3B30' }}>
+              <X size={20} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            {value ? (
+              <span className={`text-lg text-foreground break-words ${prominent ? 'font-bold' : ''}`}>{value}</span>
+            ) : (
+              <span className="text-lg opacity-50" style={{ color: '#FF9500' }}>{placeholder}</span>
+            )}
+            <button onClick={() => setEditing(true)}
+              className="p-1.5 rounded hover:bg-accent transition-colors cursor-pointer flex-shrink-0"
+              style={{ color: 'hsl(var(--primary))' }}>
+              <Pencil size={18} />
+            </button>
+          </div>
+        )}
+      </DetailCard>
+    </div>
+  );
+}
+
+/* ── Main component ── */
+
 export function ReportDetail({ report }: Props) {
   const [transmissions, setTransmissions] = useState<IncidentTransmission[]>([]);
+  // Local overrides for editable fields
+  const [localIncidentNum, setLocalIncidentNum] = useState<string | null>(null);
+  const [localHospital, setLocalHospital] = useState<string | null>(null);
 
   useEffect(() => {
     if (!report?.id) { setTransmissions([]); return; }
+    setLocalIncidentNum(null);
+    setLocalHospital(null);
     supabase
       .from('incident_transmissions')
       .select('*')
@@ -121,7 +204,6 @@ export function ReportDetail({ report }: Props) {
   const dateStr = ts.toISOString().slice(0, 10);
 
   const structured = a?.structured ?? {};
-  const actions = a?.actions ?? [];
   const formattedReport = a?.formatted_report ?? '';
   const headline = a?.headline ?? report.headline ?? '';
   const priorityLabel = a?.priority_label ?? '';
@@ -129,14 +211,17 @@ export function ReportDetail({ report }: Props) {
   const incidentType = a?.incident_type ?? a?.protocol ?? 'Unknown';
   const majorIncident = a?.major_incident ?? false;
   const sceneLocation = a?.scene_location ?? structured['E'] ?? structured['Location'] ?? structured['grid'] ?? 'Not specified';
-  const receivingHospital: string[] = a?.receiving_hospital ?? [];
+
+  // Editable fields — local override > report column > assessment
+  const incidentNumber = localIncidentNum ?? report.incident_number ?? structured['incident_number'] ?? '';
+  const hospitalFromAssessment: string[] = a?.receiving_hospital ?? [];
+  const hospitalStr = localHospital ?? (report as any).receiving_hospital ?? (hospitalFromAssessment.length > 0 ? hospitalFromAssessment.join(', ') : '');
+
   const atmist = a?.atmist ?? null;
   const treatmentGiven: string[] = a?.treatment_given ?? [];
   const actionItems: (string | ActionItem)[] = (a as any)?.action_items ?? [];
   const resolvedActionItems: ActionItem[] = (a as any)?.resolved_action_items ?? [];
-  const clinicalHistory = a?.clinical_history ?? '';
 
-  // Split active vs resolved from action_items
   const activeActions: (string | ActionItem)[] = [];
   const resolvedFromItems: ActionItem[] = [];
   for (const item of actionItems) {
@@ -148,7 +233,6 @@ export function ReportDetail({ report }: Props) {
   }
   const allResolved = [...resolvedActionItems, ...resolvedFromItems];
 
-  // METHANE extraction from structured fields & assessment
   const methane = {
     M: majorIncident ? 'MAJOR INCIDENT DECLARED' : 'Not declared',
     E: sceneLocation,
@@ -157,6 +241,18 @@ export function ReportDetail({ report }: Props) {
     A_access: structured['access'] ?? structured['A'] ?? structured['access_routes'] ?? 'Not specified',
     N: structured['number_of_casualties'] ?? structured['N'] ?? structured['casualties'] ?? '—',
     E_emergency: structured['emergency_services'] ?? structured['E_services'] ?? serviceLabel,
+  };
+
+  /* ── Save handlers ── */
+
+  const saveIncidentNumber = async (val: string) => {
+    setLocalIncidentNum(val);
+    await supabase.from('herald_reports').update({ incident_number: val || null }).eq('id', report.id);
+  };
+
+  const saveHospital = async (val: string) => {
+    setLocalHospital(val);
+    await supabase.from('herald_reports').update({ receiving_hospital: val || null } as any).eq('id', report.id);
   };
 
   return (
@@ -179,7 +275,7 @@ export function ReportDetail({ report }: Props) {
                   style={{ color: '#888', border: '1px solid rgba(136,136,136,0.3)', background: 'rgba(136,136,136,0.08)' }}>
                   CLOSED
                 </span>
-              ) : (report as any).status === 'active' && report.incident_number ? (
+              ) : (report as any).status === 'active' && incidentNumber ? (
                 <span className="text-lg font-bold rounded-sm px-1.5 py-0.5"
                   style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
                   ACTIVE
@@ -203,7 +299,26 @@ export function ReportDetail({ report }: Props) {
         </div>
       </div>
 
-      {/* 2. METHANE — structured breakdown */}
+      {/* ── EDITABLE: Incident Number & Receiving Hospital ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <EditableField
+          label="INCIDENT NUMBER"
+          value={incidentNumber}
+          placeholder="Enter CAD incident number"
+          onSave={saveIncidentNumber}
+          color={col}
+        />
+        <EditableField
+          label="RECEIVING HOSPITAL"
+          value={hospitalStr}
+          placeholder="Enter receiving hospital"
+          onSave={saveHospital}
+          color={col}
+          prominent
+        />
+      </div>
+
+      {/* 2. METHANE */}
       <div>
         <SectionLabel color={col}>METHANE</SectionLabel>
         <DetailCard>
@@ -229,14 +344,13 @@ export function ReportDetail({ report }: Props) {
         </DetailCard>
       </div>
 
-      {/* 3. All Casualties — priority level, crew, status (command-level, not clinical) */}
+      {/* 3. Casualties */}
       {atmist && Object.keys(atmist).length > 0 && (
         <div>
           <SectionLabel color="#1E90FF">CASUALTIES</SectionLabel>
           <div className="flex flex-col gap-2">
             {Object.entries(atmist).map(([casualtyKey, val]: [string, any]) => {
               const cCol = PRIORITY_COLORS[casualtyKey] ?? PRIORITY_COLORS[casualtyKey.replace(/-\d+$/, '')] ?? '#1E90FF';
-              // Determine status from treatment text
               const treatment = val?.T_treatment ?? '';
               let casualtyStatus = 'On scene';
               if (/convey|transport|en route to/i.test(treatment)) casualtyStatus = 'Transporting';
@@ -283,7 +397,6 @@ export function ReportDetail({ report }: Props) {
                 <span className="text-lg" style={{ color: '#3DFF8C' }}>ON SCENE</span>
               </div>
             )}
-            {/* Derive HEMS status from action items */}
             {actionItems.some(item => /HEMS/i.test(typeof item === 'string' ? item : (item as ActionItem).text)) && (
               <div className="flex justify-between">
                 <span className="text-lg text-foreground font-bold">HEMS</span>
@@ -292,10 +405,10 @@ export function ReportDetail({ report }: Props) {
                 </span>
               </div>
             )}
-            {receivingHospital.length > 0 && (
+            {hospitalStr && (
               <div className="flex justify-between">
                 <span className="text-lg text-foreground font-bold">HOSPITAL</span>
-                <span className="text-lg text-foreground">{receivingHospital.join(', ')}</span>
+                <span className="text-lg text-foreground">{hospitalStr}</span>
               </div>
             )}
             {structured['emergency_services'] && (
@@ -307,7 +420,7 @@ export function ReportDetail({ report }: Props) {
         </DetailCard>
       </div>
 
-      {/* 5. All Action Items — open and resolved with timestamps */}
+      {/* 5. Action Items */}
       {(activeActions.length > 0 || allResolved.length > 0) && (
         <div>
           <SectionLabel color="#FF9500">⚠ ACTION ITEMS</SectionLabel>
@@ -333,7 +446,7 @@ export function ReportDetail({ report }: Props) {
         </div>
       )}
 
-      {/* 6. Full Transmission Timeline */}
+      {/* 6. Transmission Log */}
       {transmissions.length > 0 && (
         <div>
           <SectionLabel color="#1E90FF">TRANSMISSION LOG ({transmissions.length})</SectionLabel>
@@ -395,7 +508,7 @@ export function ReportDetail({ report }: Props) {
         </div>
       )}
 
-      {/* Formatted Report — for command reference */}
+      {/* Formatted Report */}
       {formattedReport && (
         <div>
           <div className="flex items-center justify-between mb-2 md:mb-3">

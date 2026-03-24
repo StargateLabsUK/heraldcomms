@@ -53,7 +53,11 @@ function buildEprfText(a: any, report: HeraldReport): string {
     ts.getUTCSeconds().toString().padStart(2, '0') + 'Z';
   const clinicalFindings = a?.clinical_findings ?? null;
   const atmist = a?.atmist ?? null;
-  const receivingHospital: string[] = a?.receiving_hospital ?? [];
+  const assessmentHospital: string[] = a?.receiving_hospital ?? [];
+  // Use report-level fields (command override) with assessment fallback
+  const reportHospital = (report as any).receiving_hospital as string | undefined;
+  const hospitalDisplay = reportHospital || (assessmentHospital.length > 0 ? assessmentHospital.join(', ') : 'Not specified');
+  const incidentNum = report.incident_number ?? structured.incident_number ?? '—';
   const treatmentGiven: string[] = a?.treatment_given ?? [];
   const actionItems: string[] = a?.action_items ?? [];
 
@@ -67,11 +71,11 @@ function buildEprfText(a: any, report: HeraldReport): string {
       ).join('\n')
     : '';
 
-  return `INCIDENT NUMBER: ${structured.incident_number ?? '—'}
+  return `INCIDENT NUMBER: ${incidentNum}
 INCIDENT DATE/TIME: ${dateStr} ${timeStr}
 INCIDENT TYPE: ${a?.incident_type ?? a?.protocol ?? 'Unknown'}${a?.major_incident ? ' [MAJOR INCIDENT]' : ''}
 SCENE LOCATION: ${a?.scene_location ?? structured['Location'] ?? 'Not specified'}
-RECEIVING HOSPITAL: ${receivingHospital.length > 0 ? receivingHospital.join(', ') : 'Not specified'}
+RECEIVING HOSPITAL: ${hospitalDisplay}
 PRIORITY: ${a?.priority ?? 'P3'} ${a?.priority_label ?? ''}
 CALLSIGN: ${structured.callsign ?? '—'}
 OPERATOR ID: ${structured.operator_id ?? '—'}
@@ -129,7 +133,11 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
         const atmist = (a?.atmist as Record<string, any>) ?? null;
         const actionItems: (string | ActionItem)[] = (a?.action_items as any[]) ?? [];
         const treatmentGiven: string[] = (a?.treatment_given as string[]) ?? [];
-        const receivingHospital: string[] = (a?.receiving_hospital as string[]) ?? [];
+        // Receiving hospital: report-level (command override) > assessment
+        const reportHospital = (r as any).receiving_hospital as string | undefined;
+        const assessmentHospital: string[] = (a?.receiving_hospital as string[]) ?? [];
+        const receivingHospitalDisplay = reportHospital || (assessmentHospital.length > 0 ? assessmentHospital.join(', ') : '');
+        const incidentNumber = r.incident_number ?? ((a?.structured as any)?.incident_number as string) ?? '';
         const incidentType = (a?.incident_type as string) ?? (a?.protocol as string) ?? '';
         const priorityLabel = (a?.priority_label as string) ?? '';
         const ts = new Date(r.timestamp);
@@ -299,10 +307,8 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                 <div className="mt-4">
                   <SectionLabel color={pc}>RECEIVING HOSPITAL</SectionLabel>
                   <FieldCard>
-                    {receivingHospital.length > 0 ? (
-                      receivingHospital.map((h, i) => (
-                        <p key={i} className="text-lg text-foreground font-bold break-words">{h}</p>
-                      ))
+                    {receivingHospitalDisplay ? (
+                      <p className="text-lg text-foreground font-bold break-words">{receivingHospitalDisplay}</p>
                     ) : (
                       <p className="text-lg py-1 px-2 rounded" style={{ color: '#FF9500', background: 'rgba(255,149,0,0.06)', border: '1px dashed rgba(255,149,0,0.3)' }}>
                         No receiving hospital confirmed — contact Control
