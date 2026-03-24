@@ -319,11 +319,11 @@ export default function Command() {
   if (viewMode === 'tablet') {
     const tabletTab = desktopUpperTab;
     return (
-      <div className="flex flex-col" style={{ background: 'var(--herald-command-bg)' }}>
+      <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
 
-        <div className="flex flex-col p-2 gap-2">
-          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${tabletTab !== 'status' ? 'min-h-[80vh] flex flex-col' : 'flex-shrink-0'}`}>
+        <div className={`flex flex-col p-2 gap-2 ${tabletTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
+          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${tabletTab !== 'status' ? 'flex-1 flex flex-col min-h-0' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
               {(['status', 'map', 'ops', 'sla'] as const).map((tab) => (
                 <button
