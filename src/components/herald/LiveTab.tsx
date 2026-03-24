@@ -461,7 +461,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setCurrentReportId(null);
     setOriginalAssessment(null);
     setHasEdits(false);
-    setMismatches([]);
+    
     setIsFollowUp(false);
     setFollowUpReportId(null);
     setFollowUpIncidentNumber(null);
