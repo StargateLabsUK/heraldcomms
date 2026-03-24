@@ -122,6 +122,11 @@ export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
   useEffect(() => { fetchIncidents(); }, [fetchIncidents, refreshKey]);
 
   useEffect(() => {
+    const id = window.setInterval(fetchIncidents, 5000);
+    return () => window.clearInterval(id);
+  }, [fetchIncidents]);
+
+  useEffect(() => {
     if (!expandedId) { setTransmissions([]); return; }
     supabase
       .from('incident_transmissions')
