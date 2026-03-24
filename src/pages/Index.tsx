@@ -18,6 +18,7 @@ const Index = () => {
   const [aiStatus, setAiStatus] = useState<'ok' | 'error'>('ok');
   const [reports, setReports] = useState<HeraldReport[]>([]);
   const [session, setSession] = useState<HeraldSession | null>(getSession());
+  const [incidentRefresh, setIncidentRefresh] = useState(0);
   const syncStatus = useHeraldSync();
 
   const refreshReports = useCallback(() => {
