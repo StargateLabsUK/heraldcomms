@@ -111,6 +111,9 @@ export function useHeraldCommand() {
       if (shiftsRes.data) {
         setShifts(shiftsRes.data as CommandShift[]);
       }
+      if (dispositionsRes.data) {
+        setDispositions(dispositionsRes.data as unknown as CommandDisposition[]);
+      }
     } catch {
       // silent
     } finally {
