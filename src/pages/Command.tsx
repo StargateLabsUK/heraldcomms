@@ -257,8 +257,8 @@ export default function Command() {
       <div className="flex flex-col h-screen" style={{ background: 'var(--herald-command-bg)' }}>
         {topBar}
 
-        <div className="flex flex-col p-3 gap-3">
-          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab !== 'status' ? 'min-h-[80vh] flex flex-col' : 'flex-shrink-0'}`}>
+        <div className={`flex flex-col p-3 gap-3 ${desktopUpperTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
+          <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab !== 'status' ? 'flex-1 flex flex-col min-h-0' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
               {(['status', 'map', 'ops', 'sla'] as const).map((tab) => (
                 <button
