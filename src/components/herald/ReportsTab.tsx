@@ -110,7 +110,7 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
   return (
     <div className="flex-1 overflow-auto px-3 py-3">
       <p className="text-lg text-foreground tracking-[0.1em] mb-3 font-bold">
-        CONFIRMED TRANSMISSIONS
+        CLOSED INCIDENTS
       </p>
 
       {reports.length === 0 && (
