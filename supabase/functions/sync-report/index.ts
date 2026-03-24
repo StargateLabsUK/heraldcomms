@@ -141,13 +141,37 @@ serve(async (req) => {
         }
       }
 
-      // Merge into assessment
+      // Merge into assessment — deep-merge clinical data per casualty
       const mergedAssessment = {
         ...(parentAssessment || {}),
         ...(newAssessment || {}),
         action_items: mergedActionItems,
         resolved_action_items: resolvedItems,
       };
+
+      // Deep-merge ATMIST per casualty key (P1, P2, etc.)
+      if (parentAssessment?.atmist || newAssessment?.atmist) {
+        mergedAssessment.atmist = deepMergeCasualtyMap(
+          parentAssessment?.atmist || {},
+          newAssessment?.atmist || {},
+        );
+      }
+
+      // Deep-merge clinical_findings (A, B, C, D, E fields)
+      if (parentAssessment?.clinical_findings || newAssessment?.clinical_findings) {
+        mergedAssessment.clinical_findings = mergeShallow(
+          parentAssessment?.clinical_findings || {},
+          newAssessment?.clinical_findings || {},
+        );
+      }
+
+      // Deep-merge vitals — never clear existing values
+      if (parentAssessment?.vitals || newAssessment?.vitals) {
+        mergedAssessment.vitals = mergeShallow(
+          parentAssessment?.vitals || {},
+          newAssessment?.vitals || {},
+        );
+      }
 
       // Backfill receiving_hospital if newly confirmed
       const newHospitals2 = newAssessment?.receiving_hospital;
@@ -346,4 +370,49 @@ function actionItemsMatch(a: string, b: string, catA: string, catB: string): boo
   // Normalised text match
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
   return norm(a) === norm(b);
+}
+
+/**
+ * Shallow-merge two objects, keeping existing values when the new value is
+ * null, undefined, or empty string. Used for clinical_findings and vitals.
+ */
+function mergeShallow(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = { ...existing };
+  for (const [key, value] of Object.entries(incoming)) {
+    if (value !== null && value !== undefined && value !== '' && value !== '—') {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+/**
+ * Deep-merge ATMIST casualty maps. Each key (P1, P2, P1-2, etc.) is merged
+ * field-by-field so existing clinical data is preserved when not updated.
+ */
+function deepMergeCasualtyMap(
+  existing: Record<string, Record<string, unknown>>,
+  incoming: Record<string, Record<string, unknown>>,
+): Record<string, Record<string, unknown>> {
+  const result: Record<string, Record<string, unknown>> = {};
+
+  // Copy all existing casualty entries
+  for (const [key, val] of Object.entries(existing)) {
+    result[key] = { ...val };
+  }
+
+  // Merge incoming entries field-by-field
+  for (const [key, incomingCasualty] of Object.entries(incoming)) {
+    if (!incomingCasualty || typeof incomingCasualty !== 'object') continue;
+    if (!result[key]) {
+      result[key] = { ...incomingCasualty };
+    } else {
+      result[key] = mergeShallow(result[key], incomingCasualty as Record<string, unknown>);
+    }
+  }
+
+  return result;
 }
