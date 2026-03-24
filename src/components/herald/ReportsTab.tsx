@@ -59,8 +59,13 @@ function buildClosedEprf(d: CasualtyDisposition, report: HeraldReport): string {
   ].join('\n') : '  No ATMIST data';
 
   const dispLabel = DISPOSITION_LABELS[d.disposition];
+  const conveyedHospital =
+    (typeof d.fields?.receiving_hospital === 'string' && d.fields.receiving_hospital.trim()) ||
+    (report as any).receiving_hospital ||
+    (a?.receiving_hospital as string[])?.join(', ') ||
+    'Not specified';
   const hospitalLine = d.disposition === 'conveyed'
-    ? `RECEIVING HOSPITAL: ${(report as any).receiving_hospital || (a?.receiving_hospital as string[])?.join(', ') || 'Not specified'}`
+    ? `RECEIVING HOSPITAL: ${conveyedHospital}`
     : '';
 
   return `ePRF — PATIENT HANDOVER
@@ -111,13 +116,16 @@ export function ReportsTab({ closedCasualties, reports, session }: ReportsTabPro
       {closedCasualties.map((d) => {
         const uniqueKey = `${d.incident_id}-${d.casualty_key}`;
         const report = reports.find(r => r.id === d.incident_id) ?? getReports().find(r => r.id === d.incident_id);
-        if (!report) return null;
-
-        const a = report.assessment ? sanitizeAssessment(report.assessment as unknown as Assessment) : null;
+        const a = report?.assessment ? sanitizeAssessment(report.assessment as unknown as Assessment) : null;
         const col = PRIORITY_COLORS[d.priority] ?? '#34C759';
         const expanded = expandedKey === uniqueKey;
         const showEprf = eprfKey === uniqueKey;
         const dispLabel = DISPOSITION_LABELS[d.disposition];
+        const conveyedHospital =
+          (typeof d.fields?.receiving_hospital === 'string' && d.fields.receiving_hospital.trim()) ||
+          (report as any)?.receiving_hospital ||
+          (a?.receiving_hospital as string[])?.join(', ') ||
+          'Not specified';
 
         // Extract ATMIST for this casualty
         const atmistData = a?.atmist ? (a.atmist as any)[d.casualty_key] : null;
@@ -140,7 +148,9 @@ export function ReportsTab({ closedCasualties, reports, session }: ReportsTabPro
                     {d.casualty_label.replace(/^P\d\s*—\s*/, '') || 'Patient'}
                   </p>
                   <p className="text-lg text-foreground opacity-60">
-                    {dispLabel} · {getTime(d.closed_at)}
+                    {dispLabel}
+                    {d.disposition === 'conveyed' ? ` · ${conveyedHospital}` : ''}
+                    {' · '}{getTime(d.closed_at)}
                   </p>
                 </div>
               </div>
@@ -209,7 +219,7 @@ export function ReportsTab({ closedCasualties, reports, session }: ReportsTabPro
                     <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>RECEIVING HOSPITAL</p>
                     <div className="border border-border rounded-lg p-3">
                       <p className="text-xl text-foreground font-bold break-words">
-                        {(report as any).receiving_hospital || (a?.receiving_hospital as string[])?.join(', ') || 'Not specified'}
+                        {conveyedHospital}
                       </p>
                     </div>
                   </div>
@@ -230,17 +240,25 @@ export function ReportsTab({ closedCasualties, reports, session }: ReportsTabPro
                   </button>
                   {showEprf && (
                     <div className="mt-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-lg font-bold tracking-[0.2em]" style={{ color: 'hsl(var(--primary))' }}>
-                          ePRF — PATIENT HANDOVER
-                        </p>
-                        <CopyBtn text={buildClosedEprf(d, report)} label="COPY ePRF" />
-                      </div>
-                      <div className="border border-border rounded-lg bg-card p-3">
-                        <div className="text-lg text-foreground leading-7 whitespace-pre-wrap break-words">
-                          {buildClosedEprf(d, report)}
+                      {report ? (
+                        <>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-lg font-bold tracking-[0.2em]" style={{ color: 'hsl(var(--primary))' }}>
+                              ePRF — PATIENT HANDOVER
+                            </p>
+                            <CopyBtn text={buildClosedEprf(d, report)} label="COPY ePRF" />
+                          </div>
+                          <div className="border border-border rounded-lg bg-card p-3">
+                            <div className="text-lg text-foreground leading-7 whitespace-pre-wrap break-words">
+                              {buildClosedEprf(d, report)}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="border border-border rounded-lg bg-card p-3 text-lg text-muted-foreground">
+                          Incident details are still syncing. Disposition and handover data are saved.
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
