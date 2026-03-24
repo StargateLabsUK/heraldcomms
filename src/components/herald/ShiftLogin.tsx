@@ -39,7 +39,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const [collarNumber, setCollarNumber] = useState('');
   const [trust, setTrust] = useState<CachedTrust | null>(getCachedTrust());
 
-  const [submitting, setSubmitting] = useState(false);
+  const canSubmit = callsign.trim() !== '' && vehicleType !== '';
 
   // If no cached trust, show PIN entry
   if (!trust) {
