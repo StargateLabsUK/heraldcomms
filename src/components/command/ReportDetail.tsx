@@ -157,70 +157,153 @@ function EditableField({
   );
 }
 
+/* ── Disposition status mapping ── */
+
+const DISPOSITION_STATUS: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  conveyed:          { label: 'CONVEYED',       color: '#34C759', bg: 'rgba(52,199,89,0.10)',  border: 'rgba(52,199,89,0.4)' },
+  see_and_treat:     { label: 'DISCHARGED',     color: '#8E8E93', bg: 'rgba(142,142,147,0.10)', border: 'rgba(142,142,147,0.4)' },
+  see_and_refer:     { label: 'REFERRED',       color: '#1E90FF', bg: 'rgba(30,144,255,0.10)',  border: 'rgba(30,144,255,0.4)' },
+  refused_transport: { label: 'REFUSED',        color: '#FF9500', bg: 'rgba(255,149,0,0.10)',   border: 'rgba(255,149,0,0.4)' },
+  role:              { label: 'ROLE CONFIRMED', color: '#CCCCCC', bg: 'rgba(60,60,60,0.30)',    border: 'rgba(200,200,200,0.4)' },
+};
+
+function getTimeStr(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.getUTCHours().toString().padStart(2, '0') + ':' + d.getUTCMinutes().toString().padStart(2, '0') + 'Z';
+}
+
 /* ── Casualty card with expandable ePRF for handed-over patients ── */
 
-function CasualtyCard({ casualtyKey, val, cCol, statusColor, casualtyStatus, disp, dispLabel, dispFields, handoverTimeStr, reportCallsign, report }: {
+function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report }: {
   casualtyKey: string;
   val: any;
   cCol: string;
-  statusColor: string;
-  casualtyStatus: string;
   disp: CommandDisposition | null;
-  dispLabel: string | null;
-  dispFields: DispositionFields | undefined;
-  handoverTimeStr: string | null;
   reportCallsign: string | null;
   report: CommandReport;
 }) {
   const [showEprf, setShowEprf] = useState(false);
-
   const eprfText = disp ? buildCommandEprf(casualtyKey, val, disp, report) : '';
 
+  const dispFields = (disp?.fields || {}) as DispositionFields;
+  const statusInfo = disp ? (DISPOSITION_STATUS[disp.disposition] ?? { label: 'CLOSED', color: '#34C759', bg: 'rgba(52,199,89,0.10)', border: 'rgba(52,199,89,0.4)' }) : null;
+
+  // Infer status from treatment text when no disposition
+  const treatment = val?.T_treatment ?? '';
+  let inferredStatus = 'ON SCENE';
+  let inferredColor = cCol;
+  if (/convey|transport|en route to/i.test(treatment)) { inferredStatus = 'TRANSPORTING'; inferredColor = '#FF9500'; }
+  if (/deceased|confirmed dead/i.test(treatment)) { inferredStatus = 'DECEASED'; inferredColor = '#FF3B30'; }
+
+  const isRefused = disp?.disposition === 'refused_transport';
+
   return (
-    <DetailCard>
+    <DetailCard className={isRefused ? 'ring-2 ring-amber-500/40' : ''}>
+      {/* Header row */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold" style={{ color: cCol }}>{casualtyKey}</span>
           <span className="text-lg text-foreground">{val?.M ?? '—'}</span>
         </div>
-        <span className="text-lg font-bold rounded-sm px-1.5 py-0.5"
-          style={{
-            color: statusColor,
-            border: `1px solid ${statusColor}66`,
-            background: disp ? `${statusColor}15` : undefined,
-          }}>
-          {casualtyStatus.toUpperCase()}
-        </span>
+        {statusInfo ? (
+          <span className="text-lg font-bold rounded-sm px-2 py-0.5"
+            style={{ color: statusInfo.color, background: statusInfo.bg, border: `1px solid ${statusInfo.border}` }}>
+            {statusInfo.label}
+          </span>
+        ) : (
+          <span className="text-lg font-bold rounded-sm px-1.5 py-0.5"
+            style={{ color: inferredColor, border: `1px solid ${inferredColor}66` }}>
+            {inferredStatus}
+          </span>
+        )}
       </div>
+
+      {/* Clinical summary only — no PII */}
       <div className="text-lg text-foreground opacity-80">
         {val?.I ? `Injuries: ${val.I}` : 'Injuries: —'}
       </div>
       {reportCallsign && (
-        <div className="text-lg mt-1" style={{ color: '#3DFF8C' }}>
-          Crew: {reportCallsign}
-        </div>
+        <div className="text-lg mt-1" style={{ color: '#3DFF8C' }}>Crew: {reportCallsign}</div>
       )}
 
-      {/* Disposition details for handed-over patients */}
+      {/* Disposition-specific summary details */}
       {disp && (
         <div className="mt-2 pt-2 border-t border-border">
-          <div className="text-lg font-bold mb-1" style={{ color: '#34C759' }}>
-            {dispLabel}
-          </div>
-          {dispFields?.receiving_hospital && (
-            <div className="text-lg text-foreground">Hospital: {dispFields.receiving_hospital}</div>
-          )}
-          {dispFields?.handover_given_to && (
-            <div className="text-lg text-foreground">Handed to: {dispFields.handover_given_to}</div>
-          )}
-          {dispFields?.referral_destination && (
-            <div className="text-lg text-foreground">Referred to: {dispFields.referral_destination}</div>
-          )}
-          {handoverTimeStr && (
-            <div className="text-lg text-foreground opacity-60">Handover: {handoverTimeStr}</div>
+          {/* CONVEYED */}
+          {disp.disposition === 'conveyed' && (
+            <div className="flex flex-col gap-0.5">
+              {dispFields.receiving_hospital && (
+                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#34C759' }}>Hospital:</span> {dispFields.receiving_hospital}</div>
+              )}
+              {dispFields.time_of_handover && (
+                <div className="text-lg text-foreground opacity-70">Handover: {dispFields.time_of_handover}</div>
+              )}
+              {dispFields.handover_given_to && (
+                <div className="text-lg text-foreground opacity-70">Given to: {dispFields.handover_given_to}</div>
+              )}
+            </div>
           )}
 
-          {/* View ePRF button */}
+          {/* DISCHARGED */}
+          {disp.disposition === 'see_and_treat' && (
+            <div className="flex flex-col gap-0.5">
+              {dispFields.time_of_discharge && (
+                <div className="text-lg text-foreground opacity-70">Discharged: {dispFields.time_of_discharge}</div>
+              )}
+              <div className="text-lg text-foreground opacity-70">
+                Advice given: {dispFields.advice_given ? 'Yes' : '—'}
+              </div>
+            </div>
+          )}
+
+          {/* REFERRED */}
+          {disp.disposition === 'see_and_refer' && (
+            <div className="flex flex-col gap-0.5">
+              {dispFields.referral_destination && (
+                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#1E90FF' }}>Referred to:</span> {dispFields.referral_destination}</div>
+              )}
+              {dispFields.time_of_discharge && (
+                <div className="text-lg text-foreground opacity-70">Time: {dispFields.time_of_discharge}</div>
+              )}
+            </div>
+          )}
+
+          {/* REFUSED — clinical risk flag */}
+          {disp.disposition === 'refused_transport' && (
+            <div>
+              <div className="rounded p-2 mb-1" style={{ background: 'rgba(255,149,0,0.10)', border: '1px solid rgba(255,149,0,0.3)' }}>
+                <div className="text-lg font-bold" style={{ color: '#FF9500' }}>⚠ CLINICAL RISK — Patient refused transport</div>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <div className="text-lg text-foreground opacity-70">
+                  Capacity assessed: {dispFields.capacity_assessed ? (dispFields.patient_has_capacity ? 'Has capacity' : 'Lacks capacity') : 'Not assessed'}
+                </div>
+                {dispFields.time_of_refusal && (
+                  <div className="text-lg text-foreground opacity-70">Refusal: {dispFields.time_of_refusal}</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ROLE */}
+          {disp.disposition === 'role' && (
+            <div className="flex flex-col gap-0.5">
+              {dispFields.time_of_recognition && (
+                <div className="text-lg text-foreground opacity-70">Recognition: {dispFields.time_of_recognition}</div>
+              )}
+              <div className="text-lg text-foreground opacity-70">
+                GP: {dispFields.gp_notified ? '✓' : '—'} · Police: {dispFields.police_notified ? '✓' : '—'}
+              </div>
+            </div>
+          )}
+
+          {/* Handover timestamp */}
+          <div className="text-lg text-foreground opacity-50 mt-1">
+            Closed: {getTimeStr(disp.closed_at)}
+          </div>
+
+          {/* ePRF access */}
           <button onClick={() => setShowEprf(!showEprf)}
             className="mt-2 flex items-center gap-2 text-lg font-bold tracking-[0.1em] border rounded px-3 py-1.5 cursor-pointer transition-colors"
             style={{
@@ -234,7 +317,7 @@ function CasualtyCard({ casualtyKey, val, cCol, statusColor, casualtyStatus, dis
           {showEprf && (
             <div className="mt-2">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-lg font-bold tracking-[0.15em]" style={{ color: 'hsl(var(--primary))' }}>ePRF</span>
+                <span className="text-lg font-bold tracking-[0.15em]" style={{ color: 'hsl(var(--primary))' }}>ePRF — READ ONLY</span>
                 <CopyBtn text={eprfText} label="COPY" />
               </div>
               <div className="border border-border rounded bg-card p-3">
@@ -513,26 +596,6 @@ export function ReportDetail({ report, dispositions = [] }: Props) {
             {Object.entries(atmist).map(([casualtyKey, val]: [string, any]) => {
               const cCol = PRIORITY_COLORS[casualtyKey] ?? PRIORITY_COLORS[casualtyKey.replace(/-\d+$/, '')] ?? '#1E90FF';
               const disp = dispositions.find(d => d.report_id === report.id && d.casualty_key === casualtyKey);
-              const treatment = val?.T_treatment ?? '';
-
-              let casualtyStatus = 'On scene';
-              let statusColor = cCol;
-              if (disp) {
-                casualtyStatus = 'Handed over';
-                statusColor = '#34C759';
-              } else if (/convey|transport|en route to/i.test(treatment)) {
-                casualtyStatus = 'Transporting';
-                statusColor = '#FF9500';
-              } else if (/deceased|confirmed dead/i.test(treatment)) {
-                casualtyStatus = 'Deceased';
-              }
-
-              const dispLabel = disp ? DISPOSITION_LABELS[disp.disposition as DispositionType] : null;
-              const dispFields = disp?.fields as DispositionFields | undefined;
-              const handoverTime = disp?.closed_at ? new Date(disp.closed_at) : null;
-              const handoverTimeStr = handoverTime
-                ? handoverTime.getUTCHours().toString().padStart(2, '0') + ':' + handoverTime.getUTCMinutes().toString().padStart(2, '0') + 'Z'
-                : null;
 
               return (
                 <CasualtyCard
@@ -540,12 +603,7 @@ export function ReportDetail({ report, dispositions = [] }: Props) {
                   casualtyKey={casualtyKey}
                   val={val}
                   cCol={cCol}
-                  statusColor={statusColor}
-                  casualtyStatus={casualtyStatus}
                   disp={disp ?? null}
-                  dispLabel={dispLabel}
-                  dispFields={dispFields}
-                  handoverTimeStr={handoverTimeStr}
                   reportCallsign={report.session_callsign}
                   report={report}
                 />
@@ -557,14 +615,22 @@ export function ReportDetail({ report, dispositions = [] }: Props) {
 
       {/* 4. Resource Status */}
       {(() => {
-        // Determine crew status based on dispositions
         const reportDisps = dispositions.filter(d => d.report_id === report.id);
         const casualtyKeys = atmist ? Object.keys(atmist) : [];
-        const allHandedOver = casualtyKeys.length > 0 && casualtyKeys.every(k =>
+        const allClosed = casualtyKeys.length > 0 && casualtyKeys.every(k =>
           reportDisps.some(d => d.casualty_key === k)
         );
-        const crewStatus = allHandedOver ? 'AVAILABLE' : 'ON SCENE';
-        const crewColor = allHandedOver ? '#1E90FF' : '#3DFF8C';
+        const crewStatus = allClosed ? 'AVAILABLE' : 'ON SCENE';
+        const crewColor = allClosed ? '#1E90FF' : '#3DFF8C';
+
+        // Find latest disposition time for "available since"
+        const latestDisp = allClosed && reportDisps.length > 0
+          ? reportDisps.reduce((a, b) => new Date(a.closed_at) > new Date(b.closed_at) ? a : b)
+          : null;
+        const availableSince = latestDisp ? getTimeStr(latestDisp.closed_at) : null;
+
+        // Incident status
+        const incidentClosed = allClosed || report.status === 'closed';
 
         return (
           <div>
@@ -572,9 +638,14 @@ export function ReportDetail({ report, dispositions = [] }: Props) {
             <DetailCard>
               <div className="flex flex-col gap-2">
                 {report.session_callsign && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-lg text-foreground font-bold">{report.session_callsign}</span>
-                    <span className="text-lg font-bold" style={{ color: crewColor }}>{crewStatus}</span>
+                    <div className="text-right">
+                      <span className="text-lg font-bold" style={{ color: crewColor }}>{crewStatus}</span>
+                      {availableSince && (
+                        <div className="text-lg opacity-60" style={{ color: crewColor }}>since {availableSince}</div>
+                      )}
+                    </div>
                   </div>
                 )}
                 {actionItems.some(item => /HEMS/i.test(typeof item === 'string' ? item : (item as ActionItem).text)) && (
@@ -594,6 +665,16 @@ export function ReportDetail({ report, dispositions = [] }: Props) {
                 {structured['emergency_services'] && (
                   <div className="text-lg text-foreground opacity-80 mt-1">
                     Other services: {structured['emergency_services']}
+                  </div>
+                )}
+                {/* Incident closed indicator */}
+                {incidentClosed && (
+                  <div className="mt-1 pt-1 border-t border-border flex justify-between items-center">
+                    <span className="text-lg font-bold" style={{ color: '#8E8E93' }}>INCIDENT</span>
+                    <span className="text-lg font-bold rounded-sm px-2 py-0.5"
+                      style={{ color: '#8E8E93', background: 'rgba(142,142,147,0.10)', border: '1px solid rgba(142,142,147,0.3)' }}>
+                      CLOSED {availableSince ? `· ${availableSince}` : ''}
+                    </span>
                   </div>
                 )}
               </div>
