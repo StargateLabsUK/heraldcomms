@@ -63,20 +63,61 @@ export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
   const [closing, setClosing] = useState<string | null>(null);
 
   const fetchIncidents = useCallback(async () => {
-    if (!session.shift_id) return;
-    const { data } = await supabase
-      .from('herald_reports')
-      .select('*')
-      .eq('shift_id', session.shift_id)
-      .order('latest_transmission_at', { ascending: false, nullsFirst: false });
-
-    if (data) {
-      setIncidents(data.map((r: any) => ({
-        ...r,
+    // Local active incidents (shows newest transmission immediately, even before sync completes)
+    const localIncidents: Incident[] = getReports()
+      .filter((r) =>
+        r.session_callsign === session.callsign &&
+        new Date(r.timestamp).toISOString().slice(0, 10) === session.session_date &&
+        (r.status ?? 'active') === 'active'
+      )
+      .map((r) => ({
+        id: r.id,
+        incident_number: r.incident_number ?? null,
+        headline: r.headline ?? null,
+        priority: r.priority ?? null,
+        service: r.service ?? null,
+        status: r.status ?? 'active',
+        transmission_count: r.transmission_count ?? null,
+        latest_transmission_at: r.latest_transmission_at ?? r.timestamp,
+        created_at: r.timestamp,
+        timestamp: r.timestamp,
+        transcript: r.transcript ?? null,
         assessment: r.assessment ? sanitizeAssessment(r.assessment as unknown as Assessment) : null,
-      })));
+        session_callsign: r.session_callsign ?? null,
+        session_operator_id: r.session_operator_id ?? null,
+        confirmed_at: r.confirmed_at ?? null,
+      }));
+
+    // Remote incidents for this shift/callsign
+    let remoteIncidents: Incident[] = [];
+    if (session.shift_id) {
+      const { data } = await supabase
+        .from('herald_reports')
+        .select('*')
+        .eq('shift_id', session.shift_id)
+        .order('latest_transmission_at', { ascending: false, nullsFirst: false });
+
+      if (data) {
+        remoteIncidents = data.map((r: any) => ({
+          ...r,
+          assessment: r.assessment ? sanitizeAssessment(r.assessment as unknown as Assessment) : null,
+        }));
+      }
     }
-  }, [session.shift_id]);
+
+    // Merge remote + local (remote wins on same id)
+    const merged = new Map<string, Incident>();
+    for (const inc of localIncidents) merged.set(inc.id, inc);
+    for (const inc of remoteIncidents) merged.set(inc.id, inc);
+
+    const sorted = Array.from(merged.values()).sort((a, b) => {
+      const at = new Date(a.latest_transmission_at ?? a.timestamp ?? a.created_at ?? 0).getTime();
+      const bt = new Date(b.latest_transmission_at ?? b.timestamp ?? b.created_at ?? 0).getTime();
+      return bt - at;
+    });
+
+    setIncidents(sorted);
+  }, [session.callsign, session.session_date, session.shift_id]);
 
   useEffect(() => { fetchIncidents(); }, [fetchIncidents, refreshKey]);
 
