@@ -65,6 +65,7 @@ export interface CommandShift {
 export function useHeraldCommand() {
   const [reports, setReports] = useState<CommandReport[]>([]);
   const [shifts, setShifts] = useState<CommandShift[]>([]);
+  const [dispositions, setDispositions] = useState<CommandDisposition[]>([]);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const retryRef = useRef<ReturnType<typeof setInterval>>();
