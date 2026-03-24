@@ -45,7 +45,7 @@ function applyFilters(shifts: Shift[], reports: OpsReport[], filters: OpsFilters
 
   if (filters.dateTo) {
     const to = new Date(filters.dateTo).getTime() + 86400000;
-    filteredShifts = filteredShifts.filter((s) => new Date(s.started_at).getTime() < to);
+    filteredShifts = filteredShifts.filter((s) => new Date(s.started_at ?? s.created_at).getTime() < to);
     filteredReports = filteredReports.filter((r) => new Date(r.created_at ?? r.timestamp).getTime() < to);
   }
 
