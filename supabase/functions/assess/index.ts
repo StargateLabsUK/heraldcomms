@@ -55,6 +55,8 @@ Extraction Rules
 
 incident_type — extract from clinical context. Never use protocol names as incident types. Default categories: RTC, Cardiac Arrest, Respiratory, Fall, Trauma, Fire, Psychiatric, Obstetric, Multi-Casualty. Combine where appropriate e.g. "RTC — Multi-Casualty".
 
+ATMIST mechanism extraction safety: only extract mechanism details explicitly spoken in the current transmission. Never infer or invent vehicle types/counts (e.g. HGV, two cars) unless those exact details are present in the transcript.
+
 scene_location — where the incident is happening. Never populate with a hospital name or transfer destination.
 
 receiving_hospital — where casualties are being transported. Can be an array for multi-casualty incidents. Extract per casualty where possible. Empty array if not mentioned.
@@ -109,7 +111,11 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
   "structured": {
     "callsign": "value or null",
     "incident_number": "value or null",
-    "operator_id": "value or null"
+    "operator_id": "value or null",
+    "hazards": "METHANE H value if explicitly stated, else null",
+    "access": "METHANE A value if explicitly stated, else null",
+    "number_of_casualties": "METHANE N value if explicitly stated, else null",
+    "emergency_services": "METHANE E value if explicitly stated, else null"
   },
   "clinical_findings": {
     "A": "Airway assessment or 'Not assessed'",
