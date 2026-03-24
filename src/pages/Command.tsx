@@ -110,10 +110,6 @@ export default function Command() {
   const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
   const opsReport = useMemo(() => opsReportId ? reports.find((r) => r.id === opsReportId) ?? null : null, [opsReportId, reports]);
 
-  if (!authChecked) {
-    return <div className="min-h-screen" style={{ background: 'var(--herald-command-bg)' }} />;
-  }
-
   const handleOpsReportSelect = useCallback((id: string) => {
     setOpsReportId(id);
   }, []);
