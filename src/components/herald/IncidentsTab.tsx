@@ -56,7 +56,7 @@ function ResolvedActions({ items }: { items: ActionItem[] }) {
   );
 }
 
-export function IncidentsTab({ session, onCloseIncident }: Props) {
+export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [transmissions, setTransmissions] = useState<IncidentTransmission[]>([]);
