@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Activity, Database, Brain, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Activity, Database, Brain, AlertTriangle, CheckCircle, XCircle, LogOut } from 'lucide-react';
 
 interface HealthEntry {
   id: string;
