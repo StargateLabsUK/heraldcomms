@@ -93,10 +93,13 @@ export function IncidentsTab({ session, onCloseIncident }: Props) {
   }, []);
 
   const confirmClose = useCallback(async (inc: Incident) => {
+    const closedAt = inc.confirmed_at ?? new Date().toISOString();
     await supabase
       .from('herald_reports')
-      .update({ status: 'closed', confirmed_at: inc.confirmed_at ?? new Date().toISOString() })
+      .update({ status: 'closed', confirmed_at: closedAt })
       .eq('id', inc.id);
+    // Also update local storage so field app immediately reflects closure
+    updateReport(inc.id, { status: 'closed', confirmed_at: closedAt } as any);
     setClosing(null);
     onCloseIncident(inc.id, inc.incident_number);
     fetchIncidents();
