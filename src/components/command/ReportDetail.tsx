@@ -556,38 +556,51 @@ export function ReportDetail({ report, dispositions = [] }: Props) {
       )}
 
       {/* 4. Resource Status */}
-      <div>
-        <SectionLabel color={col}>RESOURCE STATUS</SectionLabel>
-        <DetailCard>
-          <div className="flex flex-col gap-2">
-            {report.session_callsign && (
-              <div className="flex justify-between">
-                <span className="text-lg text-foreground font-bold">{report.session_callsign}</span>
-                <span className="text-lg" style={{ color: '#3DFF8C' }}>ON SCENE</span>
+      {(() => {
+        // Determine crew status based on dispositions
+        const reportDisps = dispositions.filter(d => d.report_id === report.id);
+        const casualtyKeys = atmist ? Object.keys(atmist) : [];
+        const allHandedOver = casualtyKeys.length > 0 && casualtyKeys.every(k =>
+          reportDisps.some(d => d.casualty_key === k)
+        );
+        const crewStatus = allHandedOver ? 'AVAILABLE' : 'ON SCENE';
+        const crewColor = allHandedOver ? '#1E90FF' : '#3DFF8C';
+
+        return (
+          <div>
+            <SectionLabel color={col}>RESOURCE STATUS</SectionLabel>
+            <DetailCard>
+              <div className="flex flex-col gap-2">
+                {report.session_callsign && (
+                  <div className="flex justify-between">
+                    <span className="text-lg text-foreground font-bold">{report.session_callsign}</span>
+                    <span className="text-lg font-bold" style={{ color: crewColor }}>{crewStatus}</span>
+                  </div>
+                )}
+                {actionItems.some(item => /HEMS/i.test(typeof item === 'string' ? item : (item as ActionItem).text)) && (
+                  <div className="flex justify-between">
+                    <span className="text-lg text-foreground font-bold">HEMS</span>
+                    <span className="text-lg" style={{ color: '#FF9500' }}>
+                      {allResolved.some(i => /HEMS/i.test(i.text)) ? 'CONFIRMED' : 'AWAITING'}
+                    </span>
+                  </div>
+                )}
+                {hospitalStr && (
+                  <div className="flex justify-between">
+                    <span className="text-lg text-foreground font-bold">HOSPITAL</span>
+                    <span className="text-lg text-foreground">{hospitalStr}</span>
+                  </div>
+                )}
+                {structured['emergency_services'] && (
+                  <div className="text-lg text-foreground opacity-80 mt-1">
+                    Other services: {structured['emergency_services']}
+                  </div>
+                )}
               </div>
-            )}
-            {actionItems.some(item => /HEMS/i.test(typeof item === 'string' ? item : (item as ActionItem).text)) && (
-              <div className="flex justify-between">
-                <span className="text-lg text-foreground font-bold">HEMS</span>
-                <span className="text-lg" style={{ color: '#FF9500' }}>
-                  {allResolved.some(i => /HEMS/i.test(i.text)) ? 'CONFIRMED' : 'AWAITING'}
-                </span>
-              </div>
-            )}
-            {hospitalStr && (
-              <div className="flex justify-between">
-                <span className="text-lg text-foreground font-bold">HOSPITAL</span>
-                <span className="text-lg text-foreground">{hospitalStr}</span>
-              </div>
-            )}
-            {structured['emergency_services'] && (
-              <div className="text-lg text-foreground opacity-80 mt-1">
-                Other services: {structured['emergency_services']}
-              </div>
-            )}
+            </DetailCard>
           </div>
-        </DetailCard>
-      </div>
+        );
+      })()}
 
       {/* 5. Action Items */}
       {(activeActions.length > 0 || allResolved.length > 0) && (
