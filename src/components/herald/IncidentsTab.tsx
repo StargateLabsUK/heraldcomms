@@ -414,6 +414,57 @@ function IncidentDetailView({ inc, onBack, onSelectCasualty }: {
   );
 }
 
+// ── Reusable field components ──
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <p className="text-lg font-bold mb-1 text-foreground">{children}</p>;
+}
+
+function TextInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <input type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      className="w-full text-lg px-3 py-2 rounded-lg border border-border bg-card text-foreground" />
+  );
+}
+
+function TextArea({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3}
+      className="w-full text-lg px-3 py-2 rounded-lg border border-border bg-card text-foreground resize-y" />
+  );
+}
+
+function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <button onClick={() => onChange(!value)}
+      className="w-full text-left flex items-center gap-3 text-lg px-3 py-2.5 rounded-lg border transition-colors mb-1.5"
+      style={{
+        borderColor: value ? '#34C759' : 'hsl(var(--border))',
+        background: value ? 'rgba(52,199,89,0.08)' : 'transparent',
+      }}>
+      <span className="text-lg flex-shrink-0" style={{ color: value ? '#34C759' : 'hsl(var(--foreground))' }}>
+        {value ? '✓' : '○'}
+      </span>
+      <span className="text-lg text-foreground">{label}</span>
+    </button>
+  );
+}
+
+function DropdownSelect({ value, onChange, options, placeholder }: {
+  value: string; onChange: (v: string) => void; options: string[]; placeholder?: string;
+}) {
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)}
+      className="w-full text-lg px-3 py-2.5 rounded-lg border border-border bg-card text-foreground appearance-none">
+      <option value="">{placeholder || 'Select...'}</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+}
+
+const REFERRAL_PATHWAYS = ['GP', '111', 'Walk-in', 'Mental health crisis team', 'Other'];
+const ROLE_CRITERIA = ['Obvious signs of death', 'JRCALC criteria met', 'Traumatic arrest unsurvivable', 'Other'];
+
 // ── Level 3: Casualty Handover Report ──
 
 function CasualtyReportView({ cas, inc, onBack, onHandover }: {
@@ -425,11 +476,14 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
   const col = PRIORITY_COLORS[cas.priority] ?? '#34C759';
   const [showEprf, setShowEprf] = useState(false);
   const [disposition, setDisposition] = useState<DispositionType>('conveyed');
-  const [referTo, setReferTo] = useState('');
-  const [capacityAssessed, setCapacityAssessed] = useState(false);
+  const [fields, setFields] = useState<DispositionFields>({
+    receiving_hospital: cas.receivingHospital || '',
+  });
   const [confirming, setConfirming] = useState(false);
 
-  const showHospital = disposition === 'conveyed';
+  const updateField = useCallback(<K extends keyof DispositionFields>(key: K, val: DispositionFields[K]) => {
+    setFields(prev => ({ ...prev, [key]: val }));
+  }, []);
 
   const doHandover = useCallback(() => {
     const d: CasualtyDisposition = {
@@ -440,16 +494,21 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
       priority: cas.priority,
       incident_id: inc.id,
       incident_number: inc.incident_number,
-      ...(disposition === 'see_and_refer' ? { refer_to: referTo } : {}),
-      ...(disposition === 'refused_transport' ? { capacity_assessed: capacityAssessed } : {}),
+      fields,
     };
     saveCasualtyDisposition(d);
     onHandover(d);
-  }, [disposition, referTo, capacityAssessed, cas, inc, onHandover]);
+  }, [disposition, fields, cas, inc, onHandover]);
+
+  // Now/current time helper
+  const nowTime = () => {
+    const d = new Date();
+    return d.getUTCHours().toString().padStart(2, '0') + ':' +
+      d.getUTCMinutes().toString().padStart(2, '0') + 'Z';
+  };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Back bar */}
       <button onClick={onBack} className="flex items-center gap-2 px-3 py-2 text-lg text-primary bg-transparent border-b border-border">
         <ArrowLeft size={20} /> Back
       </button>
@@ -459,13 +518,9 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
         <div className="rounded-lg p-3 mb-4" style={{ background: `${col}1A`, borderLeft: `4px solid ${col}` }}>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-2xl font-bold" style={{ color: col }}>{cas.priority}</span>
-            <span className="text-lg font-bold" style={{ color: col }}>
-              {inc.assessment?.priority_label ?? ''}
-            </span>
+            <span className="text-lg font-bold" style={{ color: col }}>{inc.assessment?.priority_label ?? ''}</span>
           </div>
-          <p className="text-lg text-foreground font-medium">
-            {cas.label}
-          </p>
+          <p className="text-lg text-foreground font-medium">{cas.label}</p>
         </div>
 
         {/* 2. ATMIST */}
@@ -473,12 +528,9 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
           <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>ATMIST</p>
           <div className="border border-border rounded-lg bg-card p-3">
             {[
-              { k: 'A', label: 'Age / Sex' },
-              { k: 'T', label: 'Time of Injury' },
-              { k: 'M', label: 'Mechanism' },
-              { k: 'I', label: 'Injuries' },
-              { k: 'S', label: 'Signs / Vitals' },
-              { k: 'T_treatment', label: 'Treatment Given' },
+              { k: 'A', label: 'Age / Sex' }, { k: 'T', label: 'Time of Injury' },
+              { k: 'M', label: 'Mechanism' }, { k: 'I', label: 'Injuries' },
+              { k: 'S', label: 'Signs / Vitals' }, { k: 'T_treatment', label: 'Treatment Given' },
             ].map(({ k, label }) => (
               <div key={k} className="mb-2 last:mb-0">
                 <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>{label}: </span>
@@ -491,10 +543,9 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
         {/* Disposition selector */}
         <div className="mb-4">
           <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>DISPOSITION</p>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 mb-3">
             {(Object.entries(DISPOSITION_LABELS) as [DispositionType, string][]).map(([key, label]) => (
-              <button key={key}
-                onClick={() => setDisposition(key)}
+              <button key={key} onClick={() => setDisposition(key)}
                 className="text-left text-lg px-3 py-2.5 rounded-lg border transition-colors"
                 style={{
                   borderColor: disposition === key ? col : 'hsl(var(--border))',
@@ -507,61 +558,164 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
             ))}
           </div>
 
-          {/* Disposition-specific fields */}
+          {/* ── CONVEYED ── */}
+          {disposition === 'conveyed' && (
+            <div className="border-t border-border pt-3 flex flex-col gap-3">
+              <div>
+                <FieldLabel>Receiving hospital</FieldLabel>
+                <TextInput value={fields.receiving_hospital ?? cas.receivingHospital ?? ''} onChange={v => updateField('receiving_hospital', v)} placeholder="Hospital name" />
+              </div>
+              <div>
+                <FieldLabel>Time of handover</FieldLabel>
+                <div className="flex gap-2">
+                  <TextInput value={fields.time_of_handover ?? ''} onChange={v => updateField('time_of_handover', v)} placeholder="HH:MMZ" />
+                  <button onClick={() => updateField('time_of_handover', nowTime())}
+                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Handover given to</FieldLabel>
+                <TextInput value={fields.handover_given_to ?? ''} onChange={v => updateField('handover_given_to', v)} placeholder="Name / role of receiving clinician" />
+              </div>
+              <Toggle value={fields.eprf_handed_over ?? false} onChange={v => updateField('eprf_handed_over', v)} label="ePRF generated and handed over" />
+            </div>
+          )}
+
+          {/* ── SEE AND TREAT ── */}
+          {disposition === 'see_and_treat' && (
+            <div className="border-t border-border pt-3 flex flex-col gap-3">
+              <div>
+                <FieldLabel>Clinical justification for discharge</FieldLabel>
+                <TextArea value={fields.clinical_justification ?? ''} onChange={v => updateField('clinical_justification', v)} placeholder="Clinical reasoning..." />
+              </div>
+              <div>
+                <FieldLabel>Observations at time of discharge</FieldLabel>
+                <TextInput value={fields.discharge_observations ?? ''} onChange={v => updateField('discharge_observations', v)} placeholder="Vitals at discharge" />
+              </div>
+              <div>
+                <FieldLabel>Advice given to patient</FieldLabel>
+                <TextArea value={fields.advice_given ?? ''} onChange={v => updateField('advice_given', v)} placeholder="Advice provided..." />
+              </div>
+              <Toggle value={fields.safety_net_given ?? false} onChange={v => updateField('safety_net_given', v)} label="Safety net instructions given" />
+              <Toggle value={fields.patient_understands ?? false} onChange={v => updateField('patient_understands', v)} label="Patient confirmed they understand advice" />
+              <div>
+                <FieldLabel>Time of discharge</FieldLabel>
+                <div className="flex gap-2">
+                  <TextInput value={fields.time_of_discharge ?? ''} onChange={v => updateField('time_of_discharge', v)} placeholder="HH:MMZ" />
+                  <button onClick={() => updateField('time_of_discharge', nowTime())}
+                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── SEE AND REFER ── */}
           {disposition === 'see_and_refer' && (
-            <div className="mt-3">
-              <p className="text-lg font-bold mb-1 text-foreground">Referred to:</p>
-              <input
-                type="text"
-                value={referTo}
-                onChange={e => setReferTo(e.target.value)}
-                placeholder="GP, mental health team, etc."
-                className="w-full text-lg px-3 py-2 rounded-lg border border-border bg-card text-foreground"
-              />
+            <div className="border-t border-border pt-3 flex flex-col gap-3">
+              <div>
+                <FieldLabel>Clinical justification for discharge</FieldLabel>
+                <TextArea value={fields.clinical_justification ?? ''} onChange={v => updateField('clinical_justification', v)} placeholder="Clinical reasoning..." />
+              </div>
+              <div>
+                <FieldLabel>Observations at time of discharge</FieldLabel>
+                <TextInput value={fields.discharge_observations ?? ''} onChange={v => updateField('discharge_observations', v)} placeholder="Vitals at discharge" />
+              </div>
+              <div>
+                <FieldLabel>Advice given to patient</FieldLabel>
+                <TextArea value={fields.advice_given ?? ''} onChange={v => updateField('advice_given', v)} placeholder="Advice provided..." />
+              </div>
+              <Toggle value={fields.safety_net_given ?? false} onChange={v => updateField('safety_net_given', v)} label="Safety net instructions given" />
+              <Toggle value={fields.patient_understands ?? false} onChange={v => updateField('patient_understands', v)} label="Patient confirmed they understand advice" />
+              <div>
+                <FieldLabel>Time of discharge</FieldLabel>
+                <div className="flex gap-2">
+                  <TextInput value={fields.time_of_discharge ?? ''} onChange={v => updateField('time_of_discharge', v)} placeholder="HH:MMZ" />
+                  <button onClick={() => updateField('time_of_discharge', nowTime())}
+                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Referral destination</FieldLabel>
+                <TextInput value={fields.referral_destination ?? ''} onChange={v => updateField('referral_destination', v)} placeholder="Service or provider" />
+              </div>
+              <div>
+                <FieldLabel>Referral pathway</FieldLabel>
+                <DropdownSelect value={fields.referral_pathway ?? ''} onChange={v => updateField('referral_pathway', v)} options={REFERRAL_PATHWAYS} placeholder="Select pathway..." />
+              </div>
+              <Toggle value={fields.referral_accepted ?? false} onChange={v => updateField('referral_accepted', v)} label={fields.referral_accepted ? 'Referral accepted' : 'Advised only'} />
+              <div>
+                <FieldLabel>Reference number (if given)</FieldLabel>
+                <TextInput value={fields.reference_number ?? ''} onChange={v => updateField('reference_number', v)} placeholder="Reference #" />
+              </div>
             </div>
           )}
+
+          {/* ── REFUSED TRANSPORT ── */}
           {disposition === 'refused_transport' && (
-            <div className="mt-3 flex items-center gap-3">
-              <button
-                onClick={() => setCapacityAssessed(!capacityAssessed)}
-                className="flex items-center gap-2 text-lg px-3 py-2 rounded-lg border transition-colors"
-                style={{
-                  borderColor: capacityAssessed ? '#34C759' : 'hsl(var(--border))',
-                  background: capacityAssessed ? 'rgba(52,199,89,0.1)' : 'transparent',
-                }}>
-                <span className="text-lg" style={{ color: capacityAssessed ? '#34C759' : 'hsl(var(--foreground))' }}>
-                  {capacityAssessed ? '✓' : '○'}
-                </span>
-                <span className="text-lg text-foreground">Capacity assessment completed</span>
-              </button>
+            <div className="border-t border-border pt-3 flex flex-col gap-3">
+              <Toggle value={fields.capacity_assessed ?? false} onChange={v => updateField('capacity_assessed', v)} label="Mental capacity assessment completed" />
+              <Toggle value={fields.patient_has_capacity ?? false} onChange={v => updateField('patient_has_capacity', v)} label="Patient has capacity" />
+              <Toggle value={fields.risks_explained ?? false} onChange={v => updateField('risks_explained', v)} label="Risks of refusal explained to patient" />
+              <Toggle value={fields.patient_understanding_confirmed ?? false} onChange={v => updateField('patient_understanding_confirmed', v)} label="Patient understanding confirmed" />
+              <div>
+                <FieldLabel>Refusal witnessed by</FieldLabel>
+                <TextInput value={fields.refusal_witnessed_by ?? ''} onChange={v => updateField('refusal_witnessed_by', v)} placeholder="Name of witness" />
+              </div>
+              <div>
+                <FieldLabel>Time of refusal</FieldLabel>
+                <div className="flex gap-2">
+                  <TextInput value={fields.time_of_refusal ?? ''} onChange={v => updateField('time_of_refusal', v)} placeholder="HH:MMZ" />
+                  <button onClick={() => updateField('time_of_refusal', nowTime())}
+                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                </div>
+              </div>
+              <Toggle value={fields.safeguarding_concern ?? false} onChange={v => updateField('safeguarding_concern', v)} label="Safeguarding concern identified" />
+              {!fields.patient_has_capacity && (
+                <div>
+                  <FieldLabel>Best interests decision</FieldLabel>
+                  <TextArea value={fields.best_interests_decision ?? ''} onChange={v => updateField('best_interests_decision', v)} placeholder="Document best interests decision..." />
+                </div>
+              )}
+              <Toggle value={fields.signed_refusal_form ?? false} onChange={v => updateField('signed_refusal_form', v)} label="Signed refusal form obtained" />
             </div>
           )}
+
+          {/* ── ROLE ── */}
           {disposition === 'role' && (
-            <div className="mt-3 rounded-lg p-3" style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.3)' }}>
-              <p className="text-lg" style={{ color: '#FF3B30' }}>
-                Recognition of Life Extinct — ensure all documentation is complete before handover.
-              </p>
+            <div className="border-t border-border pt-3 flex flex-col gap-3">
+              <div className="rounded-lg p-3 mb-1" style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.3)' }}>
+                <p className="text-lg" style={{ color: '#FF3B30' }}>
+                  Recognition of Life Extinct — ensure all documentation is complete.
+                </p>
+              </div>
+              <div>
+                <FieldLabel>Time of recognition</FieldLabel>
+                <div className="flex gap-2">
+                  <TextInput value={fields.time_of_recognition ?? ''} onChange={v => updateField('time_of_recognition', v)} placeholder="HH:MMZ" />
+                  <button onClick={() => updateField('time_of_recognition', nowTime())}
+                    className="text-lg px-3 py-2 rounded-lg border border-border text-primary whitespace-nowrap">NOW</button>
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Criteria used</FieldLabel>
+                <DropdownSelect value={fields.role_criteria ?? ''} onChange={v => updateField('role_criteria', v)} options={ROLE_CRITERIA} placeholder="Select criteria..." />
+              </div>
+              <Toggle value={fields.resuscitation_attempted ?? false} onChange={v => updateField('resuscitation_attempted', v)} label="Resuscitation attempted" />
+              {fields.resuscitation_attempted && (
+                <div>
+                  <FieldLabel>Duration and outcome</FieldLabel>
+                  <TextInput value={fields.resuscitation_details ?? ''} onChange={v => updateField('resuscitation_details', v)} placeholder="Duration, interventions, outcome" />
+                </div>
+              )}
+              <Toggle value={fields.gp_notified ?? false} onChange={v => updateField('gp_notified', v)} label="GP notified" />
+              <Toggle value={fields.police_notified ?? false} onChange={v => updateField('police_notified', v)} label="Police notified" />
+              <Toggle value={fields.coroner_referral ?? false} onChange={v => updateField('coroner_referral', v)} label="Coroner referral required" />
+              <Toggle value={fields.nok_notified ?? false} onChange={v => updateField('nok_notified', v)} label="Next of kin notified" />
             </div>
           )}
         </div>
 
-        {/* 3. Receiving Hospital — only for conveyed */}
-        {showHospital && (
-          <div className="mb-4">
-            <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>RECEIVING HOSPITAL</p>
-            {cas.receivingHospital ? (
-              <div className="border border-border rounded-lg p-3" style={{ background: `${col}0D` }}>
-                <p className="text-xl text-foreground font-bold break-words">{cas.receivingHospital}</p>
-              </div>
-            ) : (
-              <div className="rounded-lg p-3" style={{ color: '#FF9500', background: 'rgba(255,149,0,0.06)', border: '1px dashed rgba(255,149,0,0.3)' }}>
-                <p className="text-lg">No receiving hospital confirmed — contact Control</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 4. Active action items */}
+        {/* Active action items */}
         {cas.actionItems.length > 0 && (
           <div className="mb-4">
             <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#FF9500' }}>⚠ ACTION ITEMS</p>
@@ -575,9 +729,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
                     <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
                     <div className="flex-1 min-w-0">
                       <span className="text-lg text-foreground break-words">{text}</span>
-                      <span className="text-lg ml-1 opacity-50" style={{ color: '#FF9500' }}>
-                        — {formatActionAge(openedAt)}
-                      </span>
+                      <span className="text-lg ml-1 opacity-50" style={{ color: '#FF9500' }}>— {formatActionAge(openedAt)}</span>
                     </div>
                   </div>
                 );
@@ -586,13 +738,11 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
           </div>
         )}
 
-        {/* Resolved */}
         {cas.resolvedItems.length > 0 && <ResolvedActions items={cas.resolvedItems} />}
 
-        {/* 5. ePRF button */}
+        {/* ePRF button */}
         <div className="mb-4">
-          <button
-            onClick={() => setShowEprf(!showEprf)}
+          <button onClick={() => setShowEprf(!showEprf)}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-lg font-bold tracking-[0.15em] border cursor-pointer transition-colors"
             style={{
               color: showEprf ? '#1A1E24' : 'hsl(var(--primary))',
@@ -605,14 +755,12 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
           {showEprf && (
             <div className="mt-3">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-lg font-bold tracking-[0.2em]" style={{ color: 'hsl(var(--primary))' }}>
-                  ePRF — PATIENT HANDOVER
-                </p>
-                <CopyBtn text={buildCasualtyEprf(cas, inc, disposition, referTo)} label="COPY ePRF" />
+                <p className="text-lg font-bold tracking-[0.2em]" style={{ color: 'hsl(var(--primary))' }}>ePRF — PATIENT HANDOVER</p>
+                <CopyBtn text={buildCasualtyEprf(cas, inc, disposition, fields)} label="COPY ePRF" />
               </div>
               <div className="border border-border rounded-lg bg-card p-3">
                 <div className="text-lg text-foreground leading-7 whitespace-pre-wrap break-words">
-                  {buildCasualtyEprf(cas, inc, disposition, referTo)}
+                  {buildCasualtyEprf(cas, inc, disposition, fields)}
                 </div>
               </div>
             </div>
@@ -624,23 +772,14 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
       <div className="px-3 py-3 border-t border-border" style={{ background: '#1A1E24' }}>
         {confirming ? (
           <div className="p-3 rounded-lg" style={{ border: '2px solid #FF9500', background: 'rgba(255,149,0,0.08)' }}>
-            <p className="text-lg font-bold mb-2" style={{ color: '#FF9500' }}>
-              Hand over this patient?
-            </p>
-            <p className="text-lg text-foreground opacity-70 mb-3">
-              {DISPOSITION_LABELS[disposition]}
-              {disposition === 'see_and_refer' && referTo ? ` — ${referTo}` : ''}
-            </p>
+            <p className="text-lg font-bold mb-2" style={{ color: '#FF9500' }}>Hand over this patient?</p>
+            <p className="text-lg text-foreground opacity-70 mb-3">{DISPOSITION_LABELS[disposition]}</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirming(false)}
-                className="flex-1 py-2.5 text-lg font-bold border border-border rounded-lg bg-transparent text-foreground">
-                CANCEL
-              </button>
+                className="flex-1 py-2.5 text-lg font-bold border border-border rounded-lg bg-transparent text-foreground">CANCEL</button>
               <button onClick={doHandover}
                 className="flex-1 py-2.5 text-lg font-bold rounded-lg"
-                style={{ background: `${col}22`, border: `2px solid ${col}`, color: col }}>
-                CONFIRM HANDOVER
-              </button>
+                style={{ background: `${col}22`, border: `2px solid ${col}`, color: col }}>CONFIRM HANDOVER</button>
             </div>
           </div>
         ) : (
