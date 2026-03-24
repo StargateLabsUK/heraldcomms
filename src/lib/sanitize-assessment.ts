@@ -83,6 +83,10 @@ const OPEN_LOOP_REWRITES: Array<{ match: RegExp; rewrite: (text: string) => stri
     match: /\b(back-?up|backup)\s*(request|needed|required)/i,
     rewrite: () => 'Backup not yet confirmed — chase Control',
   },
+  {
+    match: /\bblue\s*(call|light)/i,
+    rewrite: () => 'Blue call requested — await Control confirmation — chase Control',
+  },
 ];
 
 /**
