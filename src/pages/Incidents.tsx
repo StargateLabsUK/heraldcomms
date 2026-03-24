@@ -25,28 +25,48 @@ const IncidentsPage = () => {
   const navigate = useNavigate();
 
   const refreshReports = useCallback(async () => {
-    setReports(getReports());
+    const localReports = getReports();
     setIncidentRefresh(n => n + 1);
-    if (!session) return;
+    if (!session) {
+      setReports(localReports);
+      return;
+    }
 
-    // Get local dispositions
+    const todayStart = session.session_date + 'T00:00:00.000Z';
+
+    // Get local dispositions first
     const localDisps = getDispositionsForShift(session.callsign, session.session_date);
 
-    // Also fetch from Supabase as fallback
     try {
-      const todayStart = session.session_date + 'T00:00:00.000Z';
-      const { data } = await supabase
-        .from('casualty_dispositions')
-        .select('*')
-        .eq('session_callsign', session.callsign)
-        .gte('created_at', todayStart);
+      const [dispRes, reportRes] = await Promise.all([
+        supabase
+          .from('casualty_dispositions')
+          .select('*')
+          .eq('session_callsign', session.callsign)
+          .gte('created_at', todayStart),
+        supabase
+          .from('herald_reports')
+          .select('*')
+          .or(`shift_id.eq.${session.shift_id},and(session_callsign.eq.${session.callsign},created_at.gte.${todayStart})`)
+          .order('latest_transmission_at', { ascending: false, nullsFirst: false }),
+      ]);
 
-      if (data && data.length > 0) {
-        // Merge: use Supabase data keyed by report_id+casualty_key, overlay with local
-        const merged = new Map<string, CasualtyDisposition>();
-        for (const row of data) {
+      // Merge local + remote reports for ReportsTab rendering
+      const mergedReports = new Map<string, HeraldReport>();
+      for (const r of localReports) mergedReports.set(r.id, r);
+      for (const r of (reportRes.data ?? [])) {
+        mergedReports.set(r.id, {
+          ...(r as unknown as HeraldReport),
+          assessment: (r.assessment as unknown as HeraldReport['assessment']) ?? null,
+        });
+      }
+      setReports(Array.from(mergedReports.values()));
+
+      if (dispRes.data && dispRes.data.length > 0) {
+        const mergedDisps = new Map<string, CasualtyDisposition>();
+        for (const row of dispRes.data) {
           const key = `${row.report_id}-${row.casualty_key}`;
-          merged.set(key, {
+          mergedDisps.set(key, {
             disposition: row.disposition as CasualtyDisposition['disposition'],
             closed_at: row.closed_at,
             casualty_key: row.casualty_key,
@@ -54,18 +74,19 @@ const IncidentsPage = () => {
             priority: row.priority,
             incident_id: row.report_id,
             incident_number: row.incident_number,
+            session_callsign: row.session_callsign,
             fields: (row.fields as CasualtyDisposition['fields']) ?? {},
           });
         }
-        // Local data takes priority (more recent)
         for (const d of localDisps) {
-          merged.set(`${d.incident_id}-${d.casualty_key}`, d);
+          mergedDisps.set(`${d.incident_id}-${d.casualty_key}`, d);
         }
-        setClosedCasualties(Array.from(merged.values()));
+        setClosedCasualties(Array.from(mergedDisps.values()));
       } else {
         setClosedCasualties(localDisps);
       }
     } catch {
+      setReports(localReports);
       setClosedCasualties(localDisps);
     }
   }, [session]);

@@ -496,6 +496,7 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
       priority: cas.priority,
       incident_id: inc.id,
       incident_number: inc.incident_number,
+      session_callsign: inc.session_callsign ?? null,
       fields,
     };
     // Save locally first

@@ -137,6 +137,7 @@ export interface CasualtyDisposition {
   priority: string;
   incident_id: string;
   incident_number: string | null;
+  session_callsign?: string | null;
   fields: DispositionFields;
 }
 
