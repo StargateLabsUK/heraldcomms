@@ -149,10 +149,10 @@ export function ReportsTab({ closedCasualties, reports, session }: ReportsTabPro
                 {/* Disposition */}
                 <div className="mt-3 rounded-lg p-3" style={{ background: `${col}1A`, borderLeft: `4px solid ${col}` }}>
                   <p className="text-lg font-bold" style={{ color: col }}>{d.priority} — {dispLabel}</p>
-                  {d.refer_to && (
-                    <p className="text-lg text-foreground mt-1">Referred to: {d.refer_to}</p>
+                  {d.fields?.referral_destination && (
+                    <p className="text-lg text-foreground mt-1">Referred to: {d.fields.referral_destination}</p>
                   )}
-                  {d.capacity_assessed && (
+                  {d.fields?.capacity_assessed && (
                     <p className="text-lg mt-1" style={{ color: '#34C759' }}>✓ Capacity assessment completed</p>
                   )}
                   <p className="text-lg text-foreground opacity-60 mt-1">
