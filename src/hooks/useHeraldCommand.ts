@@ -246,5 +246,6 @@ export function useHeraldCommand() {
     connected,
     loading,
     activeShifts,
+    dispositions,
   };
 }
