@@ -226,6 +226,43 @@ function LatencyChart({ entries }: { entries: HealthEntry[] }) {
   );
 }
 
+function LogoutButton() {
+  const navigate = useNavigate();
+  const [confirming, setConfirming] = useState(false);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login', { replace: true });
+  };
+
+  return confirming ? (
+    <div className="flex items-center gap-3">
+      <span className="text-sm text-muted-foreground">Sign out?</span>
+      <button
+        onClick={handleLogout}
+        className="px-4 py-2 rounded border text-sm font-medium tracking-wider"
+        style={{ borderColor: '#FF3B30', color: '#FF3B30', background: 'transparent' }}
+      >
+        CONFIRM
+      </button>
+      <button
+        onClick={() => setConfirming(false)}
+        className="px-4 py-2 rounded border border-border text-sm text-muted-foreground"
+      >
+        CANCEL
+      </button>
+    </div>
+  ) : (
+    <button
+      onClick={() => setConfirming(true)}
+      className="flex items-center gap-2 px-4 py-2 rounded border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+    >
+      <LogOut size={14} />
+      <span className="tracking-wider">SIGN OUT</span>
+    </button>
+  );
+}
+
 export function UptimeTab() {
   const [entries, setEntries] = useState<HealthEntry[]>([]);
   const [liveHealth, setLiveHealth] = useState<LiveHealth | null>(null);
