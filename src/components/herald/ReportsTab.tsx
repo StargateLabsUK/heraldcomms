@@ -303,10 +303,8 @@ export function ReportsTab({ reports, session }: ReportsTabProps) {
                 <div className="mt-4">
                   <SectionLabel color={pc}>RECEIVING HOSPITAL</SectionLabel>
                   <FieldCard>
-                    {receivingHospital.length > 0 ? (
-                      receivingHospital.map((h, i) => (
-                        <p key={i} className="text-lg text-foreground font-bold break-words">{h}</p>
-                      ))
+                    {receivingHospitalDisplay ? (
+                      <p className="text-lg text-foreground font-bold break-words">{receivingHospitalDisplay}</p>
                     ) : (
                       <p className="text-lg py-1 px-2 rounded" style={{ color: '#FF9500', background: 'rgba(255,149,0,0.06)', border: '1px dashed rgba(255,149,0,0.3)' }}>
                         No receiving hospital confirmed — contact Control
