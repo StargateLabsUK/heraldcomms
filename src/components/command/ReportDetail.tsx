@@ -159,7 +159,7 @@ function EditableField({
 
 /* ── Main component ── */
 
-export function ReportDetail({ report }: Props) {
+export function ReportDetail({ report, dispositions = [] }: Props) {
   const [transmissions, setTransmissions] = useState<IncidentTransmission[]>([]);
   // Local overrides for editable fields
   const [localIncidentNum, setLocalIncidentNum] = useState<string | null>(null);
