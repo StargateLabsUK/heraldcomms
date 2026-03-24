@@ -77,16 +77,14 @@ function ExpandButton({ expanded, onClick }: { expanded: boolean; onClick: () =>
 export default function Command() {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate('/login', { replace: true });
-      } else {
-        setAuthChecked(true);
-      }
-    });
-  }, [navigate]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
+  const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
+  const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
+  const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops' | 'sla' | 'map'>('status');
+  const [opsReportId, setOpsReportId] = useState<string | null>(null);
+  const viewMode = useViewMode();
+  const mapRef = useRef<MapTabHandle>(null);
 
   const {
     reports,
@@ -98,22 +96,23 @@ export default function Command() {
     activeShifts,
   } = useHeraldCommand();
 
-  if (!authChecked) {
-    return <div className="min-h-screen" style={{ background: 'var(--herald-command-bg)' }} />;
-  }
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
-  const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
-  const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
-  const [desktopUpperTab, setDesktopUpperTab] = useState<'status' | 'ops' | 'sla' | 'map'>('status');
-  const [opsReportId, setOpsReportId] = useState<string | null>(null);
-  const viewMode = useViewMode();
-  const mapRef = useRef<MapTabHandle>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/login', { replace: true });
+      } else {
+        setAuthChecked(true);
+      }
+    });
+  }, [navigate]);
 
   const filteredReports = useMemo(() => applyFilters(reports, filters), [reports, filters]);
   const selectedReport = filteredReports.find((r) => r.id === selectedId) ?? null;
   const opsReport = useMemo(() => opsReportId ? reports.find((r) => r.id === opsReportId) ?? null : null, [opsReportId, reports]);
+
+  if (!authChecked) {
+    return <div className="min-h-screen" style={{ background: 'var(--herald-command-bg)' }} />;
+  }
 
   const handleOpsReportSelect = useCallback((id: string) => {
     setOpsReportId(id);
