@@ -325,10 +325,19 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current || 'audio/webm' });
           const base64 = await blobToBase64(blob);
 
-          const t = await transcribeAudio(base64);
-          setTranscript(t);
+      const t = await transcribeAudio(base64);
 
+          // Deduplication: skip if same content + callsign within 30s
           const sessionCtx = getSession();
+          const dedupCallsign = sessionCtx?.callsign || '';
+          const lastSub = lastSubmissionRef.current;
+          if (lastSub && lastSub.content === t && lastSub.callsign === dedupCallsign && (Date.now() - lastSub.timestamp) < 30000) {
+            console.log('Duplicate transmission discarded (audio)');
+            setState('idle');
+            return;
+          }
+
+          setTranscript(t);
           const result = await assessTranscript(t, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
           // Override callsign and operator_id from shift data — never from transcript
           if (result && result.structured) {
