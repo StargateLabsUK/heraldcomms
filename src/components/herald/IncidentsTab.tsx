@@ -685,25 +685,24 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
 
   const handleCasualtyClosed = useCallback((d: CasualtyDisposition) => {
     onCasualtyClosed(d);
-    // Go back to incident detail or list
-    if (nav.view === 'casualty') {
-      const remaining = extractCasualties(nav.incident).filter(c => !isCasualtyClosed(nav.incident.id, c.key) && c.key !== d.casualty_key);
+    const currentNav = navRef.current;
+    if (currentNav.view === 'casualty') {
+      const remaining = extractCasualties(currentNav.incident).filter(c => !isCasualtyClosed(currentNav.incident.id, c.key) && c.key !== d.casualty_key);
       if (remaining.length === 0) {
-        // All casualties closed — close the incident too
         supabase.from('herald_reports')
           .update({ status: 'closed', confirmed_at: new Date().toISOString() })
-          .eq('id', nav.incident.id)
+          .eq('id', currentNav.incident.id)
           .then(() => {
-            updateReport(nav.incident.id, { status: 'closed', confirmed_at: new Date().toISOString() } as any);
+            updateReport(currentNav.incident.id, { status: 'closed', confirmed_at: new Date().toISOString() } as any);
             fetchIncidents();
           });
         setNav({ view: 'list' });
       } else {
-        setNav({ view: 'incident', incident: nav.incident });
+        setNav({ view: 'incident', incident: currentNav.incident });
       }
     }
     fetchIncidents();
-  }, [nav, onCasualtyClosed, fetchIncidents]);
+  }, [onCasualtyClosed, fetchIncidents]);
 
   // Filter to only show incidents with open casualties
   const activeWithCasualties = incidents.filter(inc => {
