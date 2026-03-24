@@ -14,10 +14,14 @@ const FILTERS = ['ALL', 'P1', 'P2', 'P3'] as const;
 
 export function IncomingFeed({ reports, selectedId, onSelect }: Props) {
   const [filter, setFilter] = useState<string>('ALL');
+  const [showClosed, setShowClosed] = useState(false);
+
+  const activeReports = reports.filter(r => (r as any).status !== 'closed');
+  const closedReports = reports.filter(r => (r as any).status === 'closed');
 
   const filtered = filter === 'ALL'
-    ? reports
-    : reports.filter((r) => (r.assessment?.priority ?? r.priority) === filter);
+    ? activeReports
+    : activeReports.filter((r) => (r.assessment?.priority ?? r.priority) === filter);
 
   const getPriority = (r: CommandReport) => r.assessment?.priority ?? r.priority ?? 'P3';
   const getColor = (p: string) => PRIORITY_COLORS[p] ?? '#34C759';
