@@ -57,7 +57,7 @@ const IncidentsPage = () => {
       for (const r of (reportRes.data ?? [])) {
         mergedReports.set(r.id, {
           ...(r as unknown as HeraldReport),
-          assessment: r.assessment as HeraldReport['assessment'],
+          assessment: (r.assessment as unknown as HeraldReport['assessment']) ?? null,
         });
       }
       setReports(Array.from(mergedReports.values()));
