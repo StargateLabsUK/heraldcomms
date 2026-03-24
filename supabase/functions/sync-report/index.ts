@@ -173,6 +173,11 @@ serve(async (req) => {
         );
       }
 
+      // Preserve scene_location — never clear it, only overwrite with a more specific value
+      if (parentAssessment?.scene_location && !newAssessment?.scene_location) {
+        mergedAssessment.scene_location = parentAssessment.scene_location;
+      }
+
       // Backfill receiving_hospital if newly confirmed
       const newHospitals2 = newAssessment?.receiving_hospital;
       if (Array.isArray(newHospitals2) && newHospitals2.length > 0) {
