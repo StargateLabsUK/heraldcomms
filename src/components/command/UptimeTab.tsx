@@ -364,6 +364,11 @@ export function UptimeTab() {
       <AvailabilityBar entries={entries} />
       <LatencyChart entries={entries} />
       <OutageHistory entries={entries} />
+
+      {/* Logout */}
+      <div className="pt-8 pb-4 flex justify-center">
+        <LogoutButton />
+      </div>
     </div>
   );
 }
