@@ -72,22 +72,40 @@ serve(async (req) => {
   const aiUp = components.ai_provider.status === "up";
   const status = dbUp && aiUp ? "healthy" : dbUp ? "degraded" : "down";
 
-  // 4. Log to incident_log if requested
+  // 4. Log to incident_log if requested — protected by auth header
   if (log) {
-    try {
-      await supabase.from("incident_log").insert({
-        checked_at: timestamp,
-        status,
-        database_status: components.database.status,
-        database_latency_ms: components.database.latency_ms ?? null,
-        ai_provider_status: components.ai_provider.status,
-        ai_provider_latency_ms: components.ai_provider.latency_ms ?? null,
-        error_message: status !== "healthy"
-          ? `DB: ${components.database.status}, AI: ${components.ai_provider.status}`
-          : null,
-      });
-    } catch (e) {
-      console.error("Health: Failed to log", e);
+    // Verify caller is authenticated (admin/command user)
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+    let authorized = false;
+
+    if (token && token !== Deno.env.get("SUPABASE_ANON_KEY")) {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        authorized = roles?.some((r: any) => r.role === "admin" || r.role === "command") ?? false;
+      }
+    }
+
+    if (authorized) {
+      try {
+        await supabase.from("incident_log").insert({
+          checked_at: timestamp,
+          status,
+          database_status: components.database.status,
+          database_latency_ms: components.database.latency_ms ?? null,
+          ai_provider_status: components.ai_provider.status,
+          ai_provider_latency_ms: components.ai_provider.latency_ms ?? null,
+          error_message: status !== "healthy"
+            ? `DB: ${components.database.status}, AI: ${components.ai_provider.status}`
+            : null,
+        });
+      } catch (e) {
+        console.error("Health: Failed to log", e);
+      }
     }
   }
 

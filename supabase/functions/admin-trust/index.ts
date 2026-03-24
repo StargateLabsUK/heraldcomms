@@ -1,17 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-async function sha256Hex(text: string): Promise<string> {
-  const data = new TextEncoder().encode(text);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -59,7 +54,14 @@ serve(async (req) => {
         });
       }
 
-      const hash = await sha256Hex(pin);
+      if (typeof pin !== 'string' || pin.length < 4 || pin.length > 20) {
+        return new Response(JSON.stringify({ error: "PIN must be 4-20 characters" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const hash = await bcrypt.hash(pin);
       const { data, error } = await supabase
         .from("trusts")
         .insert({ name, slug, trust_pin_hash: hash, active: true })
@@ -81,7 +83,9 @@ serve(async (req) => {
         details: { trust_id: data.id, trust_name: name },
       });
 
-      return new Response(JSON.stringify({ ok: true, trust: data }), {
+      // Don't return trust_pin_hash
+      const { trust_pin_hash, ...safeData } = data;
+      return new Response(JSON.stringify({ ok: true, trust: safeData }), {
         status: 201,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

@@ -6,17 +6,58 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const MAX_TRANSCRIPT_LENGTH = 10000;
+const MAX_HEADLINE_LENGTH = 500;
+
+const ALLOWED_REPORT_FIELDS = new Set([
+  'id', 'timestamp', 'transcript', 'assessment', 'headline', 'priority',
+  'status', 'incident_number', 'service', 'session_callsign', 'session_service',
+  'session_station', 'session_operator_id', 'operator_id', 'device_id',
+  'vehicle_type', 'can_transport', 'critical_care', 'trust_id', 'shift_id',
+  'user_id', 'lat', 'lng', 'location_accuracy', 'synced', 'confirmed_at',
+  'original_assessment', 'final_assessment', 'diff', 'edited',
+  'follow_up_of', 'transmission_count', 'latest_transmission_at',
+]);
+
+function sanitizeReport(raw: Record<string, unknown>): Record<string, unknown> {
+  const clean: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (ALLOWED_REPORT_FIELDS.has(key)) {
+      clean[key] = value;
+    }
+  }
+  return clean;
+}
+
+function validateReport(report: Record<string, unknown>): string | null {
+  if (!report.id || typeof report.id !== 'string') return 'Missing or invalid id';
+  if (!report.timestamp || typeof report.timestamp !== 'string') return 'Missing or invalid timestamp';
+  if (report.transcript && typeof report.transcript === 'string' && report.transcript.length > MAX_TRANSCRIPT_LENGTH) {
+    return `Transcript too long (max ${MAX_TRANSCRIPT_LENGTH})`;
+  }
+  if (report.headline && typeof report.headline === 'string' && report.headline.length > MAX_HEADLINE_LENGTH) {
+    return `Headline too long (max ${MAX_HEADLINE_LENGTH})`;
+  }
+  if (report.trust_id && typeof report.trust_id !== 'string') return 'Invalid trust_id';
+  if (report.lat !== undefined && report.lat !== null && typeof report.lat !== 'number') return 'Invalid lat';
+  if (report.lng !== undefined && report.lng !== null && typeof report.lng !== 'number') return 'Invalid lng';
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const report = await req.json();
+    const rawReport = await req.json();
+    const report = sanitizeReport(rawReport);
 
-    if (!report.id || !report.timestamp) {
+    // Validate required fields and types
+    const validationError = validateReport(report);
+    if (validationError) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: id, timestamp" }),
+        JSON.stringify({ error: validationError }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -26,10 +67,25 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    let parentId = report.follow_up_of || null;
+    // Auth: verify trust_id exists and is active
+    if (report.trust_id) {
+      const { data: trust } = await supabase
+        .from("trusts")
+        .select("id")
+        .eq("id", report.trust_id)
+        .eq("active", true)
+        .maybeSingle();
+      if (!trust) {
+        return new Response(
+          JSON.stringify({ error: "Invalid trust" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    let parentId = (report.follow_up_of as string) || null;
 
     // --- SERVER-SIDE CONSOLIDATION ---
-    // If client didn't flag as follow-up, try to find a matching open incident
     if (!parentId) {
       parentId = await findMatchingIncident(supabase, report);
     }
@@ -51,13 +107,11 @@ serve(async (req) => {
       if (txError) {
         console.error("Insert transmission error:", txError);
         return new Response(
-          JSON.stringify({ error: txError.message }),
+          JSON.stringify({ error: "Failed to save transmission" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Build update payload — later transmissions take precedence on clinical detail
-      // Also auto-resolve action items from the new transmission
       const parentReport = await supabase
         .from("herald_reports")
         .select("assessment")
@@ -68,7 +122,6 @@ serve(async (req) => {
       const newAssessment = report.assessment as any;
       const newTranscript = (report.transcript as string) || "";
 
-      // Auto-resolve existing action items based on new content
       let mergedActionItems = parentAssessment?.action_items || [];
       const resolvedItems: any[] = parentAssessment?.resolved_action_items || [];
       
@@ -104,7 +157,6 @@ serve(async (req) => {
         mergedActionItems = stillActive;
       }
 
-      // Add new action items from this transmission — deduplicated
       const newItems = newAssessment?.action_items || [];
       if (Array.isArray(newItems) && newItems.length > 0) {
         for (const newItem of newItems) {
@@ -116,7 +168,6 @@ serve(async (req) => {
             const existingText = typeof mergedActionItems[i] === 'string'
               ? mergedActionItems[i] : mergedActionItems[i]?.text || '';
             if (actionItemsMatch(existingText, newText, newCategory, actionItemCategory(existingText))) {
-              // Update timestamp on existing item but don't add duplicate
               if (typeof mergedActionItems[i] === 'object') {
                 mergedActionItems[i].opened_at = new Date().toISOString();
               }
@@ -125,7 +176,6 @@ serve(async (req) => {
             }
           }
 
-          // Also check resolved items — don't re-add something already resolved
           if (!isDuplicate) {
             for (const resolved of resolvedItems) {
               const resolvedText = typeof resolved === 'string' ? resolved : resolved?.text || '';
@@ -142,7 +192,6 @@ serve(async (req) => {
         }
       }
 
-      // Merge into assessment — deep-merge clinical data per casualty
       const mergedAssessment = {
         ...(parentAssessment || {}),
         ...(newAssessment || {}),
@@ -150,7 +199,6 @@ serve(async (req) => {
         resolved_action_items: resolvedItems,
       };
 
-      // Deep-merge ATMIST per casualty key (P1, P2, etc.)
       if (parentAssessment?.atmist || newAssessment?.atmist) {
         mergedAssessment.atmist = deepMergeCasualtyMap(
           parentAssessment?.atmist || {},
@@ -158,7 +206,6 @@ serve(async (req) => {
         );
       }
 
-      // Deep-merge clinical_findings (A, B, C, D, E fields)
       if (parentAssessment?.clinical_findings || newAssessment?.clinical_findings) {
         mergedAssessment.clinical_findings = mergeShallow(
           parentAssessment?.clinical_findings || {},
@@ -166,7 +213,6 @@ serve(async (req) => {
         );
       }
 
-      // Deep-merge vitals — never clear existing values
       if (parentAssessment?.vitals || newAssessment?.vitals) {
         mergedAssessment.vitals = mergeShallow(
           parentAssessment?.vitals || {},
@@ -174,12 +220,10 @@ serve(async (req) => {
         );
       }
 
-      // Preserve scene_location — never clear it, only overwrite with a more specific value
       if (parentAssessment?.scene_location && !newAssessment?.scene_location) {
         mergedAssessment.scene_location = parentAssessment.scene_location;
       }
 
-      // Backfill receiving_hospital if newly confirmed
       const newHospitals2 = newAssessment?.receiving_hospital;
       if (Array.isArray(newHospitals2) && newHospitals2.length > 0) {
         mergedAssessment.receiving_hospital = newHospitals2;
@@ -192,9 +236,8 @@ serve(async (req) => {
         latest_transmission_at: report.timestamp,
       };
 
-      // Backfill incident_number if it appeared in this transmission but was missing before
       const incomingIncidentNumber = report.incident_number ||
-        report.assessment?.structured?.incident_number;
+        (report.assessment as any)?.structured?.incident_number;
       if (incomingIncidentNumber && incomingIncidentNumber !== "null") {
         updatePayload.incident_number = incomingIncidentNumber;
       }
@@ -208,7 +251,6 @@ serve(async (req) => {
         console.error("Update parent error:", updateError);
       }
 
-      // Increment transmission_count
       const { data: parentData } = await supabase
         .from("herald_reports")
         .select("transmission_count")
@@ -231,7 +273,6 @@ serve(async (req) => {
     // --- NEW REPORT ---
     const { follow_up_of, ...reportData } = report;
 
-    // Set latest_transmission_at and transmission_count for new reports
     reportData.latest_transmission_at = reportData.latest_transmission_at || report.timestamp;
     reportData.transmission_count = reportData.transmission_count || 1;
 
@@ -242,12 +283,11 @@ serve(async (req) => {
     if (error) {
       console.error("Insert error:", error);
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: "Failed to save report" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Insert first transmission log entry
     await supabase.from("incident_transmissions").insert({
       report_id: reportData.id,
       timestamp: reportData.timestamp,
@@ -267,19 +307,12 @@ serve(async (req) => {
   } catch (error) {
     console.error("Sync error:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Sync failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
 
-/**
- * Find a matching open incident for consolidation.
- * Rules:
- * 1) Exact incident_number match
- * 2) Same callsign + (same incident_type OR same location) + within 30 minutes
- * 3) Same callsign + only one open incident within 30 minutes
- */
 async function findMatchingIncident(
   supabase: ReturnType<typeof createClient>,
   report: Record<string, unknown>
@@ -293,7 +326,6 @@ async function findMatchingIncident(
   const shiftId = (report.shift_id as string) || null;
   const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
-  // 1) Exact incident_number match
   if (incidentNumber && incidentNumber !== "null" && incidentNumber !== "") {
     const query = supabase
       .from("herald_reports")
@@ -311,7 +343,6 @@ async function findMatchingIncident(
     }
   }
 
-  // 2-3) Callsign + context/time window match
   if (callsign && callsign !== "null") {
     const query = supabase
       .from("herald_reports")
@@ -327,7 +358,6 @@ async function findMatchingIncident(
 
     const { data } = await query;
     if (data && data.length > 0) {
-      // Score by context overlap
       for (const candidate of data) {
         const cAssessment = candidate.assessment as any;
         if (!cAssessment) continue;
@@ -342,7 +372,6 @@ async function findMatchingIncident(
         }
       }
 
-      // If only one candidate within window, match it
       if (data.length === 1) {
         return data[0].id;
       }
@@ -352,9 +381,6 @@ async function findMatchingIncident(
   return null;
 }
 
-/**
- * Categorise an action item into a semantic bucket for deduplication.
- */
 function actionItemCategory(text: string): string {
   const t = text.toLowerCase();
   if (/hems/i.test(t)) return 'hems';
@@ -367,22 +393,12 @@ function actionItemCategory(text: string): string {
   return '';
 }
 
-/**
- * Check if two action items are semantically the same.
- * Same category = duplicate. Also does normalised text comparison.
- */
 function actionItemsMatch(a: string, b: string, catA: string, catB: string): boolean {
-  // Same non-empty category = semantic match
   if (catA && catB && catA === catB) return true;
-  // Normalised text match
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
   return norm(a) === norm(b);
 }
 
-/**
- * Shallow-merge two objects, keeping existing values when the new value is
- * null, undefined, or empty string. Used for clinical_findings and vitals.
- */
 function mergeShallow(
   existing: Record<string, unknown>,
   incoming: Record<string, unknown>,
@@ -396,22 +412,16 @@ function mergeShallow(
   return result;
 }
 
-/**
- * Deep-merge ATMIST casualty maps. Each key (P1, P2, P1-2, etc.) is merged
- * field-by-field so existing clinical data is preserved when not updated.
- */
 function deepMergeCasualtyMap(
   existing: Record<string, Record<string, unknown>>,
   incoming: Record<string, Record<string, unknown>>,
 ): Record<string, Record<string, unknown>> {
   const result: Record<string, Record<string, unknown>> = {};
 
-  // Copy all existing casualty entries
   for (const [key, val] of Object.entries(existing)) {
     result[key] = { ...val };
   }
 
-  // Merge incoming entries field-by-field
   for (const [key, incomingCasualty] of Object.entries(incoming)) {
     if (!incomingCasualty || typeof incomingCasualty !== 'object') continue;
     if (!result[key]) {
