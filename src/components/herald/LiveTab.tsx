@@ -383,8 +383,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setError('');
 
     try {
-      setTranscript(text);
       const sessionCtx = getSession();
+
+      // Deduplication: skip if same content + callsign within 30s
+      const dedupCallsign = sessionCtx?.callsign || '';
+      const lastSub = lastSubmissionRef.current;
+      if (lastSub && lastSub.content === text && lastSub.callsign === dedupCallsign && (Date.now() - lastSub.timestamp) < 30000) {
+        console.log('Duplicate transmission discarded (test)');
+        setState('idle');
+        return;
+      }
+
+      setTranscript(text);
       const result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
       // Override callsign and operator_id from shift data — never from transcript
       if (result && result.structured) {
