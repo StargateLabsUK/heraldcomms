@@ -54,10 +54,18 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
         attributionControl: false,
       });
 
+      map.on('load', () => {
+        map.resize();
+      });
+
+      // Also resize after a short delay for containers that settle layout late
+      const resizeTimer = setTimeout(() => map.resize(), 200);
+
       map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
       mapRef.current = map;
 
       return () => {
+        clearTimeout(resizeTimer);
         map.remove();
         mapRef.current = null;
         markersRef.current.clear();
