@@ -65,8 +65,15 @@ export function saveCasualtyDisposition(d: CasualtyDisposition): void {
 
 export function getDispositionsForShift(callsign: string, sessionDate: string): CasualtyDisposition[] {
   return getCasualtyDispositions().filter(d => {
+    // Prefer stored session_callsign on the disposition (works even if report isn't in local cache)
+    if (d.session_callsign) {
+      return d.session_callsign === callsign &&
+        new Date(d.closed_at).toISOString().slice(0, 10) === sessionDate;
+    }
+
+    // Fallback for legacy local records without session_callsign
     const report = getReports().find(r => r.id === d.incident_id);
-    return report &&
+    return !!report &&
       report.session_callsign === callsign &&
       new Date(report.timestamp).toISOString().slice(0, 10) === sessionDate;
   });
