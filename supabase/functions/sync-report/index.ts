@@ -118,8 +118,8 @@ serve(async (req) => {
         .eq("id", parentId)
         .single();
 
-      const parentAssessment = normalizeAssessmentForMerge((parentReport?.data?.assessment as Record<string, unknown>) || {});
-      const newAssessment = normalizeAssessmentForMerge((report.assessment as Record<string, unknown>) || {});
+      const parentAssessment = normalizeAssessmentForMerge((parentReport?.data?.assessment as Record<string, unknown>) || {}) as any;
+      const newAssessment = normalizeAssessmentForMerge((report.assessment as Record<string, unknown>) || {}) as any;
       const newTranscript = (report.transcript as string) || "";
 
       let mergedActionItems = parentAssessment?.action_items || [];
@@ -230,16 +230,16 @@ serve(async (req) => {
       // Deep merge nested structures to preserve per-field casualty data
       if (parentAssessment?.atmist || newAssessment?.atmist) {
         mergedAssessment.atmist = deepMergeCasualtyMap(
-          parentAssessment?.atmist || {},
-          newAssessment?.atmist || {},
+          (parentAssessment?.atmist || {}) as Record<string, Record<string, unknown>>,
+          (newAssessment?.atmist || {}) as Record<string, Record<string, unknown>>,
           newTranscript,
         );
       }
 
       if (parentAssessment?.clinical_findings || newAssessment?.clinical_findings) {
         mergedAssessment.clinical_findings = mergeClinicalFindings(
-          parentAssessment?.clinical_findings || {},
-          newAssessment?.clinical_findings || {},
+          (parentAssessment?.clinical_findings || {}) as Record<string, unknown>,
+          (newAssessment?.clinical_findings || {}) as Record<string, unknown>,
         );
       }
 
@@ -502,7 +502,7 @@ function firstNonPlaceholder(...values: unknown[]): unknown {
   return undefined;
 }
 
-function normalizeAssessmentForMerge(raw: Record<string, unknown>): Record<string, unknown> {
+function normalizeAssessmentForMerge(raw: Record<string, unknown>): any {
   if (!raw || typeof raw !== 'object') return {};
 
   const normalized: Record<string, unknown> = { ...raw };
