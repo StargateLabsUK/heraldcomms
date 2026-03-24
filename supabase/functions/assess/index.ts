@@ -141,7 +141,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
   "formatted_report": "clean ePRF-ready report text"
 }
 
-CLINICAL HISTORY: Generate a structured clinical narrative for the clinical_history field. Write in plain English, third person, chronological order. Include only clinically relevant facts: what was reported, injuries found, clinical findings, interventions performed, and disposition. Do NOT copy the raw transmission verbatim — rewrite it as a professional clinical narrative. Example: "Crew reported RTC involving HGV and two cars on A57 Snake Pass. Three casualties identified on scene. P1 male approximately 40 trapped in vehicle, GCS 6, airway compromised, HEMS requested. Two P2 casualties — female 30s with chest pain and tachycardia, male 60s with minor lacerations, self-extricated. Scene declared safe by fire service." clinical_history is mandatory. Generate a plain English, third person, chronological narrative of clinically relevant facts from the transmission. If specific details are limited, summarise what is known. Never return N/A, null, or blank for this field if a transcript exists.
+CLINICAL HISTORY: Generate a structured clinical narrative for the clinical_history field. Write in plain English, third person, chronological order. Include only clinically relevant facts: what was reported, injuries found, clinical findings, interventions performed, and disposition. Do NOT copy the raw transmission verbatim — rewrite it as a professional clinical narrative. Example: "Crew reported RTC — two-vehicle head-on collision on A57 Snake Pass. Three casualties identified on scene. P1 male approximately 40 trapped in vehicle, GCS 6, airway compromised, HEMS requested. Two P2 casualties — female 30s with chest pain and tachycardia, male 60s with minor lacerations, self-extricated. Scene declared safe by fire service." clinical_history is mandatory. Generate a plain English, third person, chronological narrative of clinically relevant facts from the transmission. If specific details are limited, summarise what is known. Never return N/A, null, or blank for this field if a transcript exists.
 
 CONSOLIDATION: If a transmission references the same callsign and incident context as an existing open record, treat it as an update to that record. Do not open a new report. Incident number is optional at opening — backfill when it appears.
 
@@ -149,7 +149,7 @@ PRIORITY LEVELS: Only use P1/P2/P3/P4 designations explicitly stated in the tran
 
 CLINICAL TERMINOLOGY: "Airway compromised" is the correct term for a threatened or obstructed airway. Recognise variations including "airway problem", "airway issue", "airway at risk".
 
-ACTION ITEMS: Only include items the ambulance crew must action. Exclude fire service, police, or scene management items that are not the crew's responsibility. Frame every action item as an open loop: describe what is unresolved and what the crew must do to close it. Examples: "HEMS not yet confirmed — chase Control", "No receiving hospital confirmed — contact Control", "P1 trapped — extrication required before packaging and transport". Never describe completed actions as action items.
+ACTION ITEMS: Only include items the ambulance crew must action. Exclude fire service, police, or scene management items that are not the crew's responsibility. Frame every action item as an open loop: describe what is unresolved and what the crew must do to close it. Examples: "HEMS not yet confirmed — chase Control", "No receiving hospital confirmed — contact Control", "P1 trapped — extrication required before packaging and transport". Never describe completed actions as action items. Never generate a "transporting unit required" action item unless the crew explicitly states they cannot transport the patient. A DSA (Double Staffed Ambulance) is a transporting vehicle by default. Do not infer transport limitations from vehicle type or from absence of a transport statement in the transmission.
 
 ATMIST T FIELD: Clinical interventions only — IV access, fluids, airway adjuncts, drugs, CPR, immobilisation, packaging. Resource requests (HEMS, backup units) belong in action items not treatment.
 
@@ -289,6 +289,8 @@ serve(async (req) => {
     let contextPrefix = "";
     if (vehicle_type && can_transport === false) {
       contextPrefix = `[RESOURCE CONTEXT: Vehicle type is ${vehicle_type}. This vehicle CANNOT transport patients. Only generate a "transporting unit required" action item if the crew explicitly states they cannot transport or need a transporting unit. Do not infer transport inability from vehicle type alone.]\n\n`;
+    } else if (vehicle_type) {
+      contextPrefix = `[RESOURCE CONTEXT: The responding unit is a ${vehicle_type} and can transport patients. Do not generate transport resource action items.]\n\n`;
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {

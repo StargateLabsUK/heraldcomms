@@ -576,7 +576,6 @@ function normalizeAssessmentForMerge(raw: Record<string, unknown>): any {
 const STICKY_TRUE_FIELDS = new Set(['major_incident']);
 
 // METHANE fields that must not be overwritten by placeholder/silent follow-up values.
-// Includes both legacy flat keys and structured keys returned by assess.
 const METHANE_PRESERVE_FIELDS = new Set([
   'methane_major', 'methane_exact', 'methane_type',
   'methane_hazards', 'methane_access', 'methane_number', 'methane_emergency',
@@ -585,6 +584,27 @@ const METHANE_PRESERVE_FIELDS = new Set([
   'emergency_services', 'e_services', 'E_services',
   'H', 'A', 'N', 'E',
 ]);
+
+// Access field validity: only preserve if it contains actual access-route content
+const ACCESS_ROUTE_PATTERN = /\b(east|west|north|south|clear|avoid|rear|front|via|door|entry|entrance|approach|access|driveway|gate|path|lane|road|street|avenue|drive|a\d{1,4}|m\d{1,3}|junction)\b/i;
+
+function isValidAccessValue(value: unknown): boolean {
+  if (typeof value !== 'string' || isPlaceholder(value)) return false;
+  return ACCESS_ROUTE_PATTERN.test(value);
+}
+
+// Scene location: protect against truncation (losing house number)
+const HOUSE_NUMBER_PATTERN = /^\d+[a-zA-Z]?\s/;
+
+function shouldKeepExistingSceneLocation(existing: unknown, incoming: unknown): boolean {
+  if (typeof existing !== 'string' || isPlaceholder(existing)) return false;
+  if (typeof incoming !== 'string' || isPlaceholder(incoming)) return true;
+  // If existing has a house number and incoming doesn't, keep existing
+  if (HOUSE_NUMBER_PATTERN.test(existing) && !HOUSE_NUMBER_PATTERN.test(incoming)) return true;
+  // If incoming is shorter (less specific), keep existing
+  if (incoming.length < existing.length) return true;
+  return false;
+}
 
 const INCIDENT_TYPE_KEY = 'incident_type';
 
@@ -809,8 +829,19 @@ function mergeShallow(
     // incident_type can only broaden/escalate, never downgrade/specialize
     if (key === INCIDENT_TYPE_KEY && shouldKeepExistingIncidentType(result[key], value)) continue;
 
-    // METHANE fields: silence/default placeholders = no change
-    if (METHANE_PRESERVE_FIELDS.has(key) && !isPlaceholder(result[key]) && isPlaceholder(value)) continue;
+    // scene_location: protect against truncation
+    if (key === 'scene_location' && shouldKeepExistingSceneLocation(result[key], value)) continue;
+
+    // METHANE access field: only preserve if existing value is valid access-route content
+    if ((key === 'access' || key === 'access_routes') && METHANE_PRESERVE_FIELDS.has(key)) {
+      if (!isPlaceholder(result[key]) && isPlaceholder(value)) {
+        // Only preserve if existing is valid access content
+        if (isValidAccessValue(result[key])) continue;
+        // Otherwise allow overwrite (existing was invalid)
+      }
+    } else if (METHANE_PRESERVE_FIELDS.has(key) && !isPlaceholder(result[key]) && isPlaceholder(value)) {
+      continue;
+    }
 
     result[key] = value;
   }
