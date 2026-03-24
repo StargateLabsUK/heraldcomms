@@ -30,6 +30,7 @@ export interface CommandReport {
   vehicle_type: string | null;
   can_transport: boolean | null;
   critical_care: boolean | null;
+  receiving_hospital: string | null;
   isNew?: boolean;
 }
 
