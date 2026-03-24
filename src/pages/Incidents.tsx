@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TopBar } from '@/components/herald/TopBar';
 import { BottomNav } from '@/components/herald/BottomNav';
 import { ReportsTab } from '@/components/herald/ReportsTab';
