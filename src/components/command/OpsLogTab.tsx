@@ -11,7 +11,7 @@ function formatTime(iso: string | null) {
 
 function shiftDuration(s: Shift) {
   if (!s.ended_at) return 'Active';
-  const ms = new Date(s.ended_at).getTime() - new Date(s.started_at).getTime();
+  const ms = new Date(s.ended_at).getTime() - new Date(s.started_at ?? s.created_at).getTime();
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
   return `${h}h ${m}m`;
@@ -39,13 +39,13 @@ function applyFilters(shifts: Shift[], reports: OpsReport[], filters: OpsFilters
 
   if (filters.dateFrom) {
     const from = new Date(filters.dateFrom).getTime();
-    filteredShifts = filteredShifts.filter((s) => new Date(s.started_at).getTime() >= from);
+    filteredShifts = filteredShifts.filter((s) => new Date(s.started_at ?? s.created_at).getTime() >= from);
     filteredReports = filteredReports.filter((r) => new Date(r.created_at ?? r.timestamp).getTime() >= from);
   }
 
   if (filters.dateTo) {
     const to = new Date(filters.dateTo).getTime() + 86400000;
-    filteredShifts = filteredShifts.filter((s) => new Date(s.started_at).getTime() < to);
+    filteredShifts = filteredShifts.filter((s) => new Date(s.started_at ?? s.created_at).getTime() < to);
     filteredReports = filteredReports.filter((r) => new Date(r.created_at ?? r.timestamp).getTime() < to);
   }
 
