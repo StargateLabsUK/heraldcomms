@@ -1,9 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const MAX_TRANSCRIPT_LENGTH = 5000;
+const MAX_DIFFS_COUNT = 50;
 
 const SYSTEM_PROMPT = `You are Herald, an AI radio intelligence system for UK emergency services. Your job is to receive ambulance crew radio transmissions and generate structured ePRF (electronic Patient Report Form) records. You only process and document ambulance crew communications. If a transmission contains information from police or fire services, extract only what is clinically relevant to the ambulance crew's patient care. Do not generate records or fields for police or fire activity.
 
@@ -170,6 +174,21 @@ Analyse these corrections and identify:
 
 Be specific and actionable. Format as a structured report with numbered recommendations.`;
 
+async function validateTrust(trust_id: string): Promise<boolean> {
+  if (!trust_id || typeof trust_id !== 'string') return false;
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const { data } = await supabase
+    .from("trusts")
+    .select("id")
+    .eq("id", trust_id)
+    .eq("active", true)
+    .maybeSingle();
+  return !!data;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -177,6 +196,15 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
+
+    // Auth: require valid trust_id
+    const trust_id = body.trust_id;
+    if (!trust_id || !(await validateTrust(trust_id))) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized — invalid trust" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Training data analysis mode
     if (body.mode === "analyse_training_data") {
@@ -186,6 +214,13 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "No diffs provided" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (diffs.length > MAX_DIFFS_COUNT) {
+        return new Response(
+          JSON.stringify({ error: `Too many diffs (max ${MAX_DIFFS_COUNT})` }),
+          { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -228,10 +263,17 @@ serve(async (req) => {
     // Normal assessment mode
     const { transcript, vehicle_type, can_transport } = body;
 
-    if (!transcript) {
+    if (!transcript || typeof transcript !== 'string') {
       return new Response(
         JSON.stringify({ error: "No transcript provided" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Transcript too long (max ${MAX_TRANSCRIPT_LENGTH} chars)` }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -296,21 +338,38 @@ serve(async (req) => {
       );
     }
 
-    let assessment;
     try {
-      assessment = JSON.parse(clean);
+      const parsed = JSON.parse(clean);
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     } catch {
-      throw new Error(`Failed to parse response: ${clean.substring(0, 300)}`);
+      return new Response(
+        JSON.stringify({
+          service: "unknown",
+          protocol: "METHANE",
+          priority: "P3",
+          priority_label: "ROUTINE",
+          headline: transcript.substring(0, 80),
+          incident_type: "Unknown",
+          major_incident: false,
+          scene_location: "Not specified",
+          receiving_hospital: [],
+          clinical_findings: { A: "Not assessed", B: "Not assessed", C: "Not assessed", D: "Not assessed", E: "Not assessed" },
+          atmist: {},
+          treatment_given: [],
+          action_items: [],
+          structured: { callsign: null, incident_number: null, operator_id: null },
+          actions: ["Review transmission — AI response could not be parsed"],
+          transmit_to: "Control",
+          formatted_report: transcript,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-
-    return new Response(
-      JSON.stringify(assessment),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Assessment failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

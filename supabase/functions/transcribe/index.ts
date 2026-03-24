@@ -1,7 +1,11 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const MAX_AUDIO_BASE64_LENGTH = 8_000_000; // ~6MB base64 ≈ 4.5MB binary
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -9,7 +13,51 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { audio, mimeType } = await req.json();
+    // Auth: verify caller has a valid trust session via trust_id
+    const body = await req.json();
+    const { audio, mimeType, trust_id } = body;
+
+    if (!trust_id || typeof trust_id !== 'string') {
+      return new Response(JSON.stringify({ error: 'Missing trust_id' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate trust exists
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+    const { data: trust } = await supabase
+      .from('trusts')
+      .select('id')
+      .eq('id', trust_id)
+      .eq('active', true)
+      .maybeSingle();
+
+    if (!trust) {
+      return new Response(JSON.stringify({ error: 'Invalid trust' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Input validation
+    if (!audio || typeof audio !== 'string') {
+      return new Response(JSON.stringify({ error: 'Missing audio data' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (audio.length > MAX_AUDIO_BASE64_LENGTH) {
+      return new Response(JSON.stringify({ error: 'Audio payload too large (max ~6MB)' }), {
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) throw new Error('Missing OPENAI_API_KEY');
 
@@ -47,7 +95,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Transcription failed' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
