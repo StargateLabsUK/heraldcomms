@@ -364,7 +364,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setCurrentReportId(null);
     setOriginalAssessment(null);
     setHasEdits(false);
-    setMismatches([]);
     setCapturedDuration(0);
     setError('');
 
