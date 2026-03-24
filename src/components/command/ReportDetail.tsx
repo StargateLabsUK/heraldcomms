@@ -596,26 +596,6 @@ export function ReportDetail({ report, dispositions = [] }: Props) {
             {Object.entries(atmist).map(([casualtyKey, val]: [string, any]) => {
               const cCol = PRIORITY_COLORS[casualtyKey] ?? PRIORITY_COLORS[casualtyKey.replace(/-\d+$/, '')] ?? '#1E90FF';
               const disp = dispositions.find(d => d.report_id === report.id && d.casualty_key === casualtyKey);
-              const treatment = val?.T_treatment ?? '';
-
-              let casualtyStatus = 'On scene';
-              let statusColor = cCol;
-              if (disp) {
-                casualtyStatus = 'Handed over';
-                statusColor = '#34C759';
-              } else if (/convey|transport|en route to/i.test(treatment)) {
-                casualtyStatus = 'Transporting';
-                statusColor = '#FF9500';
-              } else if (/deceased|confirmed dead/i.test(treatment)) {
-                casualtyStatus = 'Deceased';
-              }
-
-              const dispLabel = disp ? DISPOSITION_LABELS[disp.disposition as DispositionType] : null;
-              const dispFields = disp?.fields as DispositionFields | undefined;
-              const handoverTime = disp?.closed_at ? new Date(disp.closed_at) : null;
-              const handoverTimeStr = handoverTime
-                ? handoverTime.getUTCHours().toString().padStart(2, '0') + ':' + handoverTime.getUTCMinutes().toString().padStart(2, '0') + 'Z'
-                : null;
 
               return (
                 <CasualtyCard
@@ -623,12 +603,7 @@ export function ReportDetail({ report, dispositions = [] }: Props) {
                   casualtyKey={casualtyKey}
                   val={val}
                   cCol={cCol}
-                  statusColor={statusColor}
-                  casualtyStatus={casualtyStatus}
                   disp={disp ?? null}
-                  dispLabel={dispLabel}
-                  dispFields={dispFields}
-                  handoverTimeStr={handoverTimeStr}
                   reportCallsign={report.session_callsign}
                   report={report}
                 />
