@@ -149,7 +149,7 @@ PRIORITY LEVELS: Only use P1/P2/P3/P4 designations explicitly stated in the tran
 
 CLINICAL TERMINOLOGY: "Airway compromised" is the correct term for a threatened or obstructed airway. Recognise variations including "airway problem", "airway issue", "airway at risk".
 
-ACTION ITEMS: Only include items the ambulance crew must action. Exclude fire service, police, or scene management items that are not the crew's responsibility. Frame every action item as an open loop: describe what is unresolved and what the crew must do to close it. Examples: "HEMS not yet confirmed — chase Control", "No receiving hospital confirmed — contact Control", "P1 trapped — extrication required before packaging and transport". Never describe completed actions as action items.
+ACTION ITEMS: Only include items the ambulance crew must action. Exclude fire service, police, or scene management items that are not the crew's responsibility. Frame every action item as an open loop: describe what is unresolved and what the crew must do to close it. Examples: "HEMS not yet confirmed — chase Control", "No receiving hospital confirmed — contact Control", "P1 trapped — extrication required before packaging and transport". Never describe completed actions as action items. Never generate a "transporting unit required" action item unless the crew explicitly states they cannot transport the patient. A DSA (Double Staffed Ambulance) is a transporting vehicle by default. Do not infer transport limitations from vehicle type or from absence of a transport statement in the transmission.
 
 ATMIST T FIELD: Clinical interventions only — IV access, fluids, airway adjuncts, drugs, CPR, immobilisation, packaging. Resource requests (HEMS, backup units) belong in action items not treatment.
 
