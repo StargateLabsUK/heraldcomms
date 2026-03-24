@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { saveSession, startShiftRemote } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
-import { getStationsForService } from '@/lib/uk-stations';
+
 import { VEHICLE_TYPES } from '@/lib/vehicle-types';
 import { getCachedTrust } from '@/lib/trust-cache';
 import { TrustPinEntry } from './TrustPinEntry';
