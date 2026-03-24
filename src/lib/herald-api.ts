@@ -47,7 +47,7 @@ export async function syncReport(report: Record<string, unknown>): Promise<boole
 export async function syncDisposition(disposition: Record<string, unknown>): Promise<boolean> {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
-    const { error } = await supabase.from('casualty_dispositions').upsert(disposition, {
+    const { error } = await supabase.from('casualty_dispositions').upsert(disposition as any, {
       onConflict: 'report_id,casualty_key',
     });
     if (error) {
