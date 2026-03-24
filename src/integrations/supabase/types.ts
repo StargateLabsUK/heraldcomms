@@ -73,6 +73,7 @@ export type Database = {
           operator_id: string | null
           original_assessment: Json | null
           priority: string | null
+          receiving_hospital: string | null
           service: string | null
           session_callsign: string | null
           session_operator_id: string | null
@@ -108,6 +109,7 @@ export type Database = {
           operator_id?: string | null
           original_assessment?: Json | null
           priority?: string | null
+          receiving_hospital?: string | null
           service?: string | null
           session_callsign?: string | null
           session_operator_id?: string | null
@@ -143,6 +145,7 @@ export type Database = {
           operator_id?: string | null
           original_assessment?: Json | null
           priority?: string | null
+          receiving_hospital?: string | null
           service?: string | null
           session_callsign?: string | null
           session_operator_id?: string | null
