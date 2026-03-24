@@ -28,6 +28,7 @@ interface Incident {
 interface Props {
   session: HeraldSession;
   onCloseIncident: (id: string, incidentNumber: string | null) => void;
+  refreshKey?: number;
 }
 
 function ResolvedActions({ items }: { items: ActionItem[] }) {
