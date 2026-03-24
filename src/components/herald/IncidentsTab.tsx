@@ -498,14 +498,14 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
       incident_number: inc.incident_number,
       fields,
     };
+    // Save locally first
     saveCasualtyDisposition(d);
-    onHandover(d);
 
-    // Sync to Supabase
+    // Sync to Supabase BEFORE triggering navigation (onHandover unmounts this component)
     try {
       const { syncDisposition } = await import('@/lib/herald-api');
       const session = (await import('@/lib/herald-session')).getSession();
-      await syncDisposition({
+      const syncOk = await syncDisposition({
         report_id: inc.id,
         casualty_key: cas.key,
         casualty_label: cas.label,
@@ -517,6 +517,9 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
         session_callsign: session?.callsign ?? null,
         trust_id: session?.trust_id ?? null,
       });
+      if (!syncOk) {
+        console.warn('Disposition sync returned false — will retry on next sync cycle');
+      }
 
       // Check if all casualties are now closed — if so, mark incident as closed
       const allCasualties = extractCasualties(inc);
@@ -530,6 +533,9 @@ function CasualtyReportView({ cas, inc, onBack, onHandover }: {
     } catch (e) {
       console.error('Failed to sync disposition:', e);
     }
+
+    // Now trigger navigation/unmount AFTER sync is complete
+    onHandover(d);
   }, [disposition, fields, cas, inc, onHandover]);
 
   // Now/current time helper
