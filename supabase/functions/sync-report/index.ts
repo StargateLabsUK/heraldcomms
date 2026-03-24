@@ -462,24 +462,99 @@ function actionItemsMatch(a: string, b: string, catA: string, catB: string): boo
 // Fields that, once set to true, must never be downgraded by a follow-up
 const STICKY_TRUE_FIELDS = new Set(['major_incident']);
 
-// Fields that, once set to a non-placeholder value, must not be overwritten
-// by a follow-up unless the new value is also non-placeholder.
-const METHANE_FIELDS = new Set([
+// METHANE fields that must not be overwritten by placeholder/silent follow-up values.
+// Includes both legacy flat keys and structured keys returned by assess.
+const METHANE_PRESERVE_FIELDS = new Set([
   'methane_major', 'methane_exact', 'methane_type',
   'methane_hazards', 'methane_access', 'methane_number', 'methane_emergency',
-  // Also protect incident_type from downgrades (e.g. Multi-Casualty → Trauma)
-  'incident_type',
+  'hazards', 'access', 'access_routes',
+  'num_casualties', 'number_of_casualties', 'casualties',
+  'emergency_services', 'e_services', 'E_services',
+  'H', 'A', 'N', 'E',
 ]);
+
+const INCIDENT_TYPE_KEY = 'incident_type';
 
 const PLACEHOLDER_VALUES = new Set([
   'not declared', 'none reported', 'not reported', 'unknown',
   'not stated', 'not mentioned', 'none', 'n/a', 'none stated',
-  'none mentioned', 'not specified', 'not provided',
+  'none mentioned', 'not specified', 'not provided', 'not available',
+  'none known', 'none identified', 'no hazards reported',
 ]);
+
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/[.;:!?]+$/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+function isTrueLike(value: unknown): boolean {
+  return value === true || (typeof value === 'string' && normalizeText(value) === 'true');
+}
 
 function isPlaceholder(value: unknown): boolean {
   if (value === null || value === undefined || value === '' || value === '—') return true;
-  if (typeof value === 'string' && PLACEHOLDER_VALUES.has(value.toLowerCase().trim())) return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  if (typeof value === 'string') {
+    const normalized = normalizeText(value);
+    if (PLACEHOLDER_VALUES.has(normalized)) return true;
+    if (/^not\s+(declared|reported|stated|mentioned|specified|provided|available|known)$/.test(normalized)) return true;
+    if (/^none(\s+(reported|stated|mentioned|specified|provided|known|identified))?$/.test(normalized)) return true;
+    if (/^no\s+(hazards?|access|casualt(y|ies)|emergency\s+services?)\s+(reported|stated|declared|specified)$/.test(normalized)) return true;
+  }
+  return false;
+}
+
+function incidentTypeSeverity(value: string): number {
+  const text = normalizeText(value);
+  if (/(multi\s*-?\s*casualty|mass\s*-?\s*casualty|major incident|\bmci\b)/.test(text)) return 5;
+  if (/(cardiac arrest|traumatic arrest|arrest)/.test(text)) return 4;
+  if (/(major trauma|polytrauma|entrap|collapse|explosion|fire)/.test(text)) return 3;
+  if (/(rtc|trauma|respiratory|stroke|obstetric|psychiatric|fall)/.test(text)) return 2;
+  return 1;
+}
+
+function isBroadIncidentType(value: string): boolean {
+  const text = normalizeText(value);
+  return /(multi\s*-?\s*casualty|mass\s*-?\s*casualty|major incident|\bmci\b)/.test(text);
+}
+
+function incidentTypeSpecificity(value: string): number {
+  return normalizeText(value)
+    .split(/\s*[-–—:]\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .length;
+}
+
+function shouldKeepExistingIncidentType(existing: unknown, incoming: unknown): boolean {
+  if (typeof existing !== 'string' || isPlaceholder(existing)) return false;
+  if (typeof incoming !== 'string') return true;
+  if (isPlaceholder(incoming)) return true;
+
+  const existingNorm = normalizeText(existing);
+  const incomingNorm = normalizeText(incoming);
+  if (!existingNorm || existingNorm === incomingNorm) return false;
+
+  const existingBroad = isBroadIncidentType(existingNorm);
+  const incomingBroad = isBroadIncidentType(incomingNorm);
+  if (existingBroad && !incomingBroad) return true;
+
+  const existingSeverity = incidentTypeSeverity(existingNorm);
+  const incomingSeverity = incidentTypeSeverity(incomingNorm);
+  if (incomingSeverity < existingSeverity) return true;
+
+  const existingBase = existingNorm.split(/\s*[-–—:]\s*/)[0];
+  const incomingBase = incomingNorm.split(/\s*[-–—:]\s*/)[0];
+  if (existingBase === incomingBase && incomingSeverity === existingSeverity) {
+    if (incidentTypeSpecificity(incomingNorm) > incidentTypeSpecificity(existingNorm)) {
+      return true;
+    }
+  }
+
   return false;
 }
 
@@ -492,19 +567,14 @@ function mergeShallow(
     // Skip null/empty/dash — silence means no change
     if (value === null || value === undefined || value === '' || value === '—') continue;
 
-    // Sticky boolean fields: once true, never revert to false
-    if (STICKY_TRUE_FIELDS.has(key) && result[key] === true && value === false) continue;
+    // Sticky boolean fields: once true, never revert to false/null/placeholder in follow-ups
+    if (STICKY_TRUE_FIELDS.has(key) && result[key] === true && !isTrueLike(value)) continue;
 
-    // METHANE + incident_type: don't overwrite real data with placeholders
-    if (METHANE_FIELDS.has(key) && !isPlaceholder(result[key]) && isPlaceholder(value)) continue;
+    // incident_type can only broaden/escalate, never downgrade/specialize
+    if (key === INCIDENT_TYPE_KEY && shouldKeepExistingIncidentType(result[key], value)) continue;
 
-    // incident_type: don't downgrade Multi-Casualty to single-type
-    if (key === 'incident_type' && typeof result[key] === 'string' && typeof value === 'string') {
-      const existingLower = (result[key] as string).toLowerCase();
-      if (existingLower.includes('multi-casualty') && !((value as string).toLowerCase().includes('multi-casualty'))) {
-        continue;
-      }
-    }
+    // METHANE fields: silence/default placeholders = no change
+    if (METHANE_PRESERVE_FIELDS.has(key) && !isPlaceholder(result[key]) && isPlaceholder(value)) continue;
 
     result[key] = value;
   }
