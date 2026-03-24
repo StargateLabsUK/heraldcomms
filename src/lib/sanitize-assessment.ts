@@ -128,6 +128,9 @@ export function resolveActionItems(
   const text = (newTranscript || '').toLowerCase();
   const newHospitals = newAssessment?.receiving_hospital || [];
 
+  // If transcript is empty/blank, nothing can be resolved — preserve all items
+  const hasContent = text.trim().length > 0;
+
   for (const item of existing) {
     if (item.resolved_at) {
       resolved.push(item);
@@ -136,39 +139,49 @@ export function resolveActionItems(
 
     let isResolved = false;
 
-    // HEMS confirmed on scene or en route
-    if (/HEMS not yet confirmed/i.test(item.text)) {
-      if (/\bHEMS\b.*\b(on\s*scene|landed|arrived|taking\s*over)\b/i.test(text)) {
-        isResolved = true;
+    // Only attempt resolution if transcript has meaningful content
+    if (hasContent) {
+      // HEMS: only resolve when explicitly confirmed tasked/en route, on scene, or stood down
+      if (/HEMS/i.test(item.text) && /\bHEMS\b/i.test(text)) {
+        if (/\bHEMS\b.*\b(tasked|en\s*route|on\s*scene|landed|arrived|taking\s*over|stood\s*down|cancelled|canceled|not\s*required)\b/i.test(text)) {
+          isResolved = true;
+        }
       }
-    }
 
-    // Receiving hospital confirmed
-    if (/receiving hospital.*confirmed|contact Control/i.test(item.text) && /hospital/i.test(item.text)) {
-      if (newHospitals.length > 0 || /\b(conveying|transporting|en\s*route)\s*(to|—)\s*\w/i.test(text)) {
-        isResolved = true;
+      // Receiving hospital: only resolve when explicitly confirmed
+      if (/receiving hospital/i.test(item.text) && /hospital/i.test(item.text)) {
+        if (newHospitals.length > 0 || /\b(conveying|transporting|en\s*route)\s*(to|—)\s*[A-Z]/i.test(text)) {
+          isResolved = true;
+        }
       }
-    }
 
-    // Additional units confirmed
-    if (/additional.*not yet confirmed/i.test(item.text) || /backup.*not yet confirmed/i.test(item.text)) {
-      if (/\b(additional|backup|back-?up)\b.*\b(on\s*scene|arrived|confirmed)\b/i.test(text)) {
-        isResolved = true;
+      // Additional units/backup: only resolve when explicitly confirmed on scene
+      if (/additional.*not yet confirmed/i.test(item.text) || /backup.*not yet confirmed/i.test(item.text)) {
+        if (/\b(additional|backup|back-?up)\b.*\b(on\s*scene|arrived|confirmed)\b/i.test(text)) {
+          isResolved = true;
+        }
       }
-    }
 
-    // Extrication complete
-    if (/trapped.*extrication/i.test(item.text)) {
-      if (/\b(extricated|extrication\s*(complete|done)|freed|released)\b/i.test(text)) {
-        isResolved = true;
+      // Extrication: only resolve when crew confirms patient extricated
+      if (/trapped.*extrication/i.test(item.text)) {
+        if (/\b(extricated|extrication\s*(complete|done)|freed|released)\b/i.test(text)) {
+          isResolved = true;
+        }
       }
-    }
 
-    // Status confirmed
-    if (/status unconfirmed/i.test(item.text)) {
-      const pm = item.text.match(/P[1-4]/);
-      if (pm && new RegExp(`${pm[0]}.*\\b(confirmed|stable|deceased|status)\\b`, 'i').test(text)) {
-        isResolved = true;
+      // Status: only resolve when explicitly confirmed
+      if (/status unconfirmed/i.test(item.text)) {
+        const pm = item.text.match(/P[1-4]/);
+        if (pm && new RegExp(`${pm[0]}.*\\b(confirmed|stable|deceased|status)\\b`, 'i').test(text)) {
+          isResolved = true;
+        }
+      }
+
+      // Triage: only resolve when all casualties assessed
+      if (/triage|casualties.*assessed/i.test(item.text)) {
+        if (/\b(triage\s*(complete|done)|all\s*casualties\s*(assessed|accounted))\b/i.test(text)) {
+          isResolved = true;
+        }
       }
     }
 
