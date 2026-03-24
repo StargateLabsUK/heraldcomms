@@ -113,7 +113,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
     "incident_number": "value or null",
     "operator_id": "value or null",
     "hazards": "METHANE H value if explicitly stated, else null",
-    "access": "METHANE A value if explicitly stated, else null",
+    "access": "METHANE A — physical scene access routes ONLY (road names, entry points, approach directions, door access). NEVER clinical data, patient demographics, or treatment info. Null if not stated",
     "number_of_casualties": "METHANE N value if explicitly stated, else null",
     "emergency_services": "METHANE E value if explicitly stated, else null"
   },
