@@ -128,21 +128,22 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         }
       }
       setEditStructured(flatStructured);
+
+      // Override structured callsign/operator_id with session values
+      const currentSession = getSession();
+      if (currentSession) {
+        if (currentSession.callsign) {
+          flatStructured['callsign'] = currentSession.callsign;
+        }
+        if (currentSession.operator_id) {
+          flatStructured['operator_id'] = currentSession.operator_id;
+        }
+      }
+      setEditStructured(flatStructured);
+
       setEditActions([...(clean.actions || [])]);
       setEditFormattedReport(clean.formatted_report || '');
       setOriginalAssessment(JSON.parse(JSON.stringify(clean)));
-
-      // Detect session vs transcript mismatches
-      const currentSession = getSession();
-      if (currentSession) {
-        const detected = detectMismatches(
-          { service: currentSession.service, callsign: currentSession.callsign, operator_id: currentSession.operator_id },
-          assessment
-        );
-        setMismatches(detected);
-      } else {
-        setMismatches([]);
-      }
 
       // Check for existing incident (follow-up detection)
       // Priority: 1) incident_number match, 2) callsign + context + 30min window
