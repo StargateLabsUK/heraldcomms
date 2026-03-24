@@ -191,8 +191,8 @@ export default function Command() {
     return <div className="min-h-screen" style={{ background: 'var(--herald-command-bg)' }} />;
   }
 
+  const topBar = <CommandTopBar priorityCounts={priorityCounts} connected={connected} />;
 
-  // OPS LOG REPORT DETAIL — full page with report + map
   if (opsReport) {
     const singleReports = [opsReport];
     return (
