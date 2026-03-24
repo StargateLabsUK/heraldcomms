@@ -233,14 +233,33 @@ export function ReportDetail({ report }: Props) {
   }
   const allResolved = [...resolvedActionItems, ...resolvedFromItems];
 
+  // Extract METHANE fields from formatted_report when not in structured fields
+  const extractFromReport = (patterns: RegExp[]): string => {
+    if (!formattedReport) return '';
+    for (const p of patterns) {
+      const m = formattedReport.match(p);
+      if (m && m[1]?.trim()) return m[1].trim();
+    }
+    return '';
+  };
+
+  const methaneHazards = structured['hazards'] ?? structured['H'] ??
+    (extractFromReport([/[-–]\s*Hazards?:\s*(.+)/i]) || 'None reported');
+  const methaneAccess = structured['access'] ?? structured['A'] ?? structured['access_routes'] ??
+    (extractFromReport([/[-–]\s*Access:\s*(.+)/i]) || 'Not specified');
+  const methaneNumCas = structured['number_of_casualties'] ?? structured['N'] ?? structured['casualties'] ??
+    (extractFromReport([/[-–]\s*Number of casualties:\s*(.+)/i, /Casualties:\s*(.+)/i]) || '—');
+  const methaneEmergency = structured['emergency_services'] ?? structured['E_services'] ??
+    (extractFromReport([/[-–]\s*Emergency services:\s*(.+)/i]) || serviceLabel);
+
   const methane = {
     M: majorIncident ? 'MAJOR INCIDENT DECLARED' : 'Not declared',
     E: sceneLocation,
     T: incidentType !== 'Unknown' ? incidentType : (structured['incident_type'] ?? headline),
-    H: structured['hazards'] ?? structured['H'] ?? 'None reported',
-    A_access: structured['access'] ?? structured['A'] ?? structured['access_routes'] ?? 'Not specified',
-    N: structured['number_of_casualties'] ?? structured['N'] ?? structured['casualties'] ?? '—',
-    E_emergency: structured['emergency_services'] ?? structured['E_services'] ?? serviceLabel,
+    H: methaneHazards,
+    A_access: methaneAccess,
+    N: methaneNumCas,
+    E_emergency: methaneEmergency,
   };
 
   /* ── Save handlers ── */
