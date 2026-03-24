@@ -203,8 +203,8 @@ ATMIST:
   Age/Sex: ${cas.atmist.A}
   Time of Injury: ${cas.atmist.T}
   Mechanism: ${cas.atmist.M}
-  Injuries: ${cas.atmist.I}
-  Signs/Vitals: ${cas.atmist.S}
+  Injuries: ${cas.atmist.I}${cas.atmist.status ? `\n  Status: ${cas.atmist.status}` : ''}
+  Signs/Vitals: ${cas.atmist.S}${cas.atmist.downtime ? `\n  Downtime: ${cas.atmist.downtime}` : ''}
   Treatment: ${cas.atmist.T_treatment}
 
 DISPOSITION: ${dispLabel}`;
