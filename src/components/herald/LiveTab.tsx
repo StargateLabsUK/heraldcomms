@@ -97,6 +97,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingReportRef = useRef<{ id: string; timestamp: string; transcript: string; lat?: number; lng?: number; location_accuracy?: number } | null>(null);
+  const lastSubmissionRef = useRef<{ content: string; callsign: string; timestamp: number } | null>(null);
 
   const syncNow = useCallback(async (reportId: string) => {
     try {
