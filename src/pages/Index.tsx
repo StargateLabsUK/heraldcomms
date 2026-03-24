@@ -18,16 +18,19 @@ const Index = () => {
   const [aiStatus, setAiStatus] = useState<'ok' | 'error'>('ok');
   const [reports, setReports] = useState<HeraldReport[]>([]);
   const [session, setSession] = useState<HeraldSession | null>(getSession());
+  const [incidentRefresh, setIncidentRefresh] = useState(0);
   const syncStatus = useHeraldSync();
 
   const refreshReports = useCallback(() => {
     setReports(getReports());
+    setIncidentRefresh(n => n + 1);
   }, []);
 
   useCommandPull(refreshReports);
 
   useEffect(() => {
     setReports(getReports());
+    if (activeTab === 'incidents') setIncidentRefresh(n => n + 1);
   }, [activeTab]);
 
   const handleShiftStarted = useCallback((s: HeraldSession) => {
@@ -70,7 +73,7 @@ const Index = () => {
             onReportSaved={refreshReports}
           />
         ) : activeTab === 'incidents' ? (
-          <IncidentsTab session={session} onCloseIncident={handleCloseIncident} />
+          <IncidentsTab session={session} onCloseIncident={handleCloseIncident} refreshKey={incidentRefresh} />
         ) : (
           <ReportsTab reports={closedReports} session={session} />
         )}

@@ -28,6 +28,7 @@ interface Incident {
 interface Props {
   session: HeraldSession;
   onCloseIncident: (id: string, incidentNumber: string | null) => void;
+  refreshKey?: number;
 }
 
 function ResolvedActions({ items }: { items: ActionItem[] }) {
@@ -55,7 +56,7 @@ function ResolvedActions({ items }: { items: ActionItem[] }) {
   );
 }
 
-export function IncidentsTab({ session, onCloseIncident }: Props) {
+export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [transmissions, setTransmissions] = useState<IncidentTransmission[]>([]);
@@ -77,7 +78,7 @@ export function IncidentsTab({ session, onCloseIncident }: Props) {
     }
   }, [session.shift_id]);
 
-  useEffect(() => { fetchIncidents(); }, [fetchIncidents]);
+  useEffect(() => { fetchIncidents(); }, [fetchIncidents, refreshKey]);
 
   useEffect(() => {
     if (!expandedId) { setTransmissions([]); return; }
