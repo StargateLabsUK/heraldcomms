@@ -371,3 +371,48 @@ function actionItemsMatch(a: string, b: string, catA: string, catB: string): boo
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
   return norm(a) === norm(b);
 }
+
+/**
+ * Shallow-merge two objects, keeping existing values when the new value is
+ * null, undefined, or empty string. Used for clinical_findings and vitals.
+ */
+function mergeShallow(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = { ...existing };
+  for (const [key, value] of Object.entries(incoming)) {
+    if (value !== null && value !== undefined && value !== '' && value !== '—') {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+/**
+ * Deep-merge ATMIST casualty maps. Each key (P1, P2, P1-2, etc.) is merged
+ * field-by-field so existing clinical data is preserved when not updated.
+ */
+function deepMergeCasualtyMap(
+  existing: Record<string, Record<string, unknown>>,
+  incoming: Record<string, Record<string, unknown>>,
+): Record<string, Record<string, unknown>> {
+  const result: Record<string, Record<string, unknown>> = {};
+
+  // Copy all existing casualty entries
+  for (const [key, val] of Object.entries(existing)) {
+    result[key] = { ...val };
+  }
+
+  // Merge incoming entries field-by-field
+  for (const [key, incomingCasualty] of Object.entries(incoming)) {
+    if (!incomingCasualty || typeof incomingCasualty !== 'object') continue;
+    if (!result[key]) {
+      result[key] = { ...incomingCasualty };
+    } else {
+      result[key] = mergeShallow(result[key], incomingCasualty as Record<string, unknown>);
+    }
+  }
+
+  return result;
+}
