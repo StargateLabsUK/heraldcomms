@@ -97,6 +97,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingReportRef = useRef<{ id: string; timestamp: string; transcript: string; lat?: number; lng?: number; location_accuracy?: number } | null>(null);
+  const lastSubmissionRef = useRef<{ content: string; callsign: string; timestamp: number } | null>(null);
 
   const syncNow = useCallback(async (reportId: string) => {
     try {
@@ -324,10 +325,19 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current || 'audio/webm' });
           const base64 = await blobToBase64(blob);
 
-          const t = await transcribeAudio(base64);
-          setTranscript(t);
+      const t = await transcribeAudio(base64);
 
+          // Deduplication: skip if same content + callsign within 30s
           const sessionCtx = getSession();
+          const dedupCallsign = sessionCtx?.callsign || '';
+          const lastSub = lastSubmissionRef.current;
+          if (lastSub && lastSub.content === t && lastSub.callsign === dedupCallsign && (Date.now() - lastSub.timestamp) < 30000) {
+            console.log('Duplicate transmission discarded (audio)');
+            setState('idle');
+            return;
+          }
+
+          setTranscript(t);
           const result = await assessTranscript(t, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
           // Override callsign and operator_id from shift data — never from transcript
           if (result && result.structured) {
@@ -340,13 +350,13 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           const loc = await getLocation();
           const reportId = crypto.randomUUID();
           setCurrentReportId(reportId);
-          // Store location and timestamp for use at confirm time
           pendingReportRef.current = {
             id: reportId,
             timestamp: new Date().toISOString(),
             transcript: t,
             ...loc,
           };
+          lastSubmissionRef.current = { content: t, callsign: dedupCallsign, timestamp: Date.now() };
           setState('ready');
         } catch {
           onAiStatus('error');
@@ -373,8 +383,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setError('');
 
     try {
-      setTranscript(text);
       const sessionCtx = getSession();
+
+      // Deduplication: skip if same content + callsign within 30s
+      const dedupCallsign = sessionCtx?.callsign || '';
+      const lastSub = lastSubmissionRef.current;
+      if (lastSub && lastSub.content === text && lastSub.callsign === dedupCallsign && (Date.now() - lastSub.timestamp) < 30000) {
+        console.log('Duplicate transmission discarded (test)');
+        setState('idle');
+        return;
+      }
+
+      setTranscript(text);
       const result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
       // Override callsign and operator_id from shift data — never from transcript
       if (result && result.structured) {
@@ -393,6 +413,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         transcript: text,
         ...loc,
       };
+      lastSubmissionRef.current = { content: text, callsign: dedupCallsign, timestamp: Date.now() };
       setState('ready');
     } catch {
       onAiStatus('error');

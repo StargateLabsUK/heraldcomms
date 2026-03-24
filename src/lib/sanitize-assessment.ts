@@ -83,6 +83,10 @@ const OPEN_LOOP_REWRITES: Array<{ match: RegExp; rewrite: (text: string) => stri
     match: /\b(back-?up|backup)\s*(request|needed|required)/i,
     rewrite: () => 'Backup not yet confirmed — chase Control',
   },
+  {
+    match: /\bblue\s*(call|light)/i,
+    rewrite: () => 'Blue call requested — await Control confirmation — chase Control',
+  },
 ];
 
 /**
@@ -97,9 +101,15 @@ function rewriteAsOpenLoop(text: string): string {
   // If no specific rewrite matched but it contains "requested", make it open-loop
   if (/\brequest(ed|ing)?\b/i.test(text)) {
     const resource = text.replace(/\b(request(ed|ing)?|please|—|control)\b/gi, '').trim();
-    if (resource) return `${resource} not yet confirmed — chase Control`;
+    if (resource) {
+      const rewritten = `${resource} not yet confirmed — chase Control`;
+      // Guard against phrase duplication
+      return rewritten.replace(/(not yet confirmed\s*—\s*chase\s*){2,}/gi, 'not yet confirmed — chase ');
+    }
   }
-  return text;
+  // Final dedup guard: catch any doubled phrasing that slipped through
+  const deduped = text.replace(/(not yet confirmed\s*—\s*chase\s*){2,}/gi, 'not yet confirmed — chase ');
+  return deduped;
 }
 
 /**
