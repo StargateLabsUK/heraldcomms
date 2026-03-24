@@ -287,8 +287,8 @@ serve(async (req) => {
 
     // Build context prefix for vehicle type
     let contextPrefix = "";
-    if (vehicle_type) {
-      contextPrefix = `[RESOURCE CONTEXT: Vehicle type is ${vehicle_type}. Can transport patients: ${can_transport === false ? 'NO' : 'YES'}. If can_transport is NO and the assessment indicates a patient requires conveyance, automatically generate an action item: "Transporting unit required — ${vehicle_type} cannot convey patients — request DSA from Control".]\n\n`;
+    if (vehicle_type && can_transport === false) {
+      contextPrefix = `[RESOURCE CONTEXT: Vehicle type is ${vehicle_type}. This vehicle CANNOT transport patients. Only generate a "transporting unit required" action item if the crew explicitly states they cannot transport or need a transporting unit. Do not infer transport inability from vehicle type alone.]\n\n`;
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
