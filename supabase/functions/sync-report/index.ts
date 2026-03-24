@@ -284,11 +284,17 @@ serve(async (req) => {
       }
 
       const updatePayload: Record<string, unknown> = {
-        priority: report.priority,
-        headline: report.headline,
         assessment: mergedAssessment,
         latest_transmission_at: report.timestamp,
       };
+
+      // Only update top-level priority/headline if new transmission provides them
+      if (report.priority && report.priority !== '' && report.priority !== 'null') {
+        updatePayload.priority = report.priority;
+      }
+      if (report.headline && report.headline !== '' && report.headline !== 'null') {
+        updatePayload.headline = report.headline;
+      }
 
       const incomingIncidentNumber = report.incident_number ||
         (report.assessment as any)?.structured?.incident_number;
