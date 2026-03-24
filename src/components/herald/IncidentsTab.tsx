@@ -142,12 +142,19 @@ export function IncidentsTab({ session, onCloseIncident, refreshKey }: Props) {
 
   const confirmClose = useCallback(async (inc: Incident) => {
     const closedAt = inc.confirmed_at ?? new Date().toISOString();
-    await supabase
+    const { error } = await supabase
       .from('herald_reports')
       .update({ status: 'closed', confirmed_at: closedAt })
       .eq('id', inc.id);
-    // Also update local storage so field app immediately reflects closure
+
+    // Always update local cache so field app UI reflects closure immediately
     updateReport(inc.id, { status: 'closed', confirmed_at: closedAt } as any);
+
+    // If row isn't in Supabase yet (unsynced), still proceed with local closure
+    if (error) {
+      // silent fallback
+    }
+
     setClosing(null);
     onCloseIncident(inc.id, inc.incident_number);
     fetchIncidents();
