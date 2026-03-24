@@ -244,13 +244,13 @@ export function ReportDetail({ report }: Props) {
   };
 
   const methaneHazards = structured['hazards'] ?? structured['H'] ??
-    extractFromReport([/[-–]\s*Hazards?:\s*(.+)/i]) || 'None reported';
+    (extractFromReport([/[-–]\s*Hazards?:\s*(.+)/i]) || 'None reported');
   const methaneAccess = structured['access'] ?? structured['A'] ?? structured['access_routes'] ??
-    extractFromReport([/[-–]\s*Access:\s*(.+)/i]) || 'Not specified';
+    (extractFromReport([/[-–]\s*Access:\s*(.+)/i]) || 'Not specified');
   const methaneNumCas = structured['number_of_casualties'] ?? structured['N'] ?? structured['casualties'] ??
-    extractFromReport([/[-–]\s*Number of casualties:\s*(.+)/i, /Casualties:\s*(.+)/i]) || '—';
+    (extractFromReport([/[-–]\s*Number of casualties:\s*(.+)/i, /Casualties:\s*(.+)/i]) || '—');
   const methaneEmergency = structured['emergency_services'] ?? structured['E_services'] ??
-    extractFromReport([/[-–]\s*Emergency services:\s*(.+)/i]) || serviceLabel;
+    (extractFromReport([/[-–]\s*Emergency services:\s*(.+)/i]) || serviceLabel);
 
   const methane = {
     M: majorIncident ? 'MAJOR INCIDENT DECLARED' : 'Not declared',
