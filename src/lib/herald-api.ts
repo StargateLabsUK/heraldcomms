@@ -1,3 +1,5 @@
+import { getSession } from './herald-session';
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -7,11 +9,16 @@ const headers = {
   Authorization: `Bearer ${SUPABASE_KEY}`,
 };
 
+function getTrustId(): string | null {
+  const session = getSession();
+  return session?.trust_id || null;
+}
+
 export async function transcribeAudio(base64Audio: string, mimeType?: string): Promise<string> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ audio: base64Audio, mimeType: mimeType || 'audio/webm' }),
+    body: JSON.stringify({ audio: base64Audio, mimeType: mimeType || 'audio/webm', trust_id: getTrustId() }),
   });
   if (!res.ok) throw new Error('Transcription failed');
   const data = await res.json();
@@ -22,7 +29,7 @@ export async function assessTranscript(transcript: string, context?: { vehicle_t
   const res = await fetch(`${SUPABASE_URL}/functions/v1/assess`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ transcript, vehicle_type: context?.vehicle_type, can_transport: context?.can_transport }),
+    body: JSON.stringify({ transcript, vehicle_type: context?.vehicle_type, can_transport: context?.can_transport, trust_id: getTrustId() }),
   });
   if (!res.ok) throw new Error('Assessment failed');
   return res.json();
