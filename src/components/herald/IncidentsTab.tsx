@@ -983,13 +983,8 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
     if (currentNav.view === 'casualty') {
       const remaining = extractCasualties(currentNav.incident).filter(c => !isCasualtyClosed(currentNav.incident.id, c.key) && c.key !== d.casualty_key);
       if (remaining.length === 0) {
-        supabase.from('herald_reports')
-          .update({ status: 'closed', confirmed_at: new Date().toISOString() })
-          .eq('id', currentNav.incident.id)
-          .then(() => {
-            updateReport(currentNav.incident.id, { status: 'closed', confirmed_at: new Date().toISOString() } as any);
-            fetchIncidents();
-          });
+        // doHandover already closed the incident in Supabase — just update localStorage and navigate
+        updateReport(currentNav.incident.id, { status: 'closed', confirmed_at: new Date().toISOString() } as any);
         setNav({ view: 'list' });
       } else {
         setNav({ view: 'incident', incident: currentNav.incident });
