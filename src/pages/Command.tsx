@@ -75,6 +75,19 @@ function ExpandButton({ expanded, onClick }: { expanded: boolean; onClick: () =>
 }
 
 export default function Command() {
+  const navigate = useNavigate();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate('/login', { replace: true });
+      } else {
+        setAuthChecked(true);
+      }
+    });
+  }, [navigate]);
+
   const {
     reports,
     todayReports,
@@ -84,6 +97,10 @@ export default function Command() {
     connected,
     activeShifts,
   } = useHeraldCommand();
+
+  if (!authChecked) {
+    return <div className="min-h-screen" style={{ background: 'var(--herald-command-bg)' }} />;
+  }
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<MobileTab>('feed');
