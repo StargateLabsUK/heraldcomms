@@ -75,7 +75,7 @@ export function useHeraldCommand() {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const [reportsRes, shiftsRes] = await Promise.all([
+      const [reportsRes, shiftsRes, dispositionsRes] = await Promise.all([
         supabase
           .from('herald_reports')
           .select('*')
@@ -88,6 +88,12 @@ export function useHeraldCommand() {
           .is('ended_at', null)
           .order('created_at', { ascending: false })
           .limit(50),
+        supabase
+          .from('casualty_dispositions')
+          .select('*')
+          .gte('created_at', todayStart.toISOString())
+          .order('closed_at', { ascending: false })
+          .limit(500),
       ]);
 
       if (reportsRes.error) throw reportsRes.error;
