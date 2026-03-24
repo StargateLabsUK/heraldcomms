@@ -19,15 +19,16 @@ const Index = () => {
   const [reports, setReports] = useState<HeraldReport[]>([]);
   const [session, setSession] = useState<HeraldSession | null>(getSession());
   const syncStatus = useHeraldSync();
+
+  const refreshReports = useCallback(() => {
+    setReports(getReports());
+  }, []);
+
   useCommandPull(refreshReports);
 
   useEffect(() => {
     setReports(getReports());
   }, [activeTab]);
-
-  const refreshReports = useCallback(() => {
-    setReports(getReports());
-  }, []);
 
   const handleShiftStarted = useCallback((s: HeraldSession) => {
     setSession(s);
