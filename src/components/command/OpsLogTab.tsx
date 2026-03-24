@@ -39,7 +39,7 @@ function applyFilters(shifts: Shift[], reports: OpsReport[], filters: OpsFilters
 
   if (filters.dateFrom) {
     const from = new Date(filters.dateFrom).getTime();
-    filteredShifts = filteredShifts.filter((s) => new Date(s.started_at).getTime() >= from);
+    filteredShifts = filteredShifts.filter((s) => new Date(s.started_at ?? s.created_at).getTime() >= from);
     filteredReports = filteredReports.filter((r) => new Date(r.created_at ?? r.timestamp).getTime() >= from);
   }
 
