@@ -52,7 +52,9 @@ function buildClosedEprf(d: CasualtyDisposition, report: HeraldReport): string {
     `  Time of Injury: ${atmistData.T ?? '—'}`,
     `  Mechanism: ${atmistData.M ?? '—'}`,
     `  Injuries: ${atmistData.I ?? '—'}`,
+    ...(atmistData.status ? [`  Status: ${atmistData.status}`] : []),
     `  Signs/Vitals: ${atmistData.S ?? '—'}`,
+    ...(atmistData.downtime ? [`  Downtime: ${atmistData.downtime}`] : []),
     `  Treatment: ${atmistData.T_treatment ?? '—'}`,
   ].join('\n') : '  No ATMIST data';
 
