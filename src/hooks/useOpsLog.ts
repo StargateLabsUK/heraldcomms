@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Assessment } from '@/lib/herald-types';
+import type { PatientTransfer } from '@/lib/transfer-types';
 
 export interface Shift {
   id: string;
@@ -79,12 +80,13 @@ export function useOpsLog() {
   const [reports, setReports] = useState<OpsReport[]>([]);
   const [transmissions, setTransmissions] = useState<OpsTransmission[]>([]);
   const [dispositions, setDispositions] = useState<OpsDisposition[]>([]);
+  const [transfers, setTransfers] = useState<PatientTransfer[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [shiftsRes, reportsRes, txRes, dispRes] = await Promise.all([
+      const [shiftsRes, reportsRes, txRes, dispRes, transfersRes] = await Promise.all([
         supabase
           .from('shifts')
           .select('*')
@@ -105,6 +107,11 @@ export function useOpsLog() {
           .select('*')
           .order('closed_at', { ascending: false })
           .limit(1000),
+        supabase
+          .from('patient_transfers')
+          .select('*')
+          .order('initiated_at', { ascending: false })
+          .limit(500),
       ]);
 
       if (shiftsRes.data) {
@@ -138,6 +145,9 @@ export function useOpsLog() {
       if (dispRes.data) {
         setDispositions(dispRes.data as unknown as OpsDisposition[]);
       }
+      if (transfersRes.data) {
+        setTransfers(transfersRes.data as unknown as PatientTransfer[]);
+      }
     } catch {
       // silent
     } finally {
@@ -152,5 +162,5 @@ export function useOpsLog() {
   const uniqueServices = Array.from(new Set(shifts.map((s) => s.service).filter(Boolean))).sort();
   const uniqueStations = Array.from(new Set(shifts.map((s) => s.station).filter(Boolean) as string[])).sort();
 
-  return { shifts, reports, transmissions, dispositions, loading, refresh: fetchData, uniqueServices, uniqueStations };
+  return { shifts, reports, transmissions, dispositions, transfers, loading, refresh: fetchData, uniqueServices, uniqueStations };
 }
