@@ -162,5 +162,5 @@ export function useOpsLog() {
   const uniqueServices = Array.from(new Set(shifts.map((s) => s.service).filter(Boolean))).sort();
   const uniqueStations = Array.from(new Set(shifts.map((s) => s.station).filter(Boolean) as string[])).sort();
 
-  return { shifts, reports, transmissions, dispositions, loading, refresh: fetchData, uniqueServices, uniqueStations };
+  return { shifts, reports, transmissions, dispositions, transfers, loading, refresh: fetchData, uniqueServices, uniqueStations };
 }
