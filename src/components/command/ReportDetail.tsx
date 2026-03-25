@@ -192,11 +192,20 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
   const dispFields = (disp?.fields || {}) as DispositionFields;
   const statusInfo = disp ? (DISPOSITION_STATUS[disp.disposition] ?? { label: 'CLOSED', color: '#34C759', bg: 'rgba(52,199,89,0.10)', border: 'rgba(52,199,89,0.4)' }) : null;
 
+  // Transfer status for this casualty
+  const pendingTransfer = transfers.find(t => t.report_id === report.id && t.casualty_key === casualtyKey && t.status === 'pending');
+  const acceptedTransfer = transfers.find(t => t.report_id === report.id && t.casualty_key === casualtyKey && t.status === 'accepted');
+  // Was this casualty transferred IN to this crew?
+  const transferredIn = acceptedTransfer && acceptedTransfer.to_callsign === reportCallsign;
+  const transferringOut = pendingTransfer != null;
+
   // Infer status from treatment text when no disposition
   const treatment = val?.T_treatment ?? '';
   let inferredStatus = 'ON SCENE';
   let inferredColor = cCol;
-  if (/convey|transport|en route to/i.test(treatment)) { inferredStatus = 'TRANSPORTING'; inferredColor = '#FF9500'; }
+  if (transferredIn) { inferredStatus = 'TRANSFERRED IN'; inferredColor = '#1E90FF'; }
+  else if (transferringOut) { inferredStatus = 'TRANSFERRING'; inferredColor = '#FF9500'; }
+  else if (/convey|transport|en route to/i.test(treatment)) { inferredStatus = 'TRANSPORTING'; inferredColor = '#FF9500'; }
   if (/deceased|confirmed dead/i.test(treatment)) { inferredStatus = 'DECEASED'; inferredColor = '#FF3B30'; }
 
   const isRefused = disp?.disposition === 'refused_transport';
@@ -216,14 +225,27 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
           </span>
         ) : (
           <span className="text-lg font-bold rounded-sm px-1.5 py-0.5"
-            style={{ color: inferredColor, border: `1px solid ${inferredColor}66` }}>
+            style={{ color: inferredColor, border: `1px solid ${inferredColor}66`, background: `${inferredColor}14` }}>
             {inferredStatus}
           </span>
         )}
       </div>
 
+      {/* Transfer context info */}
+      {pendingTransfer && (
+        <div className="text-lg mt-1 rounded px-2 py-1" style={{ color: '#FF9500', background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.2)' }}>
+          ⏳ Transferring to <span className="font-bold">{pendingTransfer.to_callsign}</span> — awaiting acceptance
+          <span className="opacity-60 ml-2">{getTimeStr(pendingTransfer.initiated_at)}</span>
+        </div>
+      )}
+      {transferredIn && acceptedTransfer && (
+        <div className="text-lg mt-1 rounded px-2 py-1" style={{ color: '#1E90FF', background: 'rgba(30,144,255,0.08)', border: '1px solid rgba(30,144,255,0.2)' }}>
+          Received from <span className="font-bold" style={{ color: '#3DFF8C' }}>{acceptedTransfer.from_callsign}</span> at {getTimeStr(acceptedTransfer.accepted_at)}
+        </div>
+      )}
+
       {/* Clinical summary only — no PII */}
-      <div className="text-lg text-foreground opacity-80">
+      <div className="text-lg text-foreground opacity-80 mt-1">
         {val?.I ? `Injuries: ${val.I}` : 'Injuries: —'}
       </div>
       {reportCallsign && (
