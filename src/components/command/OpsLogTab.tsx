@@ -1,8 +1,9 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Search, ChevronDown, ChevronRight, Download, ArrowLeft, FileText } from 'lucide-react';
+import { Search, ChevronDown, ChevronRight, Download, ArrowLeft, FileText, ArrowRightLeft } from 'lucide-react';
 import { useOpsLog, type OpsReport, type OpsTransmission, type OpsDisposition, type OpsFilters, type Shift } from '@/hooks/useOpsLog';
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
 import type { DispositionType, Assessment } from '@/lib/herald-types';
+import type { PatientTransfer } from '@/lib/transfer-types';
 import { sanitizeAssessment } from '@/lib/sanitize-assessment';
 
 // ── Helpers ──
