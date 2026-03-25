@@ -177,13 +177,14 @@ function getTimeStr(iso: string | null | undefined): string {
 
 /* ── Casualty card with expandable ePRF for handed-over patients ── */
 
-function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report }: {
+function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, transfers = [] }: {
   casualtyKey: string;
   val: any;
   cCol: string;
   disp: CommandDisposition | null;
   reportCallsign: string | null;
   report: CommandReport;
+  transfers?: PatientTransfer[];
 }) {
   const [showEprf, setShowEprf] = useState(false);
   const eprfText = disp ? buildCommandEprf(casualtyKey, val, disp, report) : '';
