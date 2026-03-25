@@ -706,14 +706,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   // ─── STATE 5: CONFIRMED ───
   if (state === 'confirmed') {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 px-4">
+      <div className="flex flex-col items-center justify-center flex-1 px-6">
         <button
           onClick={() => setState('idle')}
-          className="w-full max-w-xs font-heading py-3 md:py-4 text-lg md:text-lg font-bold rounded-sm"
+          className="w-full font-heading font-bold rounded-lg"
           style={{
+            fontSize: 24,
+            letterSpacing: '0.15em',
+            padding: '20px 0',
             background: 'rgba(61,255,140,0.06)',
             border: '1px solid rgba(61,255,140,0.2)',
             color: 'hsl(var(--primary))',
+            maxWidth: 480,
           }}
         >✓ HERALDED — RETURN TO LISTEN</button>
       </div>
