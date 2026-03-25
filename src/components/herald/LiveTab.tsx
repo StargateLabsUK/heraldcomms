@@ -645,189 +645,49 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   // ─── STATE 4: READY ───
   if (state === 'ready' && assessment) {
     const pc = PRIORITY_COLORS[assessment.priority] || 'hsl(var(--foreground))';
-    const serviceLabel = SERVICE_LABELS[assessment.service] || assessment.service.toUpperCase();
 
     return (
-      <div className="flex flex-col flex-1 overflow-auto pb-20 min-w-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
-        <div
-          className="flex items-center justify-between px-3 md:px-4 flex-shrink-0 py-3 md:py-4"
-          style={{ background: `${pc}1F`, borderBottom: `2px solid ${pc}` }}
-        >
-          <div className="flex items-baseline gap-2 md:gap-3">
-            <span className="text-lg md:text-lg uppercase font-bold" style={{ color: '#4A6058' }}>{serviceLabel}</span>
-            <span className="font-heading text-3xl md:text-5xl" style={{ color: pc }}>{assessment.priority}</span>
-            <span className="font-heading text-lg md:text-[28px]" style={{ color: pc }}>{assessment.priority_label}</span>
-          </div>
-          <span className="text-lg md:text-lg text-foreground uppercase font-bold">{assessment.service}</span>
-        </div>
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Transcript display */}
+        <div className="flex-1 overflow-auto px-4 pt-6 pb-4">
+          {isFollowUp && followUpIncidentNumber && (
+            <div className="mb-4 p-3 rounded border" style={{ background: 'rgba(30,144,255,0.08)', borderColor: '#1E90FF' }}>
+              <p className="text-lg font-bold" style={{ color: '#1E90FF', letterSpacing: '0.15em' }}>
+                🔄 FOLLOW-UP — Incident #{followUpIncidentNumber}
+              </p>
+            </div>
+          )}
 
-        {isFollowUp && followUpIncidentNumber && (
-          <div className="mx-3 md:mx-4 mt-2 p-3 rounded border" style={{ background: 'rgba(30,144,255,0.08)', borderColor: '#1E90FF' }}>
-            <p className="text-lg font-bold" style={{ color: '#1E90FF', letterSpacing: '0.15em' }}>
-              🔄 FOLLOW-UP — Incident #{followUpIncidentNumber}
+          <p className="text-lg font-bold tracking-[0.15em] mb-3" style={{ color: pc }}>TRANSCRIPT</p>
+          <div className="p-4 rounded-lg border border-border bg-card">
+            <p className="text-lg text-foreground leading-relaxed" style={{ fontStyle: 'italic' }}>
+              "{transcript}"
             </p>
-            <p className="text-lg text-foreground mt-1 opacity-70">This will be added to the existing incident log</p>
           </div>
-        )}
 
-
-        {hasEdits && (
-          <div className="mx-3 md:mx-4 mt-2 flex items-center gap-1">
-            <span style={{ fontSize: 18, color: '#FF9500', letterSpacing: '0.2em', fontWeight: 700 }}>✏️ EDITED</span>
-          </div>
-        )}
-
-        <div className="mx-3 md:mx-4 mt-3 border border-border rounded bg-card">
-          <textarea
-            value={editHeadline}
-            onChange={(e) => setEditHeadline(e.target.value)}
-            placeholder="Tap to edit"
-            className="w-full bg-transparent text-lg md:text-lg text-foreground leading-relaxed p-3 md:p-4 resize-none outline-none"
-            style={{ minHeight: 48 }}
-            onFocus={(e) => { e.currentTarget.style.background = 'rgba(61,255,140,0.04)'; }}
-            onBlur={(e) => { e.currentTarget.style.background = 'transparent'; }}
-            rows={2}
-          />
+          {capturedDuration > 0 && (
+            <p className="text-lg text-foreground opacity-50 mt-3 text-center">
+              Duration: {formatDuration(capturedDuration)}
+            </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mx-3 md:mx-4 mt-3">
-          <div>
-            <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>PROTOCOL FIELDS</p>
-            <div className="p-3 md:p-4 border border-border rounded bg-card">
-              {Object.entries(editStructured).map(([k, v]) => {
-                const isEmpty = !v || v === 'null';
-                const isIncidentNumber = k === 'incident_number';
-                const isOperatorId = k === 'operator_id';
-                const placeholder = isIncidentNumber
-                  ? 'Awaiting incident number — say or tap to enter'
-                  : isOperatorId
-                    ? 'Awaiting operator ID — tap to enter'
-                    : 'Tap to edit';
-                return (
-                  <div key={k} className="mb-2 min-w-0">
-                    <p className="text-lg md:text-lg font-bold" style={{ color: pc }}>{k}</p>
-                    <textarea
-                      value={isEmpty ? '' : v}
-                      onChange={(e) => setEditStructured((prev) => ({ ...prev, [k]: e.target.value }))}
-                      className="w-full bg-transparent text-lg md:text-lg outline-none py-0.5 resize-none leading-relaxed"
-                      style={{
-                        borderBottom: isEmpty ? '1px dashed rgba(255,149,0,0.4)' : '1px solid transparent',
-                        overflow: 'hidden',
-                        color: isEmpty ? 'transparent' : 'hsl(var(--foreground))',
-                      }}
-                      placeholder={placeholder}
-                      rows={Math.max(1, Math.ceil(((isEmpty ? '' : v)?.length || 0) / 35))}
-                      onFocus={(e) => { e.currentTarget.style.borderBottom = '1px solid rgba(61,255,140,0.3)'; e.currentTarget.style.color = 'hsl(var(--foreground))'; }}
-                      onBlur={(e) => {
-                        const val = e.currentTarget.value;
-                        e.currentTarget.style.borderBottom = !val ? '1px dashed rgba(255,149,0,0.4)' : '1px solid transparent';
-                        e.currentTarget.style.color = !val ? 'transparent' : 'hsl(var(--foreground))';
-                      }}
-                      onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
-                    />
-                    {isEmpty && (isIncidentNumber || isOperatorId) && (
-                      <p className="text-lg mt-0.5" style={{ color: '#FF9500', opacity: 0.7 }}>
-                        {placeholder}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: pc }}>⚠ ACTION ITEMS</p>
-            <div className="p-3 md:p-4 border border-border rounded bg-card">
-              {editActions.map((a, i) => {
-                const actionTimestamp = pendingReportRef.current?.timestamp || new Date().toISOString();
-                return (
-                  <div key={i} className="flex gap-2 mb-2 items-start min-w-0 rounded p-2"
-                    style={{ background: 'rgba(255,149,0,0.06)', border: '1px solid rgba(255,149,0,0.2)' }}>
-                    <span className="text-lg font-bold flex-shrink-0 mt-0.5" style={{ color: '#FF9500' }}>⚠</span>
-                    <div className="flex-1 min-w-0">
-                      <textarea
-                        value={a}
-                        onChange={(e) => {
-                          const next = [...editActions];
-                          next[i] = e.target.value;
-                          setEditActions(next);
-                        }}
-                        className="w-full bg-transparent text-lg md:text-lg text-foreground outline-none resize-none leading-relaxed"
-                        style={{ overflow: 'hidden' }}
-                        rows={Math.max(1, Math.ceil((a?.length || 0) / 30))}
-                        onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }}
-                      />
-                      <span className="text-lg opacity-50" style={{ color: '#FF9500' }}>
-                        — {formatActionAge(actionTimestamp)}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setEditActions(editActions.filter((_, idx) => idx !== i))}
-                      className="text-lg opacity-50 hover:opacity-100 flex-shrink-0 mt-0.5"
-                      style={{ color: '#FF3B30' }}
-                    >✕</button>
-                  </div>
-                );
-              })}
-              <button
-                onClick={() => setEditActions([...editActions, ''])}
-                className="text-lg mt-2 px-2 py-1 rounded-sm"
-                style={{ color: 'hsl(var(--primary))', border: '1px solid rgba(61,255,140,0.2)' }}
-              >+ ADD ACTION</button>
-            </div>
-          </div>
-        </div>
-
-        {/* ATMIST cards — field view */}
-        {assessment.atmist && Object.keys(assessment.atmist).length > 0 && (
-          <div className="mx-3 md:mx-4 mt-3">
-            <p className="text-lg md:text-lg font-bold tracking-[0.1em] mb-2" style={{ color: '#1E90FF' }}>ATMIST</p>
-            <div className="flex flex-col gap-2">
-              {Object.entries(assessment.atmist).map(([casualtyKey, val]: [string, any]) => {
-                const cCol = PRIORITY_COLORS[casualtyKey] ?? '#1E90FF';
-                return (
-                  <div key={casualtyKey} className="p-3 border border-border rounded bg-card">
-                    <div className="text-lg font-bold mb-1.5 tracking-wide" style={{ color: cCol }}>{casualtyKey}</div>
-                    <div className="flex flex-col gap-1">
-                      {[
-                        { k: 'A', label: 'Age' },
-                        { k: 'T', label: 'Time' },
-                        { k: 'M', label: 'Mechanism' },
-                        { k: 'I', label: 'Injuries' },
-                        { k: 'S', label: 'Signs' },
-                        { k: 'T_treatment', label: 'Treatment' },
-                      ].map(({ k, label }) => (
-                        <div key={k}>
-                          <span className="text-lg font-bold" style={{ color: cCol }}>{label}: </span>
-                          <span className="text-lg text-foreground break-words">{val?.[k] ?? '—'}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-
-        <div className="fixed bottom-12 md:bottom-14 left-0 right-0 flex gap-3 px-3 md:px-4 pb-2 pt-2 bg-background">
-          <button
-            onClick={handleDiscard}
-            className="flex-1 font-heading py-3 md:py-4 bg-transparent border border-border text-foreground text-lg md:text-lg font-bold rounded-sm"
-          >DISCARD</button>
+        {/* Bottom buttons */}
+        <div className="px-4 pb-14 pt-2 flex flex-col gap-3" style={{ background: 'hsl(var(--background))' }}>
           <button
             onClick={handleConfirm}
-            className="font-heading py-3 md:py-4 text-lg md:text-lg font-bold rounded-sm"
+            className="w-full font-heading py-4 text-lg font-bold rounded-lg tracking-[0.15em]"
             style={{
-              flex: 3,
               background: `${pc}1A`,
               border: `2px solid ${pc}`,
               color: pc,
               boxShadow: `0 0 24px ${pc}33`,
             }}
           >✦ HERALD</button>
+          <button
+            onClick={handleDiscard}
+            className="w-full font-heading py-3 text-lg font-bold rounded-lg tracking-[0.15em] bg-transparent border border-border text-foreground opacity-70"
+          >DISMISS</button>
         </div>
       </div>
     );
