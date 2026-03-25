@@ -200,6 +200,22 @@ export function useHeraldCommand() {
           setDispositions((prev) => [d, ...prev]);
         }
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'patient_transfers' },
+        (payload) => {
+          const t = payload.new as unknown as PatientTransfer;
+          setTransfers((prev) => [t, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'patient_transfers' },
+        (payload) => {
+          const t = payload.new as unknown as PatientTransfer;
+          setTransfers((prev) => prev.map((p) => (p.id === t.id ? t : p)));
+        }
+      )
       .subscribe((status) => {
         setConnected(status === 'SUBSCRIBED');
       });
