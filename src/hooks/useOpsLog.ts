@@ -107,6 +107,11 @@ export function useOpsLog() {
           .select('*')
           .order('closed_at', { ascending: false })
           .limit(1000),
+        supabase
+          .from('patient_transfers')
+          .select('*')
+          .order('initiated_at', { ascending: false })
+          .limit(500),
       ]);
 
       if (shiftsRes.data) {
