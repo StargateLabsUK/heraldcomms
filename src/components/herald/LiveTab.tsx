@@ -616,7 +616,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     const pc = PRIORITY_COLORS[assessment.priority] || 'hsl(var(--foreground))';
 
     return (
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="fixed inset-0 z-40 flex flex-col overflow-hidden" style={{ background: '#1A1E24' }}>
         {/* Transcript display */}
         <div className="flex-1 overflow-auto px-6 pt-8 pb-4">
           {isFollowUp && followUpIncidentNumber && (
@@ -641,8 +641,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           )}
         </div>
 
-        {/* Bottom buttons — large touch targets for 5" screen */}
-        <div className="px-6 pb-16 pt-3 flex flex-col gap-4" style={{ background: 'hsl(var(--background))' }}>
+        {/* Bottom buttons */}
+        <div className="px-6 pb-8 pt-3 flex flex-col gap-4">
           <button
             onClick={handleConfirm}
             className="w-full font-heading font-bold rounded-lg"
