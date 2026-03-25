@@ -6,11 +6,12 @@ import { getVehicleLabel } from '@/lib/vehicle-types';
 
 interface Props {
   session: HeraldSession;
-  onEndShift: () => void;
+  onEndShift?: () => void;
   position: 'top' | 'bottom';
+  showEndShift?: boolean;
 }
 
-export function ShiftInfoBar({ session, onEndShift, position }: Props) {
+export function ShiftInfoBar({ session, onEndShift, position, showEndShift = false }: Props) {
   const [confirming, setConfirming] = useState(false);
 
   const handleEndShift = async () => {
@@ -18,7 +19,7 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
       await endShiftRemote(session.shift_id);
     }
     clearSession();
-    onEndShift();
+    onEndShift?.();
   };
 
   if (position === 'top') {
@@ -43,23 +44,25 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
             {session.station}
           </span>
         )}
-        <button
-          onClick={() => setConfirming(true)}
-          style={{
-            marginTop: 8,
-            padding: '8px 24px',
-            background: '#FF3B30',
-            color: '#FFFFFF',
-            fontSize: 18,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            border: 'none',
-            borderRadius: 3,
-            cursor: 'pointer',
-          }}
-        >
-          END SHIFT
-        </button>
+        {showEndShift && (
+          <button
+            onClick={() => setConfirming(true)}
+            style={{
+              marginTop: 8,
+              padding: '8px 24px',
+              background: '#FF3B30',
+              color: '#FFFFFF',
+              fontSize: 18,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              border: 'none',
+              borderRadius: 3,
+              cursor: 'pointer',
+            }}
+          >
+            END SHIFT
+          </button>
+        )}
       </div>
 
       {confirming && (
