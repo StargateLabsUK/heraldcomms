@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Assessment } from '@/lib/herald-types';
+import type { PatientTransfer } from '@/lib/transfer-types';
 
 export interface Shift {
   id: string;
