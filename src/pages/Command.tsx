@@ -95,6 +95,7 @@ export default function Command() {
     connected,
     activeShifts,
     dispositions,
+    transfers,
   } = useHeraldCommand();
 
   useEffect(() => {
