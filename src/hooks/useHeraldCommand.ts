@@ -274,5 +274,6 @@ export function useHeraldCommand() {
     loading,
     activeShifts,
     dispositions,
+    transfers,
   };
 }
