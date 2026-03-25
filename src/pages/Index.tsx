@@ -11,7 +11,6 @@ const Index = () => {
   const [aiStatus, setAiStatus] = useState<'ok' | 'error'>('ok');
   const [session, setSession] = useState<HeraldSession | null>(getSession());
   const syncStatus = useHeraldSync();
-  const navigate = useNavigate();
 
   const handleShiftStarted = useCallback((s: HeraldSession) => {
     setSession(s);
@@ -20,11 +19,6 @@ const Index = () => {
   const handleEndShift = useCallback(() => {
     setSession(null);
   }, []);
-
-  const handleTabChange = useCallback((tab: 'live' | 'reports' | 'incidents') => {
-    if (tab === 'live') return;
-    navigate('/incidents', { state: { tab } });
-  }, [navigate]);
 
   if (!session) {
     return <ShiftLogin onShiftStarted={handleShiftStarted} />;
