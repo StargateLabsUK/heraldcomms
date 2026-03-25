@@ -631,6 +631,7 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
                   disp={disp ?? null}
                   reportCallsign={report.session_callsign}
                   report={report}
+                  transfers={transfers}
                 />
               );
             })}
