@@ -86,7 +86,7 @@ export function useOpsLog() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [shiftsRes, reportsRes, txRes, dispRes] = await Promise.all([
+      const [shiftsRes, reportsRes, txRes, dispRes, transfersRes] = await Promise.all([
         supabase
           .from('shifts')
           .select('*')
