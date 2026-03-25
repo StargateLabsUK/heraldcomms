@@ -2,6 +2,7 @@ import type { CommandReport } from '@/hooks/useHeraldCommand';
 import type { CommandShift } from '@/hooks/useHeraldCommand';
 import { SERVICE_LABELS } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
+import type { PatientTransfer } from '@/lib/transfer-types';
 
 interface Props {
   todayReports: CommandReport[];
@@ -10,9 +11,10 @@ interface Props {
   uniqueDevices: number;
   connected: boolean;
   activeShifts?: CommandShift[];
+  transfers?: PatientTransfer[];
 }
 
-export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, connected, activeShifts = [] }: Props) {
+export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, connected, activeShifts = [], transfers = [] }: Props) {
   const lastReport = todayReports[0];
   const lastTime = lastReport
     ? new Date(lastReport.created_at ?? lastReport.timestamp).getUTCHours().toString().padStart(2, '0') + ':' +
@@ -88,9 +90,12 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
             <div className="flex flex-col gap-1">
               {activeShifts.map((s) => {
                 const vtBadge = getVehicleLabel(s.vehicle_type);
+                const crewPendingOut = transfers.filter(t => t.from_callsign === s.callsign && t.status === 'pending');
+                const crewPendingIn = transfers.filter(t => t.to_callsign === s.callsign && t.status === 'pending');
+                const hasTransferActivity = crewPendingOut.length > 0 || crewPendingIn.length > 0;
                 return (
                   <div key={s.id} className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: hasTransferActivity ? '#FF9500' : 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
                     <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
                     {vtBadge && (
                       <span className="text-lg font-bold rounded-sm px-1 py-0.5"
@@ -101,6 +106,18 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
                     <span className="text-lg text-muted-foreground">
                       {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
                     </span>
+                    {crewPendingOut.length > 0 && (
+                      <span className="text-lg font-bold rounded-sm px-1 py-0.5"
+                        style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
+                        ↗ XFER
+                      </span>
+                    )}
+                    {crewPendingIn.length > 0 && (
+                      <span className="text-lg font-bold rounded-sm px-1 py-0.5"
+                        style={{ color: '#1E90FF', border: '1px solid rgba(30,144,255,0.3)', background: 'rgba(30,144,255,0.08)' }}>
+                        ↙ INCOMING
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -147,9 +164,12 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
             <div className="flex flex-col gap-1">
               {activeShifts.map((s) => {
                 const vtBadge = getVehicleLabel(s.vehicle_type);
+                const crewPendingOut = transfers.filter(t => t.from_callsign === s.callsign && t.status === 'pending');
+                const crewPendingIn = transfers.filter(t => t.to_callsign === s.callsign && t.status === 'pending');
+                const hasTransferActivity = crewPendingOut.length > 0 || crewPendingIn.length > 0;
                 return (
-                  <div key={s.id} className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
+                  <div key={s.id} className="flex items-center gap-2 flex-wrap">
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: hasTransferActivity ? '#FF9500' : 'hsl(var(--primary))', animation: 'breathe 2s ease-in-out infinite' }} />
                     <span className="text-lg text-foreground font-bold">{s.callsign ?? '—'}</span>
                     {vtBadge && (
                       <span className="text-lg font-bold rounded-sm px-1 py-0.5"
@@ -160,6 +180,12 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
                     <span className="text-lg text-muted-foreground">
                       {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
                     </span>
+                    {crewPendingOut.length > 0 && (
+                      <span className="text-lg font-bold rounded-sm px-1 py-0.5"
+                        style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
+                        ↗ XFER
+                      </span>
+                    )}
                   </div>
                 );
               })}
