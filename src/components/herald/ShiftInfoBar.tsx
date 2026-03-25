@@ -6,8 +6,9 @@ import { getVehicleLabel } from '@/lib/vehicle-types';
 
 interface Props {
   session: HeraldSession;
-  onEndShift: () => void;
+  onEndShift?: () => void;
   position: 'top' | 'bottom';
+  showEndShift?: boolean;
 }
 
 export function ShiftInfoBar({ session, onEndShift, position }: Props) {
