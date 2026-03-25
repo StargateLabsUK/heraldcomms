@@ -618,7 +618,7 @@ const INCIDENT_TYPE_OPTIONS = [
 // ── Main Component ──
 
 export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) => void } = {}) {
-  const { reports, transmissions, dispositions, loading } = useOpsLog();
+  const { reports, transmissions, dispositions, transfers, loading } = useOpsLog();
   const [selectedIncident, setSelectedIncident] = useState<string | null>(null);
   const [filters, setFilters] = useState<OpsFilters>({
     search: '',
