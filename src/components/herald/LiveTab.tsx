@@ -604,40 +604,41 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   // ─── STATE 3: PROCESSING ───
   if (state === 'processing') {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 px-4">
+      <div className="flex flex-col items-center justify-center flex-1 px-6">
         <div
           className="animate-spin-herald rounded-full"
           style={{
-            width: 48,
-            height: 48,
-            border: '2px solid #0F1820',
+            width: 64,
+            height: 64,
+            border: '3px solid #0F1820',
             borderTopColor: '#3DFF8C',
           }}
         />
-        <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginTop: 16, textAlign: 'center' }}>
+        <p style={{ color: '#1E3028', fontSize: 22, letterSpacing: '0.2em', marginTop: 24, textAlign: 'center' }}>
           RUNNING INTELLIGENCE ASSESSMENT
         </p>
         {capturedDuration > 0 && (
-          <p style={{ color: '#1E3028', fontSize: 18, marginTop: 8 }}>
+          <p style={{ color: '#1E3028', fontSize: 20, marginTop: 12 }}>
             CAPTURED: {formatDuration(capturedDuration)}
           </p>
         )}
         {transcript && (
           <div
-            className="mt-4 mx-4 max-w-md"
+            className="mt-6 mx-4"
             style={{
               border: '1px solid #0F1820',
-              padding: 12,
-              borderRadius: 4,
+              padding: 16,
+              borderRadius: 8,
+              maxWidth: 600,
             }}
           >
-            <p className="line-clamp-3 text-center" style={{ color: '#2A4038', fontSize: 18, fontStyle: 'italic' }}>
+            <p className="line-clamp-4 text-center" style={{ color: '#2A4038', fontSize: 20, fontStyle: 'italic' }}>
               "{transcript}"
             </p>
           </div>
         )}
         {error && (
-          <p className="mt-2" style={{ color: '#FF9500', fontSize: 18 }}>{error}</p>
+          <p className="mt-3" style={{ color: '#FF9500', fontSize: 20 }}>{error}</p>
         )}
       </div>
     );
