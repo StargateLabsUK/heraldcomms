@@ -11,7 +11,7 @@ interface Props {
   showEndShift?: boolean;
 }
 
-export function ShiftInfoBar({ session, onEndShift, position }: Props) {
+export function ShiftInfoBar({ session, onEndShift, position, showEndShift = false }: Props) {
   const [confirming, setConfirming] = useState(false);
 
   const handleEndShift = async () => {
@@ -19,7 +19,7 @@ export function ShiftInfoBar({ session, onEndShift, position }: Props) {
       await endShiftRemote(session.shift_id);
     }
     clearSession();
-    onEndShift();
+    onEndShift?.();
   };
 
   if (position === 'top') {
