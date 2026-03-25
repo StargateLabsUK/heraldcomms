@@ -244,26 +244,39 @@ function IncidentDetail({
   report,
   transmissions,
   dispositions,
+  transfers,
   onBack,
 }: {
   report: OpsReport;
   transmissions: OpsTransmission[];
   dispositions: OpsDisposition[];
+  transfers: PatientTransfer[];
   onBack: () => void;
 }) {
   const p = report.assessment?.priority ?? report.priority;
   const col = p ? PRIORITY_COLORS[p] ?? '#888' : '#888';
   const a = report.assessment ? sanitizeAssessment(report.assessment) : null;
   const reportDisps = dispositions.filter(d => d.report_id === report.id);
+  const reportTransfers = transfers.filter(t => t.report_id === report.id);
   const reportTx = transmissions
     .filter(t => t.report_id === report.id)
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+  // Split transmissions into pre-transfer and post-transfer sections
+  const transferTxIndex = reportTx.findIndex(tx =>
+    tx.transcript?.startsWith('[SYSTEM EVENT') || (tx.assessment as any)?.system_event
+  );
+  const hasTransferEvent = transferTxIndex >= 0;
+  const preTransferTx = hasTransferEvent ? reportTx.slice(0, transferTxIndex) : reportTx;
+  const transferEventTx = hasTransferEvent ? [reportTx[transferTxIndex]] : [];
+  const postTransferTx = hasTransferEvent ? reportTx.slice(transferTxIndex + 1) : [];
 
   const exportJSON = useCallback(() => {
     const payload = {
       incident: report,
       transmissions: reportTx,
       dispositions: reportDisps,
+      transfers: reportTransfers,
       exported_at: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -273,7 +286,7 @@ function IncidentDetail({
     link.download = `incident-${report.incident_number ?? report.id.slice(0, 8)}-${fmtDate(report.created_at)}.json`;
     link.click();
     URL.revokeObjectURL(url);
-  }, [report, reportTx, reportDisps]);
+  }, [report, reportTx, reportDisps, reportTransfers]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -302,6 +315,11 @@ function IncidentDetail({
             <span className="text-sm font-bold" style={badgeStyle(report.status === 'closed' ? '#888' : '#FF9500')}>
               {report.status === 'closed' ? 'CLOSED' : 'ACTIVE'}
             </span>
+            {reportTransfers.length > 0 && (
+              <span className="text-sm font-bold" style={badgeStyle('#8B5CF6')}>
+                <ArrowRightLeft size={12} className="inline mr-1" />TRANSFERRED
+              </span>
+            )}
           </div>
           <p className="text-base text-foreground font-semibold">{getIncidentType(report)}</p>
           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
@@ -326,7 +344,66 @@ function IncidentDetail({
           )}
         </div>
 
-        {/* 2. Casualty Outcomes */}
+        {/* 2. Transfer History */}
+        {reportTransfers.length > 0 && (
+          <div>
+            <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
+              <ArrowRightLeft size={14} className="inline mr-1.5" />
+              TRANSFER HISTORY ({reportTransfers.length})
+            </h3>
+            <div className="space-y-2">
+              {reportTransfers.map(t => {
+                const tc = t.status === 'accepted' ? '#34C759' : t.status === 'declined' ? '#FF3B30' : '#FF9500';
+                const statusLabel = t.status === 'accepted' ? 'ACCEPTED' : t.status === 'declined' ? 'DECLINED' : 'PENDING';
+                return (
+                  <div key={t.id} className="border rounded-lg p-3" style={{ borderColor: `${tc}44`, background: `${tc}08` }}>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-sm font-bold" style={badgeStyle(PRIORITY_COLORS[t.priority] ?? '#888')}>{t.priority}</span>
+                      <span className="text-sm text-foreground font-medium">{t.casualty_label}</span>
+                      <span className="text-sm font-bold" style={badgeStyle(tc)}>{statusLabel}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm mt-1">
+                      <span className="text-muted-foreground">From</span>
+                      <span className="text-foreground font-semibold">{t.from_callsign}</span>
+                      <span className="text-muted-foreground">To</span>
+                      <span className="text-foreground font-semibold">{t.to_callsign}</span>
+                      <span className="text-muted-foreground">Initiated</span>
+                      <span className="text-foreground">{fmtTime(t.initiated_at)}</span>
+                      {t.accepted_at && (
+                        <>
+                          <span className="text-muted-foreground">Accepted</span>
+                          <span className="text-foreground">{fmtTime(t.accepted_at)}</span>
+                        </>
+                      )}
+                      {t.declined_at && (
+                        <>
+                          <span className="text-muted-foreground">Declined</span>
+                          <span className="text-foreground">{fmtTime(t.declined_at)}</span>
+                        </>
+                      )}
+                      {t.declined_reason && (
+                        <>
+                          <span className="text-muted-foreground">Reason</span>
+                          <span className="text-foreground">{t.declined_reason}</span>
+                        </>
+                      )}
+                    </div>
+                    {/* Clinical snapshot */}
+                    {t.clinical_snapshot && Object.keys(t.clinical_snapshot).length > 0 && (
+                      <Expandable label="CLINICAL SNAPSHOT (PRE-TRANSFER)" color="#8B5CF6">
+                        <pre className="text-xs text-foreground whitespace-pre-wrap break-words mt-2 font-mono leading-relaxed">
+                          {JSON.stringify(t.clinical_snapshot, null, 2)}
+                        </pre>
+                      </Expandable>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Casualty Outcomes */}
         {(getCasualtyCount(report) > 0 || reportDisps.length > 0) && (
           <div>
             <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
@@ -337,6 +414,8 @@ function IncidentDetail({
                 reportDisps.map(d => {
                   const dc = PRIORITY_COLORS[d.priority] ?? '#888';
                   const label = DISPOSITION_LABELS[d.disposition as DispositionType] ?? d.disposition;
+                  // Check if this casualty was transferred
+                  const casualtyTransfer = reportTransfers.find(t => t.casualty_key === d.casualty_key && t.status === 'accepted');
                   return (
                     <div key={d.id} className="border border-border rounded-lg p-3">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -345,6 +424,11 @@ function IncidentDetail({
                         <span className="text-sm" style={badgeStyle(d.disposition === 'conveyed' ? '#34C759' : d.disposition === 'refused_transport' ? '#FF9500' : '#888')}>
                           {label}
                         </span>
+                        {casualtyTransfer && (
+                          <span className="text-xs font-bold" style={badgeStyle('#8B5CF6')}>
+                            TRANSFERRED {casualtyTransfer.from_callsign} → {casualtyTransfer.to_callsign}
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         Closed: {fmtDateTime(d.closed_at)}
@@ -356,14 +440,27 @@ function IncidentDetail({
                   );
                 })
               ) : (
-                // Show from ATMIST data if no dispositions yet
                 Object.entries(a?.atmist ?? {}).map(([key, val]) => {
                   const casVal = val as any;
+                  const casualtyTransfer = reportTransfers.find(t => t.casualty_key === key);
                   return (
                     <div key={key} className="border border-border rounded-lg p-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm text-foreground font-medium">{key}</span>
-                        <span className="text-sm text-muted-foreground">— On scene (no disposition)</span>
+                        {casualtyTransfer ? (
+                          <span className="text-xs font-bold" style={badgeStyle(
+                            casualtyTransfer.status === 'accepted' ? '#8B5CF6' :
+                            casualtyTransfer.status === 'pending' ? '#FF9500' : '#888'
+                          )}>
+                            {casualtyTransfer.status === 'accepted'
+                              ? `TRANSFERRED → ${casualtyTransfer.to_callsign}`
+                              : casualtyTransfer.status === 'pending'
+                                ? `TRANSFERRING → ${casualtyTransfer.to_callsign}`
+                                : 'TRANSFER DECLINED'}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">— On scene (no disposition)</span>
+                        )}
                       </div>
                       {casVal?.A && <p className="text-xs text-muted-foreground mt-1">Age/Sex: {casVal.A}</p>}
                     </div>
@@ -374,21 +471,78 @@ function IncidentDetail({
           </div>
         )}
 
-        {/* 3. Transmission Log */}
+        {/* 4. Transmission Log — split by transfer event */}
         <div>
-          <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
-            TRANSMISSION LOG ({reportTx.length})
-          </h3>
-          {reportTx.length > 0 ? (
-            <div className="space-y-2">
-              {reportTx.map((tx, i) => (
-                <TransmissionEntry key={tx.id} tx={tx} index={i} />
+          {hasTransferEvent ? (
+            <>
+              {/* Pre-transfer transmissions */}
+              <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
+                PRE-TRANSFER TRANSMISSIONS ({preTransferTx.length})
+              </h3>
+              {preTransferTx.length > 0 ? (
+                <div className="space-y-2 mb-4">
+                  {preTransferTx.map((tx, i) => (
+                    <TransmissionEntry key={tx.id} tx={tx} index={i} />
+                  ))}
+                </div>
+              ) : (
+                <div className="border border-border rounded-lg p-3 text-sm text-muted-foreground mb-4">
+                  No pre-transfer transmissions
+                </div>
+              )}
+
+              {/* Transfer event divider */}
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t" style={{ borderColor: '#8B5CF644' }} />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-3 text-xs font-bold tracking-widest" style={{
+                    background: 'hsl(var(--background))',
+                    color: '#8B5CF6',
+                  }}>
+                    ← TRANSFER EVENT →
+                  </span>
+                </div>
+              </div>
+
+              {transferEventTx.map((tx, i) => (
+                <div key={tx.id} className="mb-4">
+                  <TransmissionEntry tx={tx} index={preTransferTx.length + i} />
+                </div>
               ))}
-            </div>
+
+              {/* Post-transfer transmissions */}
+              {postTransferTx.length > 0 && (
+                <>
+                  <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
+                    POST-TRANSFER TRANSMISSIONS ({postTransferTx.length})
+                  </h3>
+                  <div className="space-y-2">
+                    {postTransferTx.map((tx, i) => (
+                      <TransmissionEntry key={tx.id} tx={tx} index={preTransferTx.length + transferEventTx.length + i} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           ) : (
-            <div className="border border-border rounded-lg p-3 text-sm text-muted-foreground">
-              No individual transmissions recorded — single transmission incident
-            </div>
+            <>
+              <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
+                TRANSMISSION LOG ({reportTx.length})
+              </h3>
+              {reportTx.length > 0 ? (
+                <div className="space-y-2">
+                  {reportTx.map((tx, i) => (
+                    <TransmissionEntry key={tx.id} tx={tx} index={i} />
+                  ))}
+                </div>
+              ) : (
+                <div className="border border-border rounded-lg p-3 text-sm text-muted-foreground">
+                  No individual transmissions recorded — single transmission incident
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
