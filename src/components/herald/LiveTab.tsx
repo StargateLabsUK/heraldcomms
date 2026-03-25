@@ -501,14 +501,15 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   }, []);
 
   // ─── STATE 1: IDLE & STATE 2: RECORDING (same layout) ───
+  // Optimized for 720×1280 portrait touchscreen (5" handheld radio/Android)
   if (state === 'idle' || state === 'recording') {
     const isRecording = state === 'recording';
     return (
-      <div className="flex flex-col items-center justify-start flex-1 px-4 overflow-auto pt-6">
+      <div className="flex flex-col items-center justify-center flex-1 px-6">
         {isRecording && (
           <div
             className="fixed top-0 left-0 right-0 z-50 overflow-hidden"
-            style={{ height: 2, background: 'rgba(255,59,48,0.2)' }}
+            style={{ height: 3, background: 'rgba(255,59,48,0.2)' }}
           >
             <div
               className="h-full"
@@ -522,7 +523,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         )}
 
         {isRecording && maxReached && (
-          <p className="mb-2" style={{ color: '#FF9500', fontSize: 14, letterSpacing: '0.2em', fontWeight: 700 }}>
+          <p className="mb-4" style={{ color: '#FF9500', fontSize: 22, letterSpacing: '0.2em', fontWeight: 700 }}>
             MAX DURATION REACHED
           </p>
         )}
@@ -530,20 +531,20 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         <button
           onClick={isRecording ? stopRecordingAndProcess : startRecording}
           className="relative flex items-center justify-center bg-transparent"
-          style={{ width: 260, height: 260 }}
+          style={{ width: 320, height: 320 }}
         >
-          <svg width="260" height="260" viewBox="0 0 260 260" className="absolute inset-0">
+          <svg width="320" height="320" viewBox="0 0 320 320" className="absolute inset-0">
             {isRecording ? (
               <>
-                <circle cx="130" cy="130" r="120" fill="none" stroke="#FF3B30" strokeWidth="0.5"
+                <circle cx="160" cy="160" r="148" fill="none" stroke="#FF3B30" strokeWidth="0.5"
                   strokeDasharray="3 8" style={{ animation: 'wave-circle 1.2s ease-in-out infinite' } as React.CSSProperties} />
-                <circle cx="130" cy="130" r="105" fill="none" stroke="#FF3B30" strokeWidth="1.5"
+                <circle cx="160" cy="160" r="130" fill="none" stroke="#FF3B30" strokeWidth="1.5"
                   strokeDasharray="3 8" style={{ animation: 'wave-circle-2 1.4s ease-in-out infinite 0.2s' } as React.CSSProperties} />
-                <circle cx="130" cy="130" r="90" fill="none" stroke="#FF3B30" strokeWidth="1"
+                <circle cx="160" cy="160" r="110" fill="none" stroke="#FF3B30" strokeWidth="1"
                   strokeDasharray="2 12" style={{ animation: 'wave-circle-3 1.6s ease-in-out infinite 0.4s' } as React.CSSProperties} />
-                <circle cx="130" cy="130" r="75" fill="none" stroke="#FF3B30" strokeWidth="0.5"
+                <circle cx="160" cy="160" r="90" fill="none" stroke="#FF3B30" strokeWidth="0.5"
                   strokeDasharray="1 10" style={{ animation: 'wave-circle 1.8s ease-in-out infinite 0.3s' } as React.CSSProperties} />
-                <circle cx="130" cy="130" r="50" fill="url(#centerGlowRec)" />
+                <circle cx="160" cy="160" r="60" fill="url(#centerGlowRec)" />
                 <defs>
                   <radialGradient id="centerGlowRec">
                     <stop offset="0%" stopColor="#FF3B30" stopOpacity="0.12" />
@@ -553,14 +554,14 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               </>
             ) : (
               <>
-                <circle cx="130" cy="130" r="120" fill="none" stroke="#1E90FF" strokeWidth="0.5" opacity="0.2" />
-                <circle cx="130" cy="130" r="105" fill="none" stroke="#1E90FF" strokeWidth="1.5"
+                <circle cx="160" cy="160" r="148" fill="none" stroke="#1E90FF" strokeWidth="0.5" opacity="0.2" />
+                <circle cx="160" cy="160" r="130" fill="none" stroke="#1E90FF" strokeWidth="1.5"
                   strokeDasharray="3 8" opacity="0.6" />
-                <circle cx="130" cy="130" r="90" fill="none" stroke="#1E90FF" strokeWidth="1"
+                <circle cx="160" cy="160" r="110" fill="none" stroke="#1E90FF" strokeWidth="1"
                   strokeDasharray="2 12" opacity="0.35" />
-                <circle cx="130" cy="130" r="75" fill="none" stroke="#1E90FF" strokeWidth="0.5"
+                <circle cx="160" cy="160" r="90" fill="none" stroke="#1E90FF" strokeWidth="0.5"
                   strokeDasharray="1 10" opacity="0.2" />
-                <circle cx="130" cy="130" r="50" fill="url(#centerGlow)" />
+                <circle cx="160" cy="160" r="60" fill="url(#centerGlow)" />
                 <defs>
                   <radialGradient id="centerGlow">
                     <stop offset="0%" stopColor="#1E90FF" stopOpacity="0.08" />
@@ -571,7 +572,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             )}
           </svg>
           <div className="flex flex-col items-center justify-center z-10">
-            <span style={{ color: isRecording ? '#FF3B30' : '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
+            <span style={{ color: isRecording ? '#FF3B30' : '#FFFFFF', fontSize: 24, letterSpacing: '0.25em', fontWeight: 700 }}>
               {isRecording ? 'END' : 'START'}
             </span>
           </div>
@@ -579,20 +580,20 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
         {isRecording ? (
           <>
-            <p style={{ color: '#FF3B30', fontSize: 18, fontVariantNumeric: 'tabular-nums', marginTop: 12 }}>
+            <p style={{ color: '#FF3B30', fontSize: 28, fontVariantNumeric: 'tabular-nums', marginTop: 20 }}>
               {formatDuration(recordingDuration)}
             </p>
-            <p style={{ color: '#FFFFFF', fontSize: 14, letterSpacing: '0.2em', marginTop: 8, fontWeight: 700 }}>
+            <p style={{ color: '#FFFFFF', fontSize: 20, letterSpacing: '0.2em', marginTop: 12, fontWeight: 700 }}>
               TAP TO STOP AND PROCESS
             </p>
           </>
         ) : (
           <>
-            <p style={{ color: '#FFFFFF', fontSize: 14, letterSpacing: '0.2em', marginTop: 20, textAlign: 'center', fontWeight: 700 }}>
+            <p style={{ color: '#FFFFFF', fontSize: 20, letterSpacing: '0.2em', marginTop: 28, textAlign: 'center', fontWeight: 700 }}>
               TAP TO START RECORDING
             </p>
             {error && (
-              <p className="mt-2" style={{ color: '#FF9500', fontSize: 14, letterSpacing: '0.2em' }}>{error}</p>
+              <p className="mt-3" style={{ color: '#FF9500', fontSize: 20, letterSpacing: '0.2em' }}>{error}</p>
             )}
           </>
         )}
@@ -603,40 +604,41 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   // ─── STATE 3: PROCESSING ───
   if (state === 'processing') {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 px-4">
+      <div className="flex flex-col items-center justify-center flex-1 px-6">
         <div
           className="animate-spin-herald rounded-full"
           style={{
-            width: 48,
-            height: 48,
-            border: '2px solid #0F1820',
+            width: 64,
+            height: 64,
+            border: '3px solid #0F1820',
             borderTopColor: '#3DFF8C',
           }}
         />
-        <p style={{ color: '#1E3028', fontSize: 18, letterSpacing: '0.2em', marginTop: 16, textAlign: 'center' }}>
+        <p style={{ color: '#1E3028', fontSize: 22, letterSpacing: '0.2em', marginTop: 24, textAlign: 'center' }}>
           RUNNING INTELLIGENCE ASSESSMENT
         </p>
         {capturedDuration > 0 && (
-          <p style={{ color: '#1E3028', fontSize: 18, marginTop: 8 }}>
+          <p style={{ color: '#1E3028', fontSize: 20, marginTop: 12 }}>
             CAPTURED: {formatDuration(capturedDuration)}
           </p>
         )}
         {transcript && (
           <div
-            className="mt-4 mx-4 max-w-md"
+            className="mt-6 mx-4"
             style={{
               border: '1px solid #0F1820',
-              padding: 12,
-              borderRadius: 4,
+              padding: 16,
+              borderRadius: 8,
+              maxWidth: 600,
             }}
           >
-            <p className="line-clamp-3 text-center" style={{ color: '#2A4038', fontSize: 18, fontStyle: 'italic' }}>
+            <p className="line-clamp-4 text-center" style={{ color: '#2A4038', fontSize: 20, fontStyle: 'italic' }}>
               "{transcript}"
             </p>
           </div>
         )}
         {error && (
-          <p className="mt-2" style={{ color: '#FF9500', fontSize: 18 }}>{error}</p>
+          <p className="mt-3" style={{ color: '#FF9500', fontSize: 20 }}>{error}</p>
         )}
       </div>
     );
@@ -649,35 +651,38 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Transcript display */}
-        <div className="flex-1 overflow-auto px-4 pt-6 pb-4">
+        <div className="flex-1 overflow-auto px-6 pt-8 pb-4">
           {isFollowUp && followUpIncidentNumber && (
-            <div className="mb-4 p-3 rounded border" style={{ background: 'rgba(30,144,255,0.08)', borderColor: '#1E90FF' }}>
-              <p className="text-lg font-bold" style={{ color: '#1E90FF', letterSpacing: '0.15em' }}>
+            <div className="mb-5 p-4 rounded-lg border" style={{ background: 'rgba(30,144,255,0.08)', borderColor: '#1E90FF' }}>
+              <p style={{ fontSize: 22, fontWeight: 700, color: '#1E90FF', letterSpacing: '0.15em' }}>
                 🔄 FOLLOW-UP — Incident #{followUpIncidentNumber}
               </p>
             </div>
           )}
 
-          <p className="text-lg font-bold tracking-[0.15em] mb-3" style={{ color: pc }}>TRANSCRIPT</p>
-          <div className="p-4 rounded-lg border border-border bg-card">
-            <p className="text-lg text-foreground leading-relaxed" style={{ fontStyle: 'italic' }}>
+          <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: '0.15em', color: pc, marginBottom: 16 }}>TRANSCRIPT</p>
+          <div className="p-5 rounded-lg border border-border bg-card">
+            <p style={{ fontSize: 22, lineHeight: 1.6, fontStyle: 'italic', color: 'hsl(var(--foreground))' }}>
               "{transcript}"
             </p>
           </div>
 
           {capturedDuration > 0 && (
-            <p className="text-lg text-foreground opacity-50 mt-3 text-center">
+            <p style={{ fontSize: 20, color: 'hsl(var(--foreground))', opacity: 0.5, marginTop: 16, textAlign: 'center' }}>
               Duration: {formatDuration(capturedDuration)}
             </p>
           )}
         </div>
 
-        {/* Bottom buttons */}
-        <div className="px-4 pb-14 pt-2 flex flex-col gap-3" style={{ background: 'hsl(var(--background))' }}>
+        {/* Bottom buttons — large touch targets for 5" screen */}
+        <div className="px-6 pb-16 pt-3 flex flex-col gap-4" style={{ background: 'hsl(var(--background))' }}>
           <button
             onClick={handleConfirm}
-            className="w-full font-heading py-4 text-lg font-bold rounded-lg tracking-[0.15em]"
+            className="w-full font-heading font-bold rounded-lg"
             style={{
+              fontSize: 24,
+              letterSpacing: '0.15em',
+              padding: '20px 0',
               background: `${pc}1A`,
               border: `2px solid ${pc}`,
               color: pc,
@@ -686,7 +691,12 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           >✦ HERALD</button>
           <button
             onClick={handleDiscard}
-            className="w-full font-heading py-3 text-lg font-bold rounded-lg tracking-[0.15em] bg-transparent border border-border text-foreground opacity-70"
+            className="w-full font-heading font-bold rounded-lg bg-transparent border border-border text-foreground opacity-70"
+            style={{
+              fontSize: 22,
+              letterSpacing: '0.15em',
+              padding: '16px 0',
+            }}
           >DISMISS</button>
         </div>
       </div>
@@ -696,14 +706,18 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   // ─── STATE 5: CONFIRMED ───
   if (state === 'confirmed') {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 px-4">
+      <div className="flex flex-col items-center justify-center flex-1 px-6">
         <button
           onClick={() => setState('idle')}
-          className="w-full max-w-xs font-heading py-3 md:py-4 text-lg md:text-lg font-bold rounded-sm"
+          className="w-full font-heading font-bold rounded-lg"
           style={{
+            fontSize: 24,
+            letterSpacing: '0.15em',
+            padding: '20px 0',
             background: 'rgba(61,255,140,0.06)',
             border: '1px solid rgba(61,255,140,0.2)',
             color: 'hsl(var(--primary))',
+            maxWidth: 480,
           }}
         >✓ HERALDED — RETURN TO LISTEN</button>
       </div>
