@@ -62,13 +62,6 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
 
   return (
     <div className="flex-shrink-0 border-b border-border" style={{ background: 'var(--herald-command-bg)' }}>
-      {trustName && (
-        <div className="px-3 md:px-5 pt-2 pb-0">
-          <span className="text-lg font-bold tracking-widest" style={{ color: '#1E90FF' }}>
-            {trustName.toUpperCase()}
-          </span>
-        </div>
-      )}
       <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3">
         <div className="flex items-center gap-2 md:gap-3">
           <div className="flex flex-col">
@@ -103,6 +96,13 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
           </div>
         </div>
       </div>
+      {trustName && (
+        <div className="px-3 md:px-5 pb-2">
+          <span className="text-lg font-bold tracking-widest" style={{ color: '#1E90FF' }}>
+            {trustName.toUpperCase()}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
