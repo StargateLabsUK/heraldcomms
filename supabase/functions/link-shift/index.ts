@@ -31,6 +31,24 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Check for existing active code for this shift
+      const { data: existing } = await supabase
+        .from("shift_link_codes")
+        .select("code, expires_at")
+        .eq("shift_id", shift_id)
+        .is("used_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existing) {
+        return new Response(
+          JSON.stringify({ code: existing.code, expires_at: existing.expires_at }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Try up to 5 times to generate a unique code
       let linkCode = "";
       for (let i = 0; i < 5; i++) {
