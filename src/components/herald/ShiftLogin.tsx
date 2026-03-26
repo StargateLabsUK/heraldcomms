@@ -57,7 +57,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       service,
       service_emoji: '',
       callsign: callsign.trim(),
-      operator_id: collarNumber.trim() || null,
+      operator_id: null,
       station: null,
       session_date: new Date().toISOString().slice(0, 10),
       shift_started: new Date().toISOString(),
