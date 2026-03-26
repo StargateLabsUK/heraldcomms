@@ -429,15 +429,45 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       }
 
       setTranscript(text);
-      const result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
-      // Override callsign and operator_id from shift data — never from transcript
-      if (result && result.structured) {
-        result.structured.callsign = sessionCtx?.callsign || null;
-        result.structured.operator_id = sessionCtx?.operator_id || null;
-      }
-      setAssessment(result);
-      onAiStatus('ok');
 
+      let result: any = null;
+      let aiOk = true;
+      try {
+        result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
+        if (result && result.structured) {
+          result.structured.callsign = sessionCtx?.callsign || null;
+          result.structured.operator_id = sessionCtx?.operator_id || null;
+        }
+      } catch {
+        aiOk = false;
+      }
+
+      if (!aiOk || !result) {
+        onAiStatus('error');
+        result = {
+          service: 'unknown',
+          protocol: 'NONE',
+          priority: null,
+          priority_label: null,
+          headline: text.substring(0, 80),
+          incident_type: 'Unknown',
+          major_incident: false,
+          scene_location: null,
+          receiving_hospital: [],
+          clinical_findings: { A: 'Not assessed', B: 'Not assessed', C: 'Not assessed', D: 'Not assessed', E: 'Not assessed' },
+          atmist: {},
+          treatment_given: [],
+          action_items: [],
+          structured: { callsign: sessionCtx?.callsign || null, incident_number: null, operator_id: sessionCtx?.operator_id || null },
+          actions: ['AI assessment unavailable — review transcript manually'],
+          formatted_report: text,
+          clinical_history: '',
+        };
+      } else {
+        onAiStatus('ok');
+      }
+
+      setAssessment(result);
       const loc = await getLocation();
       const reportId = crypto.randomUUID();
       setCurrentReportId(reportId);
@@ -449,9 +479,9 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       };
       lastSubmissionRef.current = { content: text, callsign: dedupCallsign, timestamp: Date.now() };
       setState('ready');
-    } catch {
+    } catch (e) {
       onAiStatus('error');
-      setError('Intelligence assessment failed');
+      setError('Processing failed');
       setTimeout(() => {
         setError('');
         setState('idle');
