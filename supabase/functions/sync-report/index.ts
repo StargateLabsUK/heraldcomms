@@ -565,6 +565,17 @@ function normalizeAssessmentForMerge(raw: Record<string, unknown>): any {
   if (numberOfCasualties !== undefined) structured.number_of_casualties = numberOfCasualties;
   if (emergencyServices !== undefined) structured.emergency_services = emergencyServices;
 
+  // Retrospective validity scrub: clear invalid access/emergency_services even from existing data
+  if (structured.access && !isValidAccessValue(structured.access)) {
+    structured.access = null;
+  }
+  if (structured.access_routes && !isValidAccessValue(structured.access_routes)) {
+    structured.access_routes = null;
+  }
+  if (structured.emergency_services && !isValidEmergencyServicesValue(structured.emergency_services)) {
+    structured.emergency_services = null;
+  }
+
   if (Object.keys(structured).length > 0) {
     normalized.structured = structured;
   }
@@ -586,11 +597,22 @@ const METHANE_PRESERVE_FIELDS = new Set([
 ]);
 
 // Access field validity: only preserve if it contains actual access-route content
-const ACCESS_ROUTE_PATTERN = /\b(east|west|north|south|clear|avoid|rear|front|via|door|entry|entrance|approach|access|driveway|gate|path|lane|road|street|avenue|drive|a\d{1,4}|m\d{1,3}|junction)\b/i;
+const ACCESS_ROUTE_PATTERN = /\b(east|west|north|south|clear|avoid|rear|front|via|door|entry|entrance|approach|access|driveway|gate|path|lane|road|street|avenue|drive|a\d{1,4}|m\d{1,3}|junction|slip|roundabout|westbound|eastbound|northbound|southbound)\b/i;
 
 function isValidAccessValue(value: unknown): boolean {
   if (typeof value !== 'string' || isPlaceholder(value)) return false;
   return ACCESS_ROUTE_PATTERN.test(value);
+}
+
+// Emergency services field validity: must reference services/agencies, not clinical data
+const EMERGENCY_SERVICES_PATTERN = /\b(ambulance|police|fire|hems|air\s*ambulance|coast\s*guard|mountain\s*rescue|sar|search\s*and\s*rescue|hazmat|on\s*scene|en\s*route|eta|dispatched|requested|attending|confirmed|arrived|stood\s*down|crew|unit|engine|officer|paramedic|technician|emt)\b/i;
+const CLINICAL_DATA_PATTERN = /\b(gcs|spo2|bp\s*\d|pulse\s*\d|resp\s*rate|heart\s*rate|fracture|laceration|wound|bleed|haemorrhage|hemorrhage|tourniquet|splint|cannula|intubat|ventilat|adrenaline|morphine|ketamine|fentanyl|midazolam|saline|fluid|iv\s*access|chest\s*seal|airway|breathing|circulation|disability|exposure|pupils|reactive|consciousness|unconscious|responsive|unresponsive|cpr|defibrillat|rosc|arrest|resuscitat)\b/i;
+
+function isValidEmergencyServicesValue(value: unknown): boolean {
+  if (typeof value !== 'string' || isPlaceholder(value)) return false;
+  // Contains clinical data but no emergency services keywords → invalid
+  if (CLINICAL_DATA_PATTERN.test(value) && !EMERGENCY_SERVICES_PATTERN.test(value)) return false;
+  return EMERGENCY_SERVICES_PATTERN.test(value);
 }
 
 // Scene location: protect against truncation (losing house number)
@@ -834,10 +856,25 @@ function mergeShallow(
 
     // METHANE access field: only preserve if existing value is valid access-route content
     if ((key === 'access' || key === 'access_routes') && METHANE_PRESERVE_FIELDS.has(key)) {
-      if (!isPlaceholder(result[key]) && isPlaceholder(value)) {
-        // Only preserve if existing is valid access content
-        if (isValidAccessValue(result[key])) continue;
-        // Otherwise allow overwrite (existing was invalid)
+      // Retrospectively clear invalid access values
+      if (!isValidAccessValue(result[key])) {
+        // Existing is invalid — allow overwrite or clear
+        if (isPlaceholder(value)) {
+          result[key] = null;
+          continue;
+        }
+      } else if (isPlaceholder(value)) {
+        continue; // existing is valid, incoming is placeholder — preserve
+      }
+    // METHANE emergency_services field: only preserve if valid service content
+    } else if ((key === 'emergency_services' || key === 'e_services' || key === 'E_services' || key === 'E') && METHANE_PRESERVE_FIELDS.has(key)) {
+      if (!isValidEmergencyServicesValue(result[key])) {
+        if (isPlaceholder(value)) {
+          result[key] = null;
+          continue;
+        }
+      } else if (isPlaceholder(value)) {
+        continue;
       }
     } else if (METHANE_PRESERVE_FIELDS.has(key) && !isPlaceholder(result[key]) && isPlaceholder(value)) {
       continue;
