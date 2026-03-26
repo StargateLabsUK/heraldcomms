@@ -187,28 +187,33 @@ export function ShiftLinkCode({ session }: Props) {
           >
             CREW
           </span>
-          {linkedCrew.map((crew, i) => (
-            <span
-              key={i}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'hsl(147, 100%, 62%)',
-                background: 'rgba(61, 255, 140, 0.08)',
-                border: '1px solid rgba(61, 255, 140, 0.2)',
-                borderRadius: 3,
-                padding: '3px 10px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span style={{ fontSize: 11 }}>📱</span>
-              {crew.operator_id || 'Unknown'}
-            </span>
-          ))}
+          {linkedCrew.map((crew, i) => {
+            const hasLeft = !!crew.left_at;
+            return (
+              <span
+                key={i}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: hasLeft ? '#4A6058' : 'hsl(147, 100%, 62%)',
+                  background: hasLeft ? 'rgba(74, 96, 88, 0.08)' : 'rgba(61, 255, 140, 0.08)',
+                  border: `1px solid ${hasLeft ? 'rgba(74, 96, 88, 0.2)' : 'rgba(61, 255, 140, 0.2)'}`,
+                  borderRadius: 3,
+                  padding: '3px 10px',
+                  whiteSpace: 'nowrap',
+                  textDecoration: hasLeft ? 'line-through' : 'none',
+                  opacity: hasLeft ? 0.6 : 1,
+                }}
+              >
+                <span style={{ fontSize: 11 }}>{hasLeft ? '⏏' : '📱'}</span>
+                {crew.operator_id || 'Unknown'}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>
