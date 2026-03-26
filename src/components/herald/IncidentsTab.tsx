@@ -39,6 +39,7 @@ interface CasualtyData {
   receivingHospital: string;
   actionItems: (string | ActionItem)[];
   resolvedItems: ActionItem[];
+  patientName?: string;
 }
 
 interface Props {
