@@ -34,7 +34,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const service = 'ambulance';
   const [callsign, setCallsign] = useState('');
   const [vehicleType, setVehicleType] = useState('');
-  const [collarNumber, setCollarNumber] = useState('');
+  
   const [trust, setTrust] = useState<CachedTrust | null>(getCachedTrust());
   const [submitting, setSubmitting] = useState(false);
   const [linkMode, setLinkMode] = useState(false);
@@ -57,7 +57,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       service,
       service_emoji: '',
       callsign: callsign.trim(),
-      operator_id: collarNumber.trim() || null,
+      operator_id: null,
       station: null,
       session_date: new Date().toISOString().slice(0, 10),
       shift_started: new Date().toISOString(),
@@ -269,18 +269,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
               </option>
             ))}
           </select>
-        </div>
-
-        {/* COLLAR NUMBER */}
-        <div className="mb-8">
-          <label style={labelStyle}>COLLAR NUMBER</label>
-          <input
-            type="text"
-            value={collarNumber}
-            onChange={(e) => setCollarNumber(e.target.value)}
-            placeholder="Your personal ID number"
-            style={inputStyle}
-          />
         </div>
 
         {/* BEGIN SHIFT */}

@@ -7,14 +7,25 @@ interface Props {
 }
 
 export function LinkCodeEntry({ onShiftLinked }: Props) {
+  const [collarNumber, setCollarNumber] = useState('');
+  const [collarConfirmed, setCollarConfirmed] = useState(false);
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const collarRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    inputRefs.current[0]?.focus();
-  }, []);
+    if (!collarConfirmed) {
+      collarRef.current?.focus();
+    }
+  }, [collarConfirmed]);
+
+  useEffect(() => {
+    if (collarConfirmed) {
+      inputRefs.current[0]?.focus();
+    }
+  }, [collarConfirmed]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -48,11 +59,91 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
       return;
     }
     const session = result.session_data;
+    session.operator_id = collarNumber.trim() || null;
     saveSession(session);
     onShiftLinked(session);
     setSubmitting(false);
   };
 
+  // Step 1: Collar number entry
+  if (!collarConfirmed) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center min-h-screen px-4"
+        style={{ background: '#080B10' }}
+      >
+        <div className="w-full" style={{ maxWidth: 400 }}>
+          <h1
+            className="text-2xl font-bold tracking-[0.08em] text-center mb-1"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, color: '#FFFFFF' }}
+          >
+            HERALD
+          </h1>
+          <p
+            style={{
+              color: '#4A6058',
+              fontSize: 14,
+              letterSpacing: '0.25em',
+              textAlign: 'center',
+              marginBottom: 48,
+            }}
+          >
+            ENTER YOUR COLLAR NUMBER
+          </p>
+
+          <input
+            ref={collarRef}
+            type="text"
+            value={collarNumber}
+            onChange={(e) => setCollarNumber(e.target.value)}
+            placeholder="Your personal ID number"
+            style={{
+              width: '100%',
+              background: '#0D1117',
+              border: '1px solid #0F1820',
+              color: '#C8D0CC',
+              padding: '14px',
+              borderRadius: 3,
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: 18,
+              outline: 'none',
+              marginBottom: 24,
+              textAlign: 'center',
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && collarNumber.trim()) {
+                setCollarConfirmed(true);
+              }
+            }}
+          />
+
+          <button
+            onClick={() => setCollarConfirmed(true)}
+            disabled={!collarNumber.trim()}
+            style={{
+              width: '100%',
+              padding: 12,
+              background: 'transparent',
+              border: collarNumber.trim()
+                ? '1px solid rgba(255,255,255,0.3)'
+                : '1px solid #1E3028',
+              color: collarNumber.trim() ? '#FFFFFF' : '#1E3028',
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: 14,
+              fontWeight: 500,
+              letterSpacing: '0.15em',
+              cursor: collarNumber.trim() ? 'pointer' : 'not-allowed',
+              borderRadius: 3,
+            }}
+          >
+            CONTINUE
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 2: Link code entry
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen px-4"
@@ -118,6 +209,23 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
             LINKING...
           </p>
         )}
+
+        <button
+          onClick={() => { setCollarConfirmed(false); setError(''); setDigits(['', '', '', '', '', '']); }}
+          style={{
+            display: 'block',
+            margin: '24px auto 0',
+            fontSize: 14,
+            color: '#4A6058',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            letterSpacing: '0.1em',
+            fontFamily: "'IBM Plex Mono', monospace",
+          }}
+        >
+          ← BACK
+        </button>
       </div>
     </div>
   );
