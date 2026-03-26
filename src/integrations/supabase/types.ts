@@ -460,6 +460,54 @@ export type Database = {
           },
         ]
       }
+      shift_link_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          session_data: Json
+          shift_id: string
+          trust_id: string | null
+          used_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          session_data?: Json
+          shift_id: string
+          trust_id?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          session_data?: Json
+          shift_id?: string
+          trust_id?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_link_codes_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_link_codes_trust_id_fkey"
+            columns: ["trust_id"]
+            isOneToOne: false
+            referencedRelation: "trusts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shifts: {
         Row: {
           callsign: string | null
