@@ -219,6 +219,64 @@ export function resolveActionItems(
           isResolved = true;
         }
       }
+
+      // ABCDE / assessment incomplete: resolve when full vitals or ABCDE reported
+      if (/\b(abcde|assessment|primary\s*survey)\b/i.test(item.text) && /\b(incomplete|complete|required|needed|outstanding)\b/i.test(item.text)) {
+        // Full ABCDE: at least 3 of the 5 segments mentioned, OR explicit "ABCDE complete"
+        const abcdeComplete = /\babcde\s*(complete|done|performed|documented)\b/i.test(text);
+        const vitalsCount = [
+          /\b(airway|a\s*[:=])/i, /\b(breathing|resp|rr\b|respiratory)/i,
+          /\b(circulation|pulse|hr\b|heart\s*rate|bp\b|blood\s*pressure)/i,
+          /\b(disability|gcs|avpu|pupils?|consciousness)/i,
+          /\b(exposure|temperature|temp\b|hypotherm|warm)/i,
+        ].filter(p => p.test(text)).length;
+        if (abcdeComplete || vitalsCount >= 3) {
+          isResolved = true;
+        }
+      }
+
+      // Analgesia / pain management required: resolve when drug given for pain
+      if (/\b(analgesia|pain\s*(management|relief))\b/i.test(item.text) && /\b(required|needed|administer|consider)\b/i.test(item.text)) {
+        if (/\b(morphine|fentanyl|ketamine|paracetamol|entonox|methoxyflurane|penthrox|ibuprofen|codeine|tramadol|diclofenac)\b/i.test(text) ||
+            /\b(analgesia|pain\s*relief)\s*(given|administered|provided|effective)\b/i.test(text)) {
+          isResolved = true;
+        }
+      }
+
+      // Immobilisation / packaging required: resolve when packaged or splinted
+      if (/\b(immobilis|packag|splint|extrication|board|scoop)\b/i.test(item.text) && /\b(required|needed|awaiting|pending)\b/i.test(item.text)) {
+        if (/\b(packaged|immobilis(ed|ation\s*complete)|splinted|on\s*(board|scoop|stretcher)|secured|ready\s*(for\s*transport|to\s*convey))\b/i.test(text)) {
+          isResolved = true;
+        }
+      }
+
+      // IV/IO access required: resolve when access established
+      if (/\b(iv|io|intravenous|intraosseous|vascular)\s*(access|line)\b/i.test(item.text) && /\b(required|needed|establish|obtain)\b/i.test(item.text)) {
+        if (/\b(iv|io)\s*(access|line)?\s*(established|secured|obtained|sited|in\s*situ)\b/i.test(text) || /\b(cannula(ted)?|large\s*bore)\b/i.test(text)) {
+          isResolved = true;
+        }
+      }
+
+      // Airway management required: resolve when airway secured
+      if (/\b(airway)\b/i.test(item.text) && /\b(required|needed|manage|secure|consider)\b/i.test(item.text)) {
+        if (/\b(airway\s*(secured|managed|patent|maintained)|igel|lma|intubat(ed|ion)|supraglottic|opa|npa)\b/i.test(text)) {
+          isResolved = true;
+        }
+      }
+
+      // Spinal immobilisation: resolve when applied
+      if (/\b(spinal|c-?spine|cervical)\b/i.test(item.text) && /\b(immobilis|precaution|required|needed)\b/i.test(item.text)) {
+        if (/\b(spinal\s*(immobilis|board)|cervical\s*collar|c-?collar|blocks?\s*(applied|in\s*situ)|manual\s*in-?line)\b/i.test(text)) {
+          isResolved = true;
+        }
+      }
+
+      // Fluids / volume required: resolve when given
+      if (/\b(fluid|volume|saline|hartmann)\b/i.test(item.text) && /\b(required|needed|administer|bolus|resuscitat)\b/i.test(item.text)) {
+        if (/\b(fluid|saline|hartmann|crystalloid|colloid)\s*(given|administered|running|bolus|infus)\b/i.test(text) || /\b\d+\s*ml\b/i.test(text)) {
+          isResolved = true;
+        }
+      }
     }
 
     if (isResolved) {
