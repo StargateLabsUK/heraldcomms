@@ -9,7 +9,7 @@ interface TopBarProps {
   onRefresh?: () => void;
 }
 
-export function TopBar({ micStatus, aiStatus, syncStatus, onEndShift }: TopBarProps) {
+export function TopBar({ micStatus, aiStatus, syncStatus, onEndShift, onRefresh }: TopBarProps) {
   const [utc, setUtc] = useState('');
   const [confirmEnd, setConfirmEnd] = useState(false);
 
