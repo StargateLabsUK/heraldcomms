@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, FileText, ArrowLeft, ArrowRightLeft } from 'lucide-react';
+import { SERVICE_LABELS } from '@/lib/herald-types';
+import { getVehicleLabel } from '@/lib/vehicle-types';
 import { supabase } from '@/integrations/supabase/client';
 import { getReports, updateReport, saveCasualtyDisposition, isCasualtyClosed } from '@/lib/herald-storage';
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
