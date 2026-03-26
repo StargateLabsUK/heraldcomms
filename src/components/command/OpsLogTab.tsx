@@ -822,6 +822,15 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
               <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
             ))}
           </select>
+          <select
+            value={filters.safeguarding}
+            onChange={e => updateFilter('safeguarding', e.target.value)}
+            style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
+          >
+            <option value="">Safeguarding</option>
+            <option value="yes">⚠ Concern flagged</option>
+            <option value="no">No concern</option>
+          </select>
           <input type="date" value={filters.dateFrom} onChange={e => updateFilter('dateFrom', e.target.value)}
             style={{ ...inputStyle, width: 'auto' }} title="From date" />
           <input type="date" value={filters.dateTo} onChange={e => updateFilter('dateTo', e.target.value)}
