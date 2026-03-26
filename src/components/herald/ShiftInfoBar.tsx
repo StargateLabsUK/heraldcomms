@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { HeraldSession } from '@/lib/herald-session';
-import { clearSession, endShiftRemote } from '@/lib/herald-session';
+import { clearSession, endShiftRemote, leaveShiftRemote } from '@/lib/herald-session';
 import { SERVICE_LABELS } from '@/lib/herald-types';
 import { getVehicleLabel } from '@/lib/vehicle-types';
 
@@ -9,14 +9,24 @@ interface Props {
   onEndShift?: () => void;
   position: 'top' | 'bottom';
   showEndShift?: boolean;
+  /** If true, shows "LEAVE SHIFT" instead of "END SHIFT" — clears local session only */
+  isLinkedDevice?: boolean;
 }
 
-export function ShiftInfoBar({ session, onEndShift, position, showEndShift = false }: Props) {
+export function ShiftInfoBar({ session, onEndShift, position, showEndShift = false, isLinkedDevice = false }: Props) {
   const [confirming, setConfirming] = useState(false);
 
   const handleEndShift = async () => {
     if (session.shift_id) {
       await endShiftRemote(session.shift_id);
+    }
+    clearSession();
+    onEndShift?.();
+  };
+
+  const handleLeaveShift = async () => {
+    if (session.shift_id && session.operator_id) {
+      await leaveShiftRemote(session.shift_id, session.operator_id);
     }
     clearSession();
     onEndShift?.();
@@ -44,7 +54,30 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
             {session.station}
           </span>
         )}
-        {showEndShift && (
+
+        {/* Always show leave/end button on handheld */}
+        {isLinkedDevice && (
+          <button
+            onClick={() => setConfirming(true)}
+            style={{
+              marginTop: 8,
+              padding: '8px 24px',
+              background: 'transparent',
+              color: '#FF9500',
+              fontSize: 14,
+              fontWeight: 600,
+              letterSpacing: '0.1em',
+              border: '1px solid rgba(255, 149, 0, 0.4)',
+              borderRadius: 3,
+              cursor: 'pointer',
+              fontFamily: "'IBM Plex Mono', monospace",
+            }}
+          >
+            LEAVE SHIFT
+          </button>
+        )}
+
+        {showEndShift && !isLinkedDevice && (
           <button
             onClick={() => setConfirming(true)}
             style={{
@@ -70,21 +103,29 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
           className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
           style={{ background: '#080B10' }}
         >
-          <span style={{ color: '#FF3B30', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 8 }}>
-            END SHIFT?
+          <span style={{
+            color: isLinkedDevice ? '#FF9500' : '#FF3B30',
+            fontSize: 18,
+            letterSpacing: '0.2em',
+            fontWeight: 700,
+            marginBottom: 8,
+          }}>
+            {isLinkedDevice ? 'LEAVE SHIFT?' : 'END SHIFT?'}
           </span>
           <p style={{ color: '#4A6058', fontSize: 18, textAlign: 'center', marginBottom: 40 }}>
-            This will end your current shift as {session.callsign}.
+            {isLinkedDevice
+              ? `This will disconnect your device from ${session.callsign}. The shift will continue for other crew members.`
+              : `This will end your current shift as ${session.callsign}.`}
           </p>
 
           <button
-            onClick={handleEndShift}
+            onClick={isLinkedDevice ? handleLeaveShift : handleEndShift}
             className="w-full max-w-xs mb-4"
             style={{
               padding: 16,
-              background: 'rgba(255,59,48,0.1)',
-              border: '1px solid #FF3B30',
-              color: '#FF3B30',
+              background: isLinkedDevice ? 'rgba(255,149,0,0.1)' : 'rgba(255,59,48,0.1)',
+              border: `1px solid ${isLinkedDevice ? '#FF9500' : '#FF3B30'}`,
+              color: isLinkedDevice ? '#FF9500' : '#FF3B30',
               fontSize: 18,
               fontWeight: 700,
               letterSpacing: '0.15em',
@@ -92,7 +133,7 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
               cursor: 'pointer',
             }}
           >
-            CONFIRM END SHIFT
+            {isLinkedDevice ? 'CONFIRM LEAVE' : 'CONFIRM END SHIFT'}
           </button>
 
           <button

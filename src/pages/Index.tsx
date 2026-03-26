@@ -35,7 +35,7 @@ const Index = () => {
         <LiveTab onAiStatus={setAiStatus} onReportSaved={() => {}} />
       </div>
 
-      <ShiftInfoBar session={session} onEndShift={handleEndShift} position="bottom" />
+      <ShiftInfoBar session={session} onEndShift={handleEndShift} position="bottom" isLinkedDevice={true} />
     </div>
   );
 };
