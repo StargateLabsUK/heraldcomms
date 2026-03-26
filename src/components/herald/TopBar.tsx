@@ -4,10 +4,12 @@ interface TopBarProps {
   micStatus: 'pending' | 'granted' | 'denied';
   aiStatus: 'ok' | 'error';
   syncStatus: 'ok' | 'error' | 'offline';
+  onEndShift?: () => void;
 }
 
-export function TopBar({ micStatus, aiStatus, syncStatus }: TopBarProps) {
+export function TopBar({ micStatus, aiStatus, syncStatus, onEndShift }: TopBarProps) {
   const [utc, setUtc] = useState('');
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   useEffect(() => {
     const tick = () => {
@@ -34,16 +36,52 @@ export function TopBar({ micStatus, aiStatus, syncStatus }: TopBarProps) {
   );
 
   return (
-    <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border" style={{ minHeight: 48 }}>
-      <div className="flex-1" />
-      <div className="flex items-center gap-3">
-        {dot('MIC', micStatus === 'granted')}
-        {dot('AI', aiStatus === 'ok')}
-        {dot('SYNC', syncStatus === 'ok', syncStatus === 'offline')}
+    <>
+      <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border" style={{ minHeight: 48 }}>
+        <div className="flex-1" />
+        <div className="flex items-center gap-3">
+          {dot('MIC', micStatus === 'granted')}
+          {dot('AI', aiStatus === 'ok')}
+          {dot('SYNC', syncStatus === 'ok', syncStatus === 'offline')}
+        </div>
+        <div className="flex-1 flex items-center justify-end gap-3">
+          <span className="text-lg text-foreground font-bold">{utc}</span>
+          {onEndShift && (
+            <button
+              onClick={() => setConfirmEnd(true)}
+              className="text-lg font-bold tracking-wide px-3 py-1 rounded"
+              style={{ background: 'rgba(255,59,48,0.15)', color: '#FF3B30', border: '1px solid #FF3B30' }}
+            >
+              END SHIFT
+            </button>
+          )}
+        </div>
       </div>
-      <div className="flex-1 flex justify-end">
-        <span className="text-lg text-foreground font-bold">{utc}</span>
-      </div>
-    </div>
+
+      {confirmEnd && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6" style={{ background: '#080B10' }}>
+          <span style={{ color: '#FF3B30', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 8 }}>
+            END SHIFT?
+          </span>
+          <p style={{ color: '#4A6058', fontSize: 18, textAlign: 'center', marginBottom: 40 }}>
+            This will end your current shift.
+          </p>
+          <button
+            onClick={() => { setConfirmEnd(false); onEndShift?.(); }}
+            className="w-full max-w-xs mb-4"
+            style={{ padding: 16, background: 'rgba(255,59,48,0.1)', border: '1px solid #FF3B30', color: '#FF3B30', fontSize: 18, fontWeight: 700, letterSpacing: '0.15em', borderRadius: 3, cursor: 'pointer' }}
+          >
+            CONFIRM END SHIFT
+          </button>
+          <button
+            onClick={() => setConfirmEnd(false)}
+            className="w-full max-w-xs"
+            style={{ padding: 16, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: '#C8D0CC', fontSize: 18, letterSpacing: '0.15em', borderRadius: 3, cursor: 'pointer' }}
+          >
+            CANCEL
+          </button>
+        </div>
+      )}
+    </>
   );
 }
