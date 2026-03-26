@@ -968,7 +968,8 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
       query = supabase
         .from('herald_reports')
         .select('*')
-        .or(`shift_id.eq.${session.shift_id},and(session_callsign.eq.${session.callsign},created_at.gte.${todayStart})`)
+        .or(`shift_id.eq.${session.shift_id},session_callsign.eq.${session.callsign}`)
+        .gte('created_at', todayStart)
         .eq('status', 'active')
         .order('latest_transmission_at', { ascending: false, nullsFirst: false });
     }
