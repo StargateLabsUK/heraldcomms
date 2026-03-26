@@ -644,8 +644,15 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               opacity: isProcessing ? 0.9 : 1,
             }}
           >
-            <span style={{ color: '#FFFFFF', fontSize: isProcessing ? 22 : 28, letterSpacing: '0.25em', fontWeight: 700 }}>
+            <span className="flex flex-col items-center" style={{ color: '#FFFFFF', fontSize: isProcessing ? 22 : 28, letterSpacing: '0.25em', fontWeight: 700 }}>
               {buttonLabel}
+              {isProcessing && (
+                <span className="flex gap-2 mt-2">
+                  <span className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+              )}
             </span>
           </button>
         </div>
