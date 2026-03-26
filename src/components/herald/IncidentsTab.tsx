@@ -358,11 +358,12 @@ function IncidentDetailView({ inc, onBack, onSelectCasualty }: {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Back bar */}
-      <button onClick={onBack} className="flex items-center gap-2 px-3 py-2 text-lg text-primary bg-transparent border-b border-border">
+      <button onClick={onBack} className="flex items-center gap-2 px-3 md:px-6 py-2 text-lg text-primary bg-transparent border-b border-border">
         <ArrowLeft size={20} /> Back to incidents
       </button>
 
-      <div className="flex-1 overflow-auto px-3 py-3">
+      <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5">
+        <div className="max-w-3xl mx-auto">
         {/* Incident header */}
         <div className="rounded-lg border border-border bg-card shadow-sm p-3 mb-4">
           <div className="flex items-center gap-3 mb-2">
