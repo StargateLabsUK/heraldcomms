@@ -772,6 +772,26 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
         </div>
         <div className="flex gap-2 flex-wrap">
           <select
+            value={filters.callsign}
+            onChange={e => updateFilter('callsign', e.target.value)}
+            style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
+          >
+            <option value="">All callsigns</option>
+            {uniqueCallsigns.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <select
+            value={filters.operatorId}
+            onChange={e => updateFilter('operatorId', e.target.value)}
+            style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
+          >
+            <option value="">All collar numbers</option>
+            {uniqueOperatorIds.map(o => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+          <select
             value={filters.outcome}
             onChange={e => updateFilter('outcome', e.target.value)}
             style={{ ...selectStyle, width: 'auto', minWidth: 140 }}
