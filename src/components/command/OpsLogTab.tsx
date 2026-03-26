@@ -766,7 +766,7 @@ export function OpsLogTab({ onSelectReport }: { onSelectReport?: (id: string) =>
             type="text"
             value={filters.search}
             onChange={e => updateFilter('search', e.target.value)}
-            placeholder="Search location, callsign, incident type..."
+            placeholder="Search callsign, collar number, incident number, location..."
             style={{ ...inputStyle, paddingLeft: 36 }}
           />
         </div>
