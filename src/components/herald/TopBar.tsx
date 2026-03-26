@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 
 interface TopBarProps {
   micStatus: 'pending' | 'granted' | 'denied';
   aiStatus: 'ok' | 'error';
   syncStatus: 'ok' | 'error' | 'offline';
   onEndShift?: () => void;
+  onRefresh?: () => void;
 }
 
 export function TopBar({ micStatus, aiStatus, syncStatus, onEndShift }: TopBarProps) {
