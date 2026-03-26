@@ -845,10 +845,25 @@ function mergeShallow(
 
     // METHANE access field: only preserve if existing value is valid access-route content
     if ((key === 'access' || key === 'access_routes') && METHANE_PRESERVE_FIELDS.has(key)) {
-      if (!isPlaceholder(result[key]) && isPlaceholder(value)) {
-        // Only preserve if existing is valid access content
-        if (isValidAccessValue(result[key])) continue;
-        // Otherwise allow overwrite (existing was invalid)
+      // Retrospectively clear invalid access values
+      if (!isValidAccessValue(result[key])) {
+        // Existing is invalid — allow overwrite or clear
+        if (isPlaceholder(value)) {
+          result[key] = null;
+          continue;
+        }
+      } else if (isPlaceholder(value)) {
+        continue; // existing is valid, incoming is placeholder — preserve
+      }
+    // METHANE emergency_services field: only preserve if valid service content
+    } else if ((key === 'emergency_services' || key === 'e_services' || key === 'E_services' || key === 'E') && METHANE_PRESERVE_FIELDS.has(key)) {
+      if (!isValidEmergencyServicesValue(result[key])) {
+        if (isPlaceholder(value)) {
+          result[key] = null;
+          continue;
+        }
+      } else if (isPlaceholder(value)) {
+        continue;
       }
     } else if (METHANE_PRESERVE_FIELDS.has(key) && !isPlaceholder(result[key]) && isPlaceholder(value)) {
       continue;

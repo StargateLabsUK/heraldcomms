@@ -5,6 +5,32 @@
 
 import type { Assessment, ActionItem } from './herald-types';
 
+// ── Field validity checks ────────────────────────────────────────────
+
+/** Access field must contain directional/route content, not clinical data */
+const ACCESS_ROUTE_PATTERN = /\b(east|west|north|south|clear|avoid|rear|front|via|door|entry|entrance|approach|access|driveway|gate|path|lane|road|street|avenue|drive|a\d{1,4}|m\d{1,3}|junction|slip|roundabout|westbound|eastbound|northbound|southbound)\b/i;
+
+function isValidAccessField(value: unknown): boolean {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  const norm = value.toLowerCase().trim();
+  // Placeholder check
+  if (/^(not\s+(declared|reported|stated|specified|mentioned|provided|available)|none|unknown|n\/a)/.test(norm)) return false;
+  return ACCESS_ROUTE_PATTERN.test(value);
+}
+
+/** Emergency services field must reference services/agencies, not clinical findings */
+const EMERGENCY_SERVICES_PATTERN = /\b(ambulance|police|fire|hems|air\s*ambulance|coast\s*guard|mountain\s*rescue|sar|search\s*and\s*rescue|hazmat|on\s*scene|en\s*route|eta|dispatched|requested|attending|confirmed|arrived|stood\s*down|crew|unit|engine|officer|paramedic|technician|emt)\b/i;
+const CLINICAL_DATA_PATTERN = /\b(gcs|spo2|bp\s*\d|pulse\s*\d|resp\s*rate|heart\s*rate|fracture|laceration|wound|bleed|haemorrhage|hemorrhage|tourniquet|splint|cannula|intubat|ventilat|adrenaline|morphine|ketamine|fentanyl|midazolam|saline|fluid|iv\s*access|chest\s*seal|airway|breathing|circulation|disability|exposure|pupils|reactive|consciousness|unconscious|responsive|unresponsive|cpr|defibrillat|rosc|arrest|resuscitat)\b/i;
+
+function isValidEmergencyServicesField(value: unknown): boolean {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  const norm = value.toLowerCase().trim();
+  if (/^(not\s+(declared|reported|stated|specified|mentioned|provided|available)|none|unknown|n\/a)/.test(norm)) return false;
+  // If it contains clinical data but no emergency services keywords, it's invalid
+  if (CLINICAL_DATA_PATTERN.test(value) && !EMERGENCY_SERVICES_PATTERN.test(value)) return false;
+  return EMERGENCY_SERVICES_PATTERN.test(value);
+}
+
 // Patterns that indicate non-ambulance action items (fire, police, scene management)
 const NON_AMBULANCE_ACTION_PATTERNS = [
   /fuel\s*leak/i,

@@ -142,6 +142,10 @@ const RULES: Rule[] = [
   // 3. Location misreads
   { pattern: /\bWrighton\s+Street\b/gi, replacement: 'Ryton Street', label: 'Wrighton→Ryton' },
   { pattern: /\bWorkstop\b/gi, replacement: 'Worksop', label: 'Workstop→Worksop' },
+  { pattern: /\bMaple\s+Corp\b/gi, replacement: 'Maple Court', label: 'Maple-Corp→Maple-Court' },
+
+  // 3b. Common mishears
+  { pattern: /\bweary\s+trip\b/gi, replacement: 'query trip', label: 'weary-trip→query-trip' },
 
   // 4. Incident type misreads
   { pattern: /\blandscape\b(?=\s*(?:is|—|:|\.|,|\s+road\s+traffic|\s+rtc|\s+rta|\s+multi))/gi, replacement: 'type', label: 'landscape→type' },
