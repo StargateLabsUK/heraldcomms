@@ -62,10 +62,19 @@ function applyFilters(reports: OpsReport[], dispositions: OpsDisposition[], filt
       matchesSearch(r.headline, q) ||
       matchesSearch(r.assessment?.headline, q) ||
       matchesSearch(r.incident_number, q) ||
+      matchesSearch(r.session_operator_id, q) ||
       matchesSearch(getLocation(r), q) ||
       matchesSearch(getIncidentType(r), q) ||
       matchesSearch(r.transcript, q)
     );
+  }
+
+  if (filters.callsign) {
+    filtered = filtered.filter(r => r.session_callsign === filters.callsign);
+  }
+
+  if (filters.operatorId) {
+    filtered = filtered.filter(r => r.session_operator_id === filters.operatorId);
   }
 
   if (filters.dateFrom) {
