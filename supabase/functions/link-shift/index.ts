@@ -108,10 +108,10 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Mark as used
+      // Mark as used and store operator_id
       await supabase
         .from("shift_link_codes")
-        .update({ used_at: new Date().toISOString() })
+        .update({ used_at: new Date().toISOString(), operator_id: operator_id ?? null })
         .eq("id", data.id);
 
       return new Response(
