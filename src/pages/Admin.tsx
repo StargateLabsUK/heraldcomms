@@ -98,6 +98,7 @@ export default function Admin() {
   // Audit state
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
   const [auditFilter, setAuditFilter] = useState('');
+  const [expandedAuditId, setExpandedAuditId] = useState<string | null>(null);
 
   // Devices state
   const [shifts, setShifts] = useState<ShiftRow[]>([]);
