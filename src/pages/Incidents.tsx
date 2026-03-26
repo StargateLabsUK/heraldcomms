@@ -94,6 +94,22 @@ const IncidentsPage = () => {
     refreshReports();
   }, [activeTab, session, refreshReports]);
 
+  // Realtime subscription for disposition changes
+  useEffect(() => {
+    if (!session) return;
+
+    const channel = supabase
+      .channel(`dispositions-${session.shift_id ?? session.callsign}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'casualty_dispositions' },
+        () => { refreshReports(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [session, refreshReports]);
+
   const handleShiftStarted = useCallback((s: HeraldSession) => {
     setSession(s);
   }, []);
