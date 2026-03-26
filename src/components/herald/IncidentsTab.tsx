@@ -634,6 +634,17 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
           </div>
         </div>
 
+        {/* Patient name (if extracted from transmission) */}
+        {cas.patientName && (
+          <div className="mb-4">
+            <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>PATIENT</p>
+            <div className="border border-border rounded-lg bg-card p-3">
+              <span className="text-lg font-bold" style={{ color: col }}>Name: </span>
+              <span className="text-lg text-foreground">{cas.patientName}</span>
+            </div>
+          </div>
+        )}
+
         {/* Disposition selector */}
         <div className="mb-4">
           <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: col }}>DISPOSITION</p>
