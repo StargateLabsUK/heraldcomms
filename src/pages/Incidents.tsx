@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TopBar } from '@/components/herald/TopBar';
+import { ShiftLinkCode } from '@/components/herald/ShiftLinkCode';
 import { BottomNav } from '@/components/herald/BottomNav';
 import { ReportsTab } from '@/components/herald/ReportsTab';
 import { IncidentsTab } from '@/components/herald/IncidentsTab';
@@ -130,6 +131,7 @@ const IncidentsPage = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#1A1E24' }}>
       <TopBar micStatus="granted" aiStatus="ok" syncStatus={syncStatus} onEndShift={handleEndShift} />
+      <ShiftLinkCode session={session} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {activeTab === 'incidents' ? (
