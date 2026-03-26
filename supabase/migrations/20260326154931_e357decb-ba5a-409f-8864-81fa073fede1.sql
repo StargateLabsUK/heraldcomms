@@ -1,0 +1,1 @@
+TRUNCATE casualty_dispositions, patient_transfers, incident_transmissions, herald_reports, shifts, shift_link_codes CASCADE
