@@ -565,6 +565,17 @@ function normalizeAssessmentForMerge(raw: Record<string, unknown>): any {
   if (numberOfCasualties !== undefined) structured.number_of_casualties = numberOfCasualties;
   if (emergencyServices !== undefined) structured.emergency_services = emergencyServices;
 
+  // Retrospective validity scrub: clear invalid access/emergency_services even from existing data
+  if (structured.access && !isValidAccessValue(structured.access)) {
+    structured.access = null;
+  }
+  if (structured.access_routes && !isValidAccessValue(structured.access_routes)) {
+    structured.access_routes = null;
+  }
+  if (structured.emergency_services && !isValidEmergencyServicesValue(structured.emergency_services)) {
+    structured.emergency_services = null;
+  }
+
   if (Object.keys(structured).length > 0) {
     normalized.structured = structured;
   }
