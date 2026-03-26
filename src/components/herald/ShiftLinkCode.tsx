@@ -32,7 +32,7 @@ export function ShiftLinkCode({ session }: Props) {
     if (session.shift_id && !code) generate();
   }, [session.shift_id]);
 
-  // Poll linked device count
+  // Check if any device has linked
   useEffect(() => {
     if (!session.shift_id) return;
     const fetchCount = async () => {
@@ -49,7 +49,8 @@ export function ShiftLinkCode({ session }: Props) {
     };
     fetchCount();
     const id = setInterval(fetchCount, 15_000);
-    return () => clearInterval(id);
+    window.addEventListener('focus', fetchCount);
+    return () => { clearInterval(id); window.removeEventListener('focus', fetchCount); };
   }, [session.shift_id]);
 
   // Countdown
