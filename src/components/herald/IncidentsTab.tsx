@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, FileText, ArrowLeft, ArrowRightLeft } from 'lucide-react';
+import { SERVICE_LABELS } from '@/lib/herald-types';
+import { getVehicleLabel } from '@/lib/vehicle-types';
 import { supabase } from '@/integrations/supabase/client';
 import { getReports, updateReport, saveCasualtyDisposition, isCasualtyClosed } from '@/lib/herald-storage';
 import { PRIORITY_COLORS, DISPOSITION_LABELS } from '@/lib/herald-types';
@@ -1086,6 +1088,23 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
     <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5">
       <div className="max-w-3xl mx-auto">
         <PendingTransfers session={session} onTransferAccepted={fetchIncidents} />
+
+        {/* Shift details */}
+        <div className="flex items-center gap-2 flex-wrap mb-3 text-lg">
+          <span className="font-bold text-foreground">
+            {getVehicleLabel(session.vehicle_type) || (SERVICE_LABELS[session.service] ?? session.service.toUpperCase())}
+          </span>
+          <span style={{ color: '#C8D0CC' }}>
+            {session.callsign}
+            {session.operator_id ? ` · ${session.operator_id}` : ''}
+          </span>
+          {session.can_transport === false && (
+            <span style={{ color: '#FF9500' }}>NO TRANSPORT</span>
+          )}
+          {session.station && (
+            <span style={{ color: '#4A6058' }}>{session.station}</span>
+          )}
+        </div>
 
         <p className="text-lg font-bold tracking-[0.2em] mb-3" style={{ color: '#FF9500' }}>
           ACTIVE INCIDENTS ({activeWithCasualties.length})
