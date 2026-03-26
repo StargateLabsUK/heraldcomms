@@ -371,7 +371,20 @@ export function sanitizeAssessment(assessment: Assessment): Assessment {
     }
   }
 
-  // 6. scene_location — strip generic descriptors, keep only specific addresses/roads
+  // 6. METHANE access — retrospectively clear if stored value is not valid access content
+  if (sanitized.structured?.access && !isValidAccessField(sanitized.structured.access)) {
+    sanitized.structured.access = '';
+  }
+  if (sanitized.structured?.access_routes && !isValidAccessField(sanitized.structured.access_routes)) {
+    sanitized.structured.access_routes = '';
+  }
+
+  // 7. METHANE emergency_services — retrospectively clear if stored value is clinical data
+  if (sanitized.structured?.emergency_services && !isValidEmergencyServicesField(sanitized.structured.emergency_services)) {
+    sanitized.structured.emergency_services = '';
+  }
+
+  // 8. scene_location — strip generic descriptors, keep only specific addresses/roads
   if (sanitized.scene_location) {
     const genericPatterns = [
       /^(vehicle\s+)?collision\s+scene$/i,
