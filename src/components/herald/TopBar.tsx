@@ -45,6 +45,15 @@ export function TopBar({ micStatus, aiStatus, syncStatus, onEndShift, onRefresh 
           {dot('MIC', micStatus === 'granted')}
           {dot('AI', aiStatus === 'ok')}
           {dot('SYNC', syncStatus === 'ok', syncStatus === 'offline')}
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="ml-1 p-1 rounded hover:bg-muted/40 active:bg-muted/60 transition-colors"
+              title="Refresh status"
+            >
+              <RefreshCw size={16} className="text-muted-foreground" />
+            </button>
+          )}
         </div>
         <div className="flex-1 flex items-center justify-end gap-3">
           <span className="text-lg text-foreground font-bold">{utc}</span>
