@@ -73,6 +73,8 @@ export interface OpsFilters {
   dateTo: string;
   outcome: string;
   incidentType: string;
+  callsign: string;
+  operatorId: string;
 }
 
 export function useOpsLog() {
