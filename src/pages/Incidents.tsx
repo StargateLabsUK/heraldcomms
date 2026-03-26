@@ -11,7 +11,7 @@ import { useHeraldSync } from '@/hooks/useHeraldSync';
 import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
 import { getSession } from '@/lib/herald-session';
-import { supabase } from '@/integrations/supabase/client';
+import { fetchIncidentsRemote } from '@/lib/herald-api';
 import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
