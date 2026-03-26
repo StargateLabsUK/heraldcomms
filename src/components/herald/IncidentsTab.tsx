@@ -931,7 +931,8 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
   const fetchIncidents = useCallback(async () => {
     const localIncidents: Incident[] = getReports()
       .filter((r) => {
-        const sameShift = !!session.shift_id && r.shift_id === session.shift_id;
+        const reportShiftId = (r as { shift_id?: string | null }).shift_id;
+        const sameShift = !!session.shift_id && reportShiftId === session.shift_id;
         const sameCallsignToday =
           r.session_callsign === session.callsign &&
           new Date(r.timestamp).toISOString().slice(0, 10) === session.session_date;
