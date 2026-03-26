@@ -125,7 +125,7 @@ const IncidentsPage = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#1A1E24' }}>
-      <TopBar micStatus="granted" aiStatus="ok" syncStatus={syncStatus} />
+      <TopBar micStatus="granted" aiStatus="ok" syncStatus={syncStatus} onEndShift={handleEndShift} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {activeTab === 'incidents' ? (
@@ -135,7 +135,6 @@ const IncidentsPage = () => {
         )}
       </div>
 
-      <ShiftInfoBar session={session} onEndShift={handleEndShift} position="bottom" showEndShift />
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} hideTabs={['live']} />
     </div>
   );
