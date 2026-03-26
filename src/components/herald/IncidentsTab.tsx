@@ -575,11 +575,12 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <button onClick={onBack} className="flex items-center gap-2 px-3 py-2 text-lg text-primary bg-transparent border-b border-border">
+      <button onClick={onBack} className="flex items-center gap-2 px-3 md:px-6 py-2 text-lg text-primary bg-transparent border-b border-border">
         <ArrowLeft size={20} /> Back
       </button>
 
-      <div className="flex-1 overflow-auto px-3 py-3 pb-32">
+      <div className="flex-1 overflow-auto px-3 md:px-6 py-3 md:py-5 pb-32">
+        <div className="max-w-3xl mx-auto">
         {/* 1. Priority + headline */}
         <div className="rounded-lg p-3 mb-4" style={{ background: `${col}1A`, borderLeft: `4px solid ${col}` }}>
           <div className="flex items-baseline gap-2 mb-1">
