@@ -271,18 +271,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
           </select>
         </div>
 
-        {/* COLLAR NUMBER */}
-        <div className="mb-8">
-          <label style={labelStyle}>COLLAR NUMBER</label>
-          <input
-            type="text"
-            value={collarNumber}
-            onChange={(e) => setCollarNumber(e.target.value)}
-            placeholder="Your personal ID number"
-            style={inputStyle}
-          />
-        </div>
-
         {/* BEGIN SHIFT */}
         <button
           onClick={handleBeginShift}
