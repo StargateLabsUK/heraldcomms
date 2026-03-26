@@ -10,6 +10,7 @@ interface Props {
 interface LinkedCrew {
   operator_id: string | null;
   used_at: string;
+  left_at: string | null;
 }
 
 export function ShiftLinkCode({ session }: Props) {
@@ -44,7 +45,7 @@ export function ShiftLinkCode({ session }: Props) {
       try {
         const { data } = await supabase
           .from('shift_link_codes')
-          .select('operator_id, used_at')
+          .select('operator_id, used_at, left_at')
           .eq('shift_id', session.shift_id!)
           .not('used_at', 'is', null);
         setLinkedCrew((data as LinkedCrew[]) ?? []);
@@ -53,9 +54,29 @@ export function ShiftLinkCode({ session }: Props) {
       }
     };
     fetchCrew();
-    const id = setInterval(fetchCrew, 15_000);
+
+    // Realtime subscription for instant updates
+    const channel = supabase
+      .channel(`crew-${session.shift_id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'shift_link_codes',
+          filter: `shift_id=eq.${session.shift_id}`,
+        },
+        () => { fetchCrew(); }
+      )
+      .subscribe();
+
+    const id = setInterval(fetchCrew, 30_000);
     window.addEventListener('focus', fetchCrew);
-    return () => { clearInterval(id); window.removeEventListener('focus', fetchCrew); };
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', fetchCrew);
+      supabase.removeChannel(channel);
+    };
   }, [session.shift_id]);
 
   // Countdown
@@ -166,28 +187,33 @@ export function ShiftLinkCode({ session }: Props) {
           >
             CREW
           </span>
-          {linkedCrew.map((crew, i) => (
-            <span
-              key={i}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'hsl(147, 100%, 62%)',
-                background: 'rgba(61, 255, 140, 0.08)',
-                border: '1px solid rgba(61, 255, 140, 0.2)',
-                borderRadius: 3,
-                padding: '3px 10px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span style={{ fontSize: 11 }}>📱</span>
-              {crew.operator_id || 'Unknown'}
-            </span>
-          ))}
+          {linkedCrew.map((crew, i) => {
+            const hasLeft = !!crew.left_at;
+            return (
+              <span
+                key={i}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: hasLeft ? '#4A6058' : 'hsl(147, 100%, 62%)',
+                  background: hasLeft ? 'rgba(74, 96, 88, 0.08)' : 'rgba(61, 255, 140, 0.08)',
+                  border: `1px solid ${hasLeft ? 'rgba(74, 96, 88, 0.2)' : 'rgba(61, 255, 140, 0.2)'}`,
+                  borderRadius: 3,
+                  padding: '3px 10px',
+                  whiteSpace: 'nowrap',
+                  textDecoration: hasLeft ? 'line-through' : 'none',
+                  opacity: hasLeft ? 0.6 : 1,
+                }}
+              >
+                <span style={{ fontSize: 11 }}>{hasLeft ? '⏏' : '📱'}</span>
+                {crew.operator_id || 'Unknown'}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

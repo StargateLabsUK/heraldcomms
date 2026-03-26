@@ -135,3 +135,20 @@ export async function redeemLinkCode(
     return { error: 'Network error' };
   }
 }
+
+/** Leave a shift without ending it (handheld only) */
+export async function leaveShiftRemote(
+  shiftId: string,
+  operatorId: string,
+): Promise<boolean> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/link-shift`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ action: 'leave', shift_id: shiftId, operator_id: operatorId }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
