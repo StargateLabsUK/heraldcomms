@@ -369,7 +369,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           let result: any = null;
           let aiOk = true;
           try {
-            result = await assessTranscript(t, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
+            const existingAtmist = await fetchExistingAtmist(sessionCtx?.callsign, sessionCtx?.shift_id);
+            result = await assessTranscript(t, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport, existing_atmist: existingAtmist });
             // Override callsign and operator_id from shift data — never from transcript
             if (result && result.structured) {
               result.structured.callsign = sessionCtx?.callsign || null;
