@@ -32,7 +32,8 @@ const IncidentsPage = () => {
   const [session, setSession] = useState<HeraldSession | null>(getSession());
   const [incidentRefresh, setIncidentRefresh] = useState(0);
   const [closedCasualties, setClosedCasualties] = useState<CasualtyDisposition[]>([]);
-  const syncStatus = useHeraldSync();
+  const [hospitalAlert, setHospitalAlert] = useState<HospitalAlert | null>(null);
+  const knownHospitalsRef = useRef<Map<string, string>>(new Map());
   const navigate = useNavigate();
 
   const refreshReports = useCallback(async () => {
