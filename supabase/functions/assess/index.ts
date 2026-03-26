@@ -112,7 +112,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
   },
   "atmist": {
     "P1": {
-      "A": "Age",
+      "A": "Age and sex ONLY — e.g. '35, Male'. NEVER include patient name here",
       "T": "Time of injury",
       "M": "Mechanism of injury",
       "I": "Injuries found",
@@ -120,6 +120,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
       "T_treatment": "Treatment given"
     }
   },
+  "patient_name": "Patient's name if explicitly stated (e.g. 'patient is Margaret', 'his name is John'). null if not mentioned. NEVER put the name in the ATMIST A field.",
   "treatment_given": [],
   "action_items": ["open loop action item — what crew must do next"],
   "actions": ["immediate operational action 1", "action 2"],
