@@ -10,6 +10,32 @@ import type { HeraldReport } from '@/lib/herald-types';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeAssessment, toActionItems, formatActionAge } from '@/lib/sanitize-assessment';
 
+async function fetchExistingAtmist(callsign: string | undefined, shiftId: string | undefined): Promise<Record<string, any> | undefined> {
+  if (!callsign) return undefined;
+  try {
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const query = supabase
+      .from('herald_reports')
+      .select('assessment')
+      .eq('status', 'active')
+      .eq('session_callsign', callsign)
+      .gte('latest_transmission_at', thirtyMinAgo)
+      .order('latest_transmission_at', { ascending: false })
+      .limit(1);
+    if (shiftId) query.eq('shift_id', shiftId);
+    const { data } = await query;
+    if (data && data.length > 0) {
+      const assessment = data[0].assessment as any;
+      if (assessment?.atmist && Object.keys(assessment.atmist).length > 0) {
+        return assessment.atmist;
+      }
+    }
+  } catch {
+    // Non-critical — proceed without context
+  }
+  return undefined;
+}
+
 const MAX_DURATION_MS = 5 * 60 * 1000;
 
 function getLocation(): Promise<{ lat?: number; lng?: number; location_accuracy?: number }> {
@@ -343,7 +369,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
           let result: any = null;
           let aiOk = true;
           try {
-            result = await assessTranscript(t, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
+            const existingAtmist = await fetchExistingAtmist(sessionCtx?.callsign, sessionCtx?.shift_id);
+            result = await assessTranscript(t, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport, existing_atmist: existingAtmist });
             // Override callsign and operator_id from shift data — never from transcript
             if (result && result.structured) {
               result.structured.callsign = sessionCtx?.callsign || null;
@@ -433,7 +460,8 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       let result: any = null;
       let aiOk = true;
       try {
-        result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport });
+        const existingAtmist = await fetchExistingAtmist(sessionCtx?.callsign, sessionCtx?.shift_id);
+        result = await assessTranscript(text, { vehicle_type: sessionCtx?.vehicle_type, can_transport: sessionCtx?.can_transport, existing_atmist: existingAtmist });
         if (result && result.structured) {
           result.structured.callsign = sessionCtx?.callsign || null;
           result.structured.operator_id = sessionCtx?.operator_id || null;
