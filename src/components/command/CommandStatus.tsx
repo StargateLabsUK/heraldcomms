@@ -116,18 +116,26 @@ export function CommandStatus({ todayReports, priorityCounts, uniqueDevices, con
                     <span className="text-lg text-muted-foreground">
                       {SERVICE_LABELS[s.service ?? ''] ?? s.service ?? ''}
                     </span>
-                    {crewPendingOut.length > 0 && (
-                      <span className="text-lg font-bold rounded-sm px-1 py-0.5"
-                        style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
-                        ↗ XFER
-                      </span>
-                    )}
-                    {crewPendingIn.length > 0 && (
-                      <span className="text-lg font-bold rounded-sm px-1 py-0.5"
-                        style={{ color: '#1E90FF', border: '1px solid rgba(30,144,255,0.3)', background: 'rgba(30,144,255,0.08)' }}>
-                        ↙ INCOMING
-                      </span>
-                    )}
+                    {crewPendingOut.length > 0 && (() => {
+                      const p = topPriority(crewPendingOut);
+                      const pCol = p ? (PRIORITY_COLORS[p] ?? '#FF9500') : '#FF9500';
+                      return (
+                        <span className="text-lg font-bold rounded-sm px-1 py-0.5"
+                          style={{ color: '#FF9500', border: '1px solid rgba(255,149,0,0.3)', background: 'rgba(255,149,0,0.08)' }}>
+                          ↗ XFER {p && <span style={{ color: pCol }}>{p}</span>}
+                        </span>
+                      );
+                    })()}
+                    {crewPendingIn.length > 0 && (() => {
+                      const p = topPriority(crewPendingIn);
+                      const pCol = p ? (PRIORITY_COLORS[p] ?? '#1E90FF') : '#1E90FF';
+                      return (
+                        <span className="text-lg font-bold rounded-sm px-1 py-0.5"
+                          style={{ color: '#1E90FF', border: '1px solid rgba(30,144,255,0.3)', background: 'rgba(30,144,255,0.08)' }}>
+                          ↙ INCOMING {p && <span style={{ color: pCol }}>{p}</span>}
+                        </span>
+                      );
+                    })()}
                   </div>
                 );
               })}
