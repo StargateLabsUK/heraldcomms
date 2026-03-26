@@ -228,9 +228,82 @@ function TransmissionEntry({ tx, index }: { tx: OpsTransmission; index: number }
 
         {tx.assessment && (
           <Expandable label="HERALD ASSESSMENT" color="#34C759">
-            <pre className="text-xs text-foreground whitespace-pre-wrap break-words mt-2 font-mono leading-relaxed">
-              {JSON.stringify(tx.assessment, null, 2)}
-            </pre>
+            <div className="mt-2 flex flex-col gap-3">
+              {(() => {
+                const a = tx.assessment as Record<string, unknown>;
+                return Object.entries(a).map(([key, val]) => {
+                  if (val == null || val === '') return null;
+                  const label = key.replace(/_/g, ' ').toUpperCase();
+
+                  // ATMIST object with nested casualty keys
+                  if (key === 'atmist' && typeof val === 'object' && !Array.isArray(val)) {
+                    return (
+                      <div key={key}>
+                        <div className="text-sm font-bold tracking-[0.15em] mb-1" style={{ color: '#34C759' }}>{label}</div>
+                        {Object.entries(val as Record<string, unknown>).map(([casKey, casVal]) => (
+                          <div key={casKey} className="ml-2 mb-2">
+                            <div className="text-sm font-bold text-foreground mb-0.5">{casKey}</div>
+                            {typeof casVal === 'object' && casVal !== null ? (
+                              <div className="ml-2 flex flex-col gap-0.5">
+                                {Object.entries(casVal as Record<string, unknown>).map(([field, fv]) => (
+                                  <div key={field} className="text-sm">
+                                    <span style={{ color: '#4A6058' }}>{field}:</span>{' '}
+                                    <span className="text-foreground">{String(fv ?? '—')}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-sm text-foreground ml-2">{String(casVal ?? '—')}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  // Arrays (actions, action_items, clinical_findings)
+                  if (Array.isArray(val)) {
+                    return (
+                      <div key={key}>
+                        <div className="text-sm font-bold tracking-[0.15em] mb-1" style={{ color: '#34C759' }}>{label}</div>
+                        <div className="ml-2 flex flex-col gap-0.5">
+                          {(val as unknown[]).map((item, i) => (
+                            <div key={i} className="text-sm text-foreground">
+                              • {typeof item === 'object' ? JSON.stringify(item) : String(item)}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Nested objects (structured)
+                  if (typeof val === 'object') {
+                    return (
+                      <div key={key}>
+                        <div className="text-sm font-bold tracking-[0.15em] mb-1" style={{ color: '#34C759' }}>{label}</div>
+                        <div className="ml-2 flex flex-col gap-0.5">
+                          {Object.entries(val as Record<string, unknown>).map(([sk, sv]) => (
+                            <div key={sk} className="text-sm">
+                              <span style={{ color: '#4A6058' }}>{sk.replace(/_/g, ' ')}:</span>{' '}
+                              <span className="text-foreground">{String(sv ?? '—')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Simple string values
+                  return (
+                    <div key={key}>
+                      <span className="text-sm font-bold tracking-[0.1em]" style={{ color: '#34C759' }}>{label}: </span>
+                      <span className="text-sm text-foreground">{String(val)}</span>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
           </Expandable>
         )}
       </div>
