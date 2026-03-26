@@ -47,7 +47,8 @@ export function ShiftLinkCode({ session }: Props) {
           .from('shift_link_codes')
           .select('operator_id, used_at, left_at')
           .eq('shift_id', session.shift_id!)
-          .not('used_at', 'is', null);
+          .not('used_at', 'is', null)
+          .not('operator_id', 'is', null);
         setLinkedCrew((data as LinkedCrew[]) ?? []);
       } catch {
         // silent

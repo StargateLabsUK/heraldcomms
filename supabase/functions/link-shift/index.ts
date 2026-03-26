@@ -10,6 +10,45 @@ function randomCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+async function handleCrewLink(supabase: any, codeRow: any, operator_id: string | null, corsHeaders: Record<string, string>) {
+  const opId = operator_id ?? null;
+
+  if (opId) {
+    // Check if this operator already has a row for this shift
+    const { data: existing } = await supabase
+      .from("shift_link_codes")
+      .select("id")
+      .eq("shift_id", codeRow.shift_id)
+      .eq("operator_id", opId)
+      .limit(1)
+      .single();
+
+    if (existing) {
+      // Rejoin: clear left_at
+      await supabase
+        .from("shift_link_codes")
+        .update({ left_at: null, used_at: new Date().toISOString() })
+        .eq("id", existing.id);
+    } else {
+      // New crew member: insert a tracking row
+      await supabase.from("shift_link_codes").insert({
+        shift_id: codeRow.shift_id,
+        code: codeRow.code,
+        trust_id: codeRow.trust_id,
+        session_data: codeRow.session_data,
+        expires_at: codeRow.expires_at,
+        used_at: new Date().toISOString(),
+        operator_id: opId,
+      });
+    }
+  }
+
+  return new Response(
+    JSON.stringify({ session_data: codeRow.session_data }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -92,32 +131,47 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Find unused, non-expired code
+      // Find the master code row (non-expired, any used_at state)
       const { data, error } = await supabase
         .from("shift_link_codes")
         .select("*")
         .eq("code", code)
+        .is("operator_id", null)
         .gt("expires_at", new Date().toISOString())
         .limit(1)
         .single();
 
       if (error || !data) {
-        return new Response(
-          JSON.stringify({ error: "Invalid or expired code" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        // Also try finding any row with this code (already redeemed master)
+        const { data: anyRow, error: anyErr } = await supabase
+          .from("shift_link_codes")
+          .select("*")
+          .eq("code", code)
+          .gt("expires_at", new Date().toISOString())
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+
+        if (anyErr || !anyRow) {
+          return new Response(
+            JSON.stringify({ error: "Invalid or expired code" }),
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Use this row's session_data for the response, then handle crew tracking below
+        return await handleCrewLink(supabase, anyRow, operator_id, corsHeaders);
       }
 
-      // Mark as used and store operator_id
-      await supabase
-        .from("shift_link_codes")
-        .update({ used_at: new Date().toISOString(), operator_id: operator_id ?? null })
-        .eq("id", data.id);
+      // Mark master as used
+      if (!data.used_at) {
+        await supabase
+          .from("shift_link_codes")
+          .update({ used_at: new Date().toISOString() })
+          .eq("id", data.id);
+      }
 
-      return new Response(
-        JSON.stringify({ session_data: data.session_data }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return await handleCrewLink(supabase, data, operator_id, corsHeaders);
     }
 
     if (action === "leave") {
