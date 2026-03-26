@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Hospital } from 'lucide-react';
 import { TopBar } from '@/components/herald/TopBar';
 import { ShiftLinkCode } from '@/components/herald/ShiftLinkCode';
 import { BottomNav } from '@/components/herald/BottomNav';
@@ -16,6 +17,14 @@ import { supabase } from '@/integrations/supabase/client';
 import type { HeraldReport, CasualtyDisposition } from '@/lib/herald-types';
 import type { HeraldSession } from '@/lib/herald-session';
 
+interface HospitalAlert {
+  reportId: string;
+  callsign: string | null;
+  hospital: string;
+  incidentNumber: string | null;
+  headline: string | null;
+}
+
 const IncidentsPage = () => {
   const location = useLocation();
   const initialTab = (location.state as any)?.tab === 'reports' ? 'reports' : 'incidents';
@@ -24,8 +33,19 @@ const IncidentsPage = () => {
   const [session, setSession] = useState<HeraldSession | null>(getSession());
   const [incidentRefresh, setIncidentRefresh] = useState(0);
   const [closedCasualties, setClosedCasualties] = useState<CasualtyDisposition[]>([]);
+  const [hospitalAlert, setHospitalAlert] = useState<HospitalAlert | null>(null);
+  const knownHospitalsRef = useRef<Map<string, string>>(new Map());
   const syncStatus = useHeraldSync();
   const navigate = useNavigate();
+
+  // Seed known hospitals from initial data so we don't alert on load
+  useEffect(() => {
+    for (const r of reports) {
+      if ((r as any).receiving_hospital) {
+        knownHospitalsRef.current.set(r.id, (r as any).receiving_hospital);
+      }
+    }
+  }, [reports]);
 
   const refreshReports = useCallback(async () => {
     const localReports = getReports();
@@ -94,16 +114,47 @@ const IncidentsPage = () => {
     refreshReports();
   }, [activeTab, session, refreshReports]);
 
-  // Realtime subscription for disposition changes
+  // Realtime subscription for disposition changes + hospital assignments
   useEffect(() => {
     if (!session) return;
 
     const channel = supabase
-      .channel(`dispositions-${session.shift_id ?? session.callsign}`)
+      .channel(`crew-realtime-${session.shift_id ?? session.callsign}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'casualty_dispositions' },
         () => { refreshReports(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'herald_reports' },
+        (payload) => {
+          const row = payload.new as any;
+          if (!row) return;
+
+          // Only alert for reports belonging to this crew's shift
+          const isOurs = row.session_callsign === session.callsign ||
+            row.shift_id === session.shift_id;
+          if (!isOurs) return;
+
+          const newHospital = row.receiving_hospital?.trim();
+          if (!newHospital) return;
+
+          const prev = knownHospitalsRef.current.get(row.id);
+          if (prev === newHospital) return;
+
+          // New or changed hospital assignment
+          knownHospitalsRef.current.set(row.id, newHospital);
+          setHospitalAlert({
+            reportId: row.id,
+            callsign: row.session_callsign,
+            hospital: newHospital,
+            incidentNumber: row.incident_number,
+            headline: row.headline,
+          });
+
+          refreshReports();
+        }
       )
       .subscribe();
 
@@ -153,6 +204,48 @@ const IncidentsPage = () => {
       </div>
 
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} hideTabs={['live']} />
+
+      {/* Hospital assignment alert overlay */}
+      {hospitalAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="mx-4 w-full max-w-md rounded-xl p-6"
+            style={{ background: '#1A1E24', border: '2px solid #1E90FF' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="rounded-full p-3" style={{ background: 'rgba(30,144,255,0.15)' }}>
+                <Hospital size={28} style={{ color: '#1E90FF' }} />
+              </div>
+              <div>
+                <p className="text-lg font-bold tracking-wider" style={{ color: '#1E90FF' }}>
+                  HOSPITAL ASSIGNED
+                </p>
+                <p className="text-lg text-foreground opacity-60">
+                  {hospitalAlert.incidentNumber
+                    ? `Incident ${hospitalAlert.incidentNumber}`
+                    : hospitalAlert.headline ?? 'Active incident'}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg p-4 mb-4"
+              style={{ background: 'rgba(30,144,255,0.08)', border: '1px solid rgba(30,144,255,0.25)' }}>
+              <p className="text-lg text-foreground opacity-60 mb-1">Receiving Hospital</p>
+              <p className="text-2xl font-bold text-foreground">{hospitalAlert.hospital}</p>
+            </div>
+
+            <button
+              onClick={() => setHospitalAlert(null)}
+              className="w-full py-3 text-lg font-bold rounded-lg tracking-wider"
+              style={{
+                background: 'rgba(30,144,255,0.12)',
+                border: '2px solid #1E90FF',
+                color: '#1E90FF',
+              }}>
+              ACKNOWLEDGED
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
