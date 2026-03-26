@@ -65,7 +65,9 @@ function applyFilters(reports: OpsReport[], dispositions: OpsDisposition[], filt
       matchesSearch(r.session_operator_id, q) ||
       matchesSearch(getLocation(r), q) ||
       matchesSearch(getIncidentType(r), q) ||
-      matchesSearch(r.transcript, q)
+      matchesSearch(r.transcript, q) ||
+      (q === 'safeguarding' && (r.assessment as any)?.safeguarding?.concern_identified === true) ||
+      matchesSearch((r.assessment as any)?.safeguarding?.details, q)
     );
   }
 
