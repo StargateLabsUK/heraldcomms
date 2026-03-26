@@ -4,6 +4,8 @@ import { LiveTab } from '@/components/herald/LiveTab';
 import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
 import { LinkCodeEntry } from '@/components/herald/LinkCodeEntry';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
+import { useShiftEndedPoll } from '@/hooks/useShiftEndedPoll';
+import { getSession } from '@/lib/herald-session';
 import { getSession } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
 
