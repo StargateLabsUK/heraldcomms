@@ -264,7 +264,7 @@ serve(async (req) => {
     }
 
     // Normal assessment mode
-    const { transcript, vehicle_type, can_transport } = body;
+    const { transcript, vehicle_type, can_transport, existing_atmist } = body;
 
     if (!transcript || typeof transcript !== 'string') {
       return new Response(
@@ -286,6 +286,27 @@ serve(async (req) => {
       contextPrefix = `[RESOURCE CONTEXT: Vehicle type is ${vehicle_type}. This vehicle CANNOT transport patients. Only generate a "transporting unit required" action item if the crew explicitly states they cannot transport or need a transporting unit. Do not infer transport inability from vehicle type alone.]\n\n`;
     } else if (vehicle_type) {
       contextPrefix = `[RESOURCE CONTEXT: The responding unit is a ${vehicle_type} and can transport patients. Do not generate transport resource action items.]\n\n`;
+    }
+
+    // Build existing ATMIST context for follow-up transmissions
+    if (existing_atmist && typeof existing_atmist === 'object' && Object.keys(existing_atmist).length > 0) {
+      let atmistContext = "[EXISTING INCIDENT ATMIST — This is a follow-up transmission for an active incident. The following ATMIST data was captured from prior transmissions. If the new transmission does NOT restate or update a field, preserve the existing value exactly. Only overwrite a field if the new transmission explicitly provides new information for it.]\n";
+      for (const [key, fields] of Object.entries(existing_atmist)) {
+        if (fields && typeof fields === 'object') {
+          const f = fields as Record<string, string>;
+          const parts: string[] = [];
+          if (f.A) parts.push(`A(Age): ${f.A}`);
+          if (f.T) parts.push(`T(Time): ${f.T}`);
+          if (f.M) parts.push(`M(Mechanism): ${f.M}`);
+          if (f.I) parts.push(`I(Injuries): ${f.I}`);
+          if (f.S) parts.push(`S(Signs): ${f.S}`);
+          if (f.T_treatment) parts.push(`T_treatment: ${f.T_treatment}`);
+          if (parts.length > 0) {
+            atmistContext += `${key}: ${parts.join(", ")}\n`;
+          }
+        }
+      }
+      contextPrefix += atmistContext + "\n";
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
