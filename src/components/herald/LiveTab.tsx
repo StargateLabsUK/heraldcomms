@@ -76,8 +76,8 @@ function formatDuration(ms: number): string {
   return `${m}:${s}`;
 }
 
-function getSessionFields() {
-  const session = getSession();
+async function getSessionFields() {
+  const session = await getSession();
   if (!session) return {};
   return {
     session_callsign: session.callsign,
@@ -128,12 +128,12 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
   const syncNow = useCallback(async (reportId: string) => {
     try {
-      const report = getReports().find((r) => r.id === reportId);
+      const report = (await getReports()).find((r) => r.id === reportId);
       if (!report) return;
 
-      const ok = await syncReport(toSyncPayload(report));
+      const ok = await syncReport(await toSyncPayload(report));
       if (ok) {
-        markSynced(reportId);
+        await markSynced(reportId);
       }
     } catch {
       // interval sync will retry
@@ -157,18 +157,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       }
       setEditStructured(flatStructured);
 
-      // Override structured callsign/operator_id with session values
-      const currentSession = getSession();
-      if (currentSession) {
-        if (currentSession.callsign) {
-          flatStructured['callsign'] = currentSession.callsign;
-        }
-        if (currentSession.operator_id) {
-          flatStructured['operator_id'] = currentSession.operator_id;
-        }
-      }
-      setEditStructured(flatStructured);
-
       setEditActions([...(clean.actions || [])]);
       setEditFormattedReport(clean.formatted_report || '');
       setOriginalAssessment(JSON.parse(JSON.stringify(clean)));
@@ -179,13 +167,27 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       const txCallsign = assessment.structured?.callsign;
       const txIncidentType = assessment.incident_type;
       const txLocation = assessment.scene_location;
-      const shiftId = currentSession?.shift_id;
-      const sessionCallsign = currentSession?.callsign;
-      const effectiveCallsign = (txCallsign && txCallsign !== 'null') ? txCallsign : sessionCallsign;
 
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
-      const findFollowUp = async () => {
+      const initAsync = async () => {
+        // Override structured callsign/operator_id with session values
+        const currentSession = await getSession();
+        if (currentSession) {
+          if (currentSession.callsign) {
+            flatStructured['callsign'] = currentSession.callsign;
+          }
+          if (currentSession.operator_id) {
+            flatStructured['operator_id'] = currentSession.operator_id;
+          }
+        }
+        setEditStructured({ ...flatStructured });
+
+        const shiftId = currentSession?.shift_id;
+        const sessionCallsign = currentSession?.callsign;
+        const effectiveCallsign = (txCallsign && txCallsign !== 'null') ? txCallsign : sessionCallsign;
+
+        const findFollowUp = async () => {
         // 1) Try exact incident_number match first
         if (incidentNum && incidentNum !== 'null' && incidentNum !== '') {
           const query = supabase
@@ -250,17 +252,20 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         return null;
       };
 
-      findFollowUp().then((match) => {
-        if (match) {
-          setIsFollowUp(true);
-          setFollowUpReportId(match.reportId);
-          setFollowUpIncidentNumber(match.incNum ?? null);
-        } else {
-          setIsFollowUp(false);
-          setFollowUpReportId(null);
-          setFollowUpIncidentNumber(incidentNum && incidentNum !== 'null' ? incidentNum : null);
-        }
-      });
+        findFollowUp().then((match) => {
+          if (match) {
+            setIsFollowUp(true);
+            setFollowUpReportId(match.reportId);
+            setFollowUpIncidentNumber(match.incNum ?? null);
+          } else {
+            setIsFollowUp(false);
+            setFollowUpReportId(null);
+            setFollowUpIncidentNumber(incidentNum && incidentNum !== 'null' ? incidentNum : null);
+          }
+        });
+      };
+
+      initAsync();
     }
   }, [assessment, state]);
 
@@ -355,7 +360,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       const t = await transcribeAudio(base64);
 
           // Deduplication: skip if same content + callsign within 30s
-          const sessionCtx = getSession();
+          const sessionCtx = await getSession();
           const dedupCallsign = sessionCtx?.callsign || '';
           const lastSub = lastSubmissionRef.current;
           if (lastSub && lastSub.content === t && lastSub.callsign === dedupCallsign && (Date.now() - lastSub.timestamp) < 30000) {
@@ -444,7 +449,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     setError('');
 
     try {
-      const sessionCtx = getSession();
+      const sessionCtx = await getSession();
 
       // Deduplication: skip if same content + callsign within 30s
       const dedupCallsign = sessionCtx?.callsign || '';
@@ -523,7 +528,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
     const diff = computeDiff(originalAssessment, finalAssessment);
 
     const loc = await getLocation();
-    const sessionFields = getSessionFields();
+    const sessionFields = await getSessionFields();
     const pending = pendingReportRef.current;
 
     const report: HeraldReport = {
@@ -550,7 +555,7 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
 
     if (isFollowUp && followUpReportId) {
       // Update existing parent report in local storage instead of creating a duplicate
-      updateReport(followUpReportId, {
+      await updateReport(followUpReportId, {
         assessment: finalAssessment as unknown as Assessment,
         headline: finalAssessment.headline,
         priority: finalAssessment.priority,
@@ -558,14 +563,14 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
         transmission_count: undefined, // we don't track this locally precisely
       });
     } else {
-      saveReport(report);
+      await saveReport(report);
     }
 
     // Sync with follow-up awareness
     try {
-      const payload = toSyncPayload(report, isFollowUp && followUpReportId ? followUpReportId : undefined);
+      const payload = await toSyncPayload(report, isFollowUp && followUpReportId ? followUpReportId : undefined);
       const ok = await syncReport(payload);
-      if (ok) markSynced(report.id);
+      if (ok) await markSynced(report.id);
     } catch {
       // interval sync will retry
     }

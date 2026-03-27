@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { TopBar } from '@/components/herald/TopBar';
 import { LiveTab } from '@/components/herald/LiveTab';
 import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
@@ -10,7 +10,11 @@ import type { HeraldSession } from '@/lib/herald-session';
 
 const Index = () => {
   const [aiStatus, setAiStatus] = useState<'ok' | 'error'>('ok');
-  const [session, setSession] = useState<HeraldSession | null>(getSession());
+  const [session, setSession] = useState<HeraldSession | null>(null);
+
+  useEffect(() => {
+    getSession().then(setSession);
+  }, []);
   const syncStatus = useHeraldSync();
 
   const handleShiftLinked = useCallback((s: HeraldSession) => {

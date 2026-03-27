@@ -12,55 +12,64 @@ export function useShiftEndedPoll(onShiftEnded: () => void) {
   cbRef.current = onShiftEnded;
 
   useEffect(() => {
-    const session = getSession();
-    if (!session?.shift_id) return;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let disposed = false;
+    let checkOnce: (() => Promise<void>) | null = null;
 
-    const shiftId = session.shift_id;
+    const setup = async () => {
+      const session = await getSession();
+      if (!session?.shift_id || disposed) return;
 
-    // One-time check on mount
-    const checkOnce = async () => {
-      try {
-        const { data } = await supabase
-          .from('shifts')
-          .select('ended_at')
-          .eq('id', shiftId)
-          .single();
+      const shiftId = session.shift_id;
 
-        if (data?.ended_at) {
-          clearSession();
-          cbRef.current();
-        }
-      } catch {
-        // silent
-      }
-    };
+      // One-time check on mount
+      checkOnce = async () => {
+        try {
+          const { data } = await supabase
+            .from('shifts')
+            .select('ended_at')
+            .eq('id', shiftId)
+            .single();
 
-    checkOnce();
-    window.addEventListener('focus', checkOnce);
-
-    // Realtime subscription for instant detection
-    const channel = supabase
-      .channel(`shift-ended-${shiftId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'shifts',
-          filter: `id=eq.${shiftId}`,
-        },
-        (payload) => {
-          if (payload.new && (payload.new as any).ended_at) {
+          if (data?.ended_at) {
             clearSession();
             cbRef.current();
           }
+        } catch {
+          // silent
         }
-      )
-      .subscribe();
+      };
+
+      checkOnce();
+      window.addEventListener('focus', checkOnce);
+
+      // Realtime subscription for instant detection
+      channel = supabase
+        .channel(`shift-ended-${shiftId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'shifts',
+            filter: `id=eq.${shiftId}`,
+          },
+          (payload) => {
+            if (payload.new && (payload.new as any).ended_at) {
+              clearSession();
+              cbRef.current();
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    setup();
 
     return () => {
-      window.removeEventListener('focus', checkOnce);
-      supabase.removeChannel(channel);
+      disposed = true;
+      if (checkOnce) window.removeEventListener('focus', checkOnce);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 }

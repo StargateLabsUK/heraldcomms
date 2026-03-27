@@ -9,8 +9,8 @@ const headers = {
   Authorization: `Bearer ${SUPABASE_KEY}`,
 };
 
-function getTrustId(): string | null {
-  const session = getSession();
+async function getTrustId(): Promise<string | null> {
+  const session = await getSession();
   return session?.trust_id || null;
 }
 
@@ -18,7 +18,7 @@ export async function transcribeAudio(base64Audio: string, mimeType?: string): P
   const res = await fetch(`${SUPABASE_URL}/functions/v1/transcribe`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ audio: base64Audio, mimeType: mimeType || 'audio/webm', trust_id: getTrustId() }),
+    body: JSON.stringify({ audio: base64Audio, mimeType: mimeType || 'audio/webm', trust_id: await getTrustId() }),
   });
   if (!res.ok) throw new Error('Transcription failed');
   const data = await res.json();
@@ -29,7 +29,7 @@ export async function assessTranscript(transcript: string, context?: { vehicle_t
   const res = await fetch(`${SUPABASE_URL}/functions/v1/assess`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ transcript, vehicle_type: context?.vehicle_type, can_transport: context?.can_transport, existing_atmist: context?.existing_atmist, trust_id: getTrustId() }),
+    body: JSON.stringify({ transcript, vehicle_type: context?.vehicle_type, can_transport: context?.can_transport, existing_atmist: context?.existing_atmist, trust_id: await getTrustId() }),
   });
   if (!res.ok) throw new Error('Assessment failed');
   return res.json();
@@ -67,7 +67,7 @@ export async function syncDisposition(disposition: Record<string, unknown>): Pro
   try {
     const payload = {
       ...disposition,
-      trust_id: (disposition as any)?.trust_id ?? getTrustId(),
+      trust_id: (disposition as any)?.trust_id ?? await getTrustId(),
     };
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/sync-disposition`, {

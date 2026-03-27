@@ -1,16 +1,72 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// ── Rate limiting for code redemption (CE+, ISO 27001 A.9.4) ──
+const redeemAttempts = new Map<string, { count: number; resetAt: number }>();
+const MAX_REDEEM_ATTEMPTS = 10;
+const REDEEM_WINDOW_MS = 60_000; // 1 minute
 
-function randomCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+function isRedeemRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = redeemAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    redeemAttempts.set(ip, { count: 1, resetAt: now + REDEEM_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > MAX_REDEEM_ATTEMPTS;
 }
 
-async function handleCrewLink(supabase: any, codeRow: any, operator_id: string | null, corsHeaders: Record<string, string>) {
+// ── Per-code failed attempt tracking (lockout after 5 failures) ──
+const codeFailures = new Map<string, { count: number; lockedUntil: number }>();
+const MAX_CODE_FAILURES = 5;
+const CODE_LOCKOUT_MS = 15 * 60_000; // 15 minutes
+
+function isCodeLocked(code: string): boolean {
+  const entry = codeFailures.get(code);
+  if (!entry) return false;
+  if (Date.now() > entry.lockedUntil) {
+    codeFailures.delete(code);
+    return false;
+  }
+  return true;
+}
+
+function recordCodeFailure(code: string): void {
+  const entry = codeFailures.get(code) ?? { count: 0, lockedUntil: 0 };
+  entry.count++;
+  if (entry.count >= MAX_CODE_FAILURES) {
+    entry.lockedUntil = Date.now() + CODE_LOCKOUT_MS;
+  }
+  codeFailures.set(code, entry);
+}
+
+function clearCodeFailures(code: string): void {
+  codeFailures.delete(code);
+}
+
+// ── Cryptographically secure random code (CE+, ISO 27001 A.10) ──
+function randomCode(): string {
+  const arr = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  // Generate 6-digit code: 100000–999999
+  return String(100000 + (arr[0] % 900000));
+}
+
+// ── Input validation ──
+const OPERATOR_ID_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
+
+function validateOperatorId(opId: string | null): boolean {
+  if (!opId) return true; // optional field
+  return OPERATOR_ID_PATTERN.test(opId);
+}
+
+async function handleCrewLink(
+  supabase: any,
+  codeRow: any,
+  operator_id: string | null,
+  corsHeaders: Record<string, string>,
+) {
   const opId = operator_id ?? null;
 
   if (opId) {
@@ -45,18 +101,18 @@ async function handleCrewLink(supabase: any, codeRow: any, operator_id: string |
 
   return new Response(
     JSON.stringify({ session_data: codeRow.session_data }),
-    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handleCors(req);
+  if (preflight) return preflight;
+  const corsHeaders = getCorsHeaders(req);
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
   try {
@@ -66,7 +122,7 @@ Deno.serve(async (req) => {
       if (!shift_id || !session_data) {
         return new Response(
           JSON.stringify({ error: "shift_id and session_data required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -83,7 +139,7 @@ Deno.serve(async (req) => {
       if (existing) {
         return new Response(
           JSON.stringify({ code: existing.code, expires_at: existing.expires_at }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -104,7 +160,7 @@ Deno.serve(async (req) => {
         if (!error) {
           return new Response(
             JSON.stringify({ code: linkCode, expires_at: expiresAt }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
@@ -112,22 +168,47 @@ Deno.serve(async (req) => {
         if (error.code === "23505") continue;
 
         return new Response(
-          JSON.stringify({ error: error.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Failed to generate code" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
       return new Response(
         JSON.stringify({ error: "Could not generate unique code" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     if (action === "redeem") {
-      if (!code) {
+      if (!code || typeof code !== "string" || code.length !== 6) {
         return new Response(
-          JSON.stringify({ error: "code required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Valid 6-digit code required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Validate operator_id format
+      if (operator_id && !validateOperatorId(operator_id)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid operator ID format" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Rate limiting by IP
+      const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+      if (isRedeemRateLimited(clientIp)) {
+        return new Response(
+          JSON.stringify({ error: "Too many attempts — try again later" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Per-code lockout check
+      if (isCodeLocked(code)) {
+        return new Response(
+          JSON.stringify({ error: "Code temporarily locked — too many failed attempts" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -153,13 +234,14 @@ Deno.serve(async (req) => {
           .single();
 
         if (anyErr || !anyRow) {
+          recordCodeFailure(code);
           return new Response(
             JSON.stringify({ error: "Invalid or expired code" }),
-            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
-        // Use this row's session_data for the response, then handle crew tracking below
+        clearCodeFailures(code);
         return await handleCrewLink(supabase, anyRow, operator_id, corsHeaders);
       }
 
@@ -171,6 +253,7 @@ Deno.serve(async (req) => {
           .eq("id", data.id);
       }
 
+      clearCodeFailures(code);
       return await handleCrewLink(supabase, data, operator_id, corsHeaders);
     }
 
@@ -178,7 +261,7 @@ Deno.serve(async (req) => {
       if (!shift_id || !operator_id) {
         return new Response(
           JSON.stringify({ error: "shift_id and operator_id required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -192,18 +275,18 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ ok: true }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     return new Response(
       JSON.stringify({ error: "Unknown action" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Link operation failed" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });

@@ -1,14 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { isRateLimited } from "../_shared/rate-limit.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  const preflight = handleCors(req);
+  if (preflight) return preflight;
+  const corsHeaders = getCorsHeaders(req);
+
+  if (isRateLimited(req, { name: "fetch-incidents", maxRequests: 30, windowMs: 60_000 })) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -78,6 +81,12 @@ Deno.serve(async (req) => {
     }
 
     const { data: dispositions } = await dispQuery;
+
+    await supabase.from("audit_log").insert({
+      action: "incidents_fetched",
+      trust_id: trust_id || null,
+      details: { shift_id: shift_id || null, callsign: callsign || null, report_count: (reports ?? []).length },
+    });
 
     return new Response(
       JSON.stringify({ reports: reports ?? [], dispositions: dispositions ?? [] }),

@@ -35,15 +35,22 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   const [callsign, setCallsign] = useState('');
   const [vehicleType, setVehicleType] = useState('');
   
-  const [trust, setTrust] = useState<CachedTrust | null>(getCachedTrust());
+  const [trust, setTrust] = useState<CachedTrust | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    getCachedTrust().then(setTrust);
+  }, []);
   const [linkMode, setLinkMode] = useState(false);
   const [linkDigits, setLinkDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [linkError, setLinkError] = useState('');
   const [linkSubmitting, setLinkSubmitting] = useState(false);
   const linkInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const canSubmit = callsign.trim() !== '' && vehicleType !== '';
+  // Input validation: alphanumeric, hyphens, spaces, max 30 chars
+  const CALLSIGN_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
+  const isCallsignValid = callsign.trim() !== '' && CALLSIGN_PATTERN.test(callsign.trim());
+  const canSubmit = isCallsignValid && vehicleType !== '';
 
   if (!trust) {
     return <TrustPinEntry onValidated={(t) => setTrust(t)} />;
@@ -68,7 +75,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
     };
     const shiftId = await startShiftRemote(session);
     if (shiftId) session.shift_id = shiftId;
-    saveSession(session);
+    await saveSession(session);
     onShiftStarted(session);
     setSubmitting(false);
   };
@@ -106,7 +113,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       return;
     }
     const session = result.session_data;
-    saveSession(session);
+    await saveSession(session);
     onShiftStarted(session);
     setLinkSubmitting(false);
   };

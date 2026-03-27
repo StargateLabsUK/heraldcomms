@@ -1,7 +1,9 @@
-/** Trust PIN cache — stores validated trust info for 30 days */
+/** Trust PIN cache — stores validated trust info with encryption */
+
+import { readEncrypted, writeEncrypted, removeEncrypted } from './crypto';
 
 const TRUST_CACHE_KEY = 'herald_trust';
-const TRUST_CACHE_DAYS = 30;
+const TRUST_CACHE_DAYS = 1; // Reduced from 30 days for security compliance
 
 export interface CachedTrust {
   trust_id: string;
@@ -10,16 +12,15 @@ export interface CachedTrust {
   cached_at: string;
 }
 
-export function getCachedTrust(): CachedTrust | null {
+export async function getCachedTrust(): Promise<CachedTrust | null> {
   try {
-    const raw = localStorage.getItem(TRUST_CACHE_KEY);
-    if (!raw) return null;
-    const cached: CachedTrust = JSON.parse(raw);
+    const cached = await readEncrypted<CachedTrust>(TRUST_CACHE_KEY);
+    if (!cached) return null;
     const cachedDate = new Date(cached.cached_at);
     const now = new Date();
     const diffDays = (now.getTime() - cachedDate.getTime()) / (1000 * 60 * 60 * 24);
     if (diffDays > TRUST_CACHE_DAYS) {
-      localStorage.removeItem(TRUST_CACHE_KEY);
+      removeEncrypted(TRUST_CACHE_KEY);
       return null;
     }
     return cached;
@@ -28,13 +29,13 @@ export function getCachedTrust(): CachedTrust | null {
   }
 }
 
-export function setCachedTrust(trust: Omit<CachedTrust, 'cached_at'>): void {
+export async function setCachedTrust(trust: Omit<CachedTrust, 'cached_at'>): Promise<void> {
   const entry: CachedTrust = { ...trust, cached_at: new Date().toISOString() };
-  localStorage.setItem(TRUST_CACHE_KEY, JSON.stringify(entry));
+  await writeEncrypted(TRUST_CACHE_KEY, entry);
 }
 
 export function clearCachedTrust(): void {
-  localStorage.removeItem(TRUST_CACHE_KEY);
+  removeEncrypted(TRUST_CACHE_KEY);
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;

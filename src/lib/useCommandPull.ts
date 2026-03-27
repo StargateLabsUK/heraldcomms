@@ -15,10 +15,10 @@ export function useCommandPull(onUpdate?: () => void) {
 
   useEffect(() => {
     const pull = async () => {
-      const session = getSession();
+      const session = await getSession();
       if (!session?.shift_id) return;
 
-      const localReports = getReports().filter(r => {
+      const localReports = (await getReports()).filter(r => {
         return r.session_callsign === session.callsign &&
           new Date(r.timestamp).toISOString().slice(0, 10) === session.session_date;
       });
@@ -60,7 +60,7 @@ export function useCommandPull(onUpdate?: () => void) {
           }
 
           if (Object.keys(updates).length > 0) {
-            updateReport(row.id, updates as any);
+            await updateReport(row.id, updates as any);
             changed = true;
           }
         }

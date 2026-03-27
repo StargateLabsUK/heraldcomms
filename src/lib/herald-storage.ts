@@ -1,42 +1,38 @@
 import type { HeraldReport, CasualtyDisposition } from './herald-types';
+import { readEncrypted, writeEncrypted, removeEncrypted } from './crypto';
 
 const STORAGE_KEY = 'herald_reports';
 const DISPOSITIONS_KEY = 'herald_casualty_dispositions';
 
-export function getReports(): HeraldReport[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+export async function getReports(): Promise<HeraldReport[]> {
+  return (await readEncrypted<HeraldReport[]>(STORAGE_KEY)) ?? [];
 }
 
-export function saveReport(report: HeraldReport): void {
-  const reports = getReports();
+export async function saveReport(report: HeraldReport): Promise<void> {
+  const reports = await getReports();
   reports.unshift(report);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+  await writeEncrypted(STORAGE_KEY, reports);
 }
 
-export function updateReport(id: string, updates: Partial<HeraldReport>): void {
-  const reports = getReports();
+export async function updateReport(id: string, updates: Partial<HeraldReport>): Promise<void> {
+  const reports = await getReports();
   const idx = reports.findIndex((r) => r.id === id);
   if (idx !== -1) {
     reports[idx] = { ...reports[idx], ...updates };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+    await writeEncrypted(STORAGE_KEY, reports);
   }
 }
 
-export function markSynced(id: string): void {
-  updateReport(id, { synced: true });
+export async function markSynced(id: string): Promise<void> {
+  await updateReport(id, { synced: true });
 }
 
-export function getUnsyncedReports(): HeraldReport[] {
-  return getReports().filter((r) => !r.synced);
+export async function getUnsyncedReports(): Promise<HeraldReport[]> {
+  return (await getReports()).filter((r) => !r.synced);
 }
 
-export function getShiftReports(callsign: string, sessionDate: string): HeraldReport[] {
-  return getReports().filter(
+export async function getShiftReports(callsign: string, sessionDate: string): Promise<HeraldReport[]> {
+  return (await getReports()).filter(
     (r) =>
       r.session_callsign === callsign &&
       new Date(r.timestamp).toISOString().slice(0, 10) === sessionDate
@@ -45,42 +41,36 @@ export function getShiftReports(callsign: string, sessionDate: string): HeraldRe
 
 // ── Casualty Dispositions ──
 
-export function getCasualtyDispositions(): CasualtyDisposition[] {
-  try {
-    const raw = localStorage.getItem(DISPOSITIONS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+export async function getCasualtyDispositions(): Promise<CasualtyDisposition[]> {
+  return (await readEncrypted<CasualtyDisposition[]>(DISPOSITIONS_KEY)) ?? [];
 }
 
-export function saveCasualtyDisposition(d: CasualtyDisposition): void {
-  const all = getCasualtyDispositions();
-  // Replace if same incident + casualty key
+export async function saveCasualtyDisposition(d: CasualtyDisposition): Promise<void> {
+  const all = await getCasualtyDispositions();
   const idx = all.findIndex(x => x.incident_id === d.incident_id && x.casualty_key === d.casualty_key);
   if (idx !== -1) all[idx] = d;
   else all.unshift(d);
-  localStorage.setItem(DISPOSITIONS_KEY, JSON.stringify(all));
+  await writeEncrypted(DISPOSITIONS_KEY, all);
 }
 
-export function getDispositionsForShift(callsign: string, sessionDate: string): CasualtyDisposition[] {
-  return getCasualtyDispositions().filter(d => {
-    // Prefer stored session_callsign on the disposition (works even if report isn't in local cache)
+export async function getDispositionsForShift(callsign: string, sessionDate: string): Promise<CasualtyDisposition[]> {
+  const dispositions = await getCasualtyDispositions();
+  const reports = await getReports();
+  return dispositions.filter(d => {
     if (d.session_callsign) {
       return d.session_callsign === callsign &&
         new Date(d.closed_at).toISOString().slice(0, 10) === sessionDate;
     }
-
-    // Fallback for legacy local records without session_callsign
-    const report = getReports().find(r => r.id === d.incident_id);
+    const report = reports.find(r => r.id === d.incident_id);
     return !!report &&
       report.session_callsign === callsign &&
       new Date(report.timestamp).toISOString().slice(0, 10) === sessionDate;
   });
 }
 
-export function isCasualtyClosed(incidentId: string, casualtyKey: string): boolean {
-  return getCasualtyDispositions().some(
+export async function isCasualtyClosed(incidentId: string, casualtyKey: string): Promise<boolean> {
+  const dispositions = await getCasualtyDispositions();
+  return dispositions.some(
     d => d.incident_id === incidentId && d.casualty_key === casualtyKey
   );
 }
