@@ -576,6 +576,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          retention_days: number
           slug: string
           trust_pin_hash: string
         }
@@ -584,6 +585,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          retention_days?: number
           slug: string
           trust_pin_hash: string
         }
@@ -592,6 +594,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          retention_days?: number
           slug?: string
           trust_pin_hash?: string
         }
@@ -627,6 +630,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_expired_data: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "command" | "field"
