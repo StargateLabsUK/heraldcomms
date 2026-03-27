@@ -68,59 +68,41 @@ export default function Login() {
     setSubmitting(true);
     setError('');
 
-    // Check server-side lockout before attempting login
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('locked, locked_until, failed_login_attempts')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (profile?.locked && profile?.locked_until) {
-      const lockedUntil = new Date(profile.locked_until);
-      if (lockedUntil > new Date()) {
-        setError('Account temporarily locked — try again in 15 minutes');
-        setSubmitting(false);
-        return;
-      }
-    }
-
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (authError || !data.session) {
-      // Increment server-side failure counter
-      if (profile) {
-        const attempts = (profile.failed_login_attempts ?? 0) + 1;
-        const updates: Record<string, unknown> = { failed_login_attempts: attempts };
-        if (attempts >= MAX_ATTEMPTS) {
-          updates.locked = true;
-          updates.locked_until = new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60_000).toISOString();
-        }
-        await supabase
-          .from('profiles')
-          .update(updates)
-          .eq('email', email);
-      }
-
-      if (profile && (profile.failed_login_attempts ?? 0) + 1 >= MAX_ATTEMPTS) {
-        setError('Account temporarily locked — try again in 15 minutes');
-      } else {
-        setError('Email or password incorrect');
-      }
+      setError('Email or password incorrect');
       setSubmitting(false);
       return;
     }
 
-    // MFA validation placeholder — TOTP verification to be implemented
-    // when MFA is enabled for trusts
+    // Now authenticated — check lockout status
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('locked, locked_until, failed_login_attempts')
+      .eq('id', data.session.user.id)
+      .maybeSingle();
+
+    if (profile?.locked && profile?.locked_until) {
+      const lockedUntil = new Date(profile.locked_until);
+      if (lockedUntil > new Date()) {
+        await supabase.auth.signOut();
+        setError('Account temporarily locked — try again in 15 minutes');
+        setSubmitting(false);
+        return;
+      }
+    }
 
     // Reset lockout on successful login
-    await supabase
-      .from('profiles')
-      .update({ failed_login_attempts: 0, locked: false, locked_until: null })
-      .eq('id', data.session.user.id);
+    if (profile && (profile.failed_login_attempts ?? 0) > 0) {
+      await supabase
+        .from('profiles')
+        .update({ failed_login_attempts: 0, locked: false, locked_until: null })
+        .eq('id', data.session.user.id);
+    }
 
     await checkRoleAndRedirect(data.session.user.id);
     setSubmitting(false);
