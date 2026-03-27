@@ -9,13 +9,19 @@ const ALLOWED_ORIGINS = [
   "https://herald.network",
   "https://www.herald.network",
   "https://heraldcomms.vercel.app",
-  "https://heraldcomms-etnm7t0sj-ayra1.vercel.app",
   "https://heraldcomms.lovable.app",
 ];
 
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Allow all Vercel preview deployments for this project
+  if (/^https:\/\/heraldcomms[a-z0-9-]*\.vercel\.app$/.test(origin)) return true;
+  return false;
+}
+
 export function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") ?? "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
