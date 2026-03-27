@@ -1,8 +1,8 @@
 import type { HeraldReport } from './herald-types';
 import { getShiftId, getSession, getTrustId } from './herald-session';
 
-export function toSyncPayload(report: HeraldReport, followUpOf?: string): Record<string, unknown> {
-  const session = getSession();
+export async function toSyncPayload(report: HeraldReport, followUpOf?: string): Promise<Record<string, unknown>> {
+  const session = await getSession();
   return {
     id: report.id,
     timestamp: report.timestamp,
@@ -24,12 +24,12 @@ export function toSyncPayload(report: HeraldReport, followUpOf?: string): Record
     session_operator_id: report.session_operator_id ?? null,
     session_service: report.session_service ?? null,
     session_station: report.session_station ?? null,
-    shift_id: getShiftId() ?? null,
+    shift_id: await getShiftId() ?? null,
     incident_number: report.incident_number ?? null,
     follow_up_of: followUpOf ?? null,
     vehicle_type: session?.vehicle_type ?? null,
     can_transport: session?.can_transport ?? true,
     critical_care: session?.critical_care ?? false,
-    trust_id: getTrustId() ?? null,
+    trust_id: await getTrustId() ?? null,
   };
 }

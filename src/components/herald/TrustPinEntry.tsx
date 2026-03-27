@@ -54,7 +54,7 @@ export function TrustPinEntry({ onValidated }: Props) {
       trust_slug: result.trust_slug,
       cached_at: new Date().toISOString(),
     };
-    setCachedTrust(cached);
+    await setCachedTrust(cached);
     onValidated(cached);
     setSubmitting(false);
   };

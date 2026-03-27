@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { isRateLimited } from "../_shared/rate-limit.ts";
 
 function asText(v: unknown, max = 500): string | null {
   if (typeof v !== "string") return null;
@@ -19,8 +15,15 @@ function jsonSafe(v: unknown): Record<string, unknown> {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  const preflight = handleCors(req);
+  if (preflight) return preflight;
+  const corsHeaders = getCorsHeaders(req);
+
+  if (isRateLimited(req, { name: "sync-transfer", maxRequests: 20, windowMs: 60_000 })) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {

@@ -16,7 +16,7 @@ export function useHeraldSync() {
         return;
       }
 
-      const unsynced = getUnsyncedReports();
+      const unsynced = await getUnsyncedReports();
       if (unsynced.length === 0) {
         setSyncStatus('ok');
         return;
@@ -25,9 +25,9 @@ export function useHeraldSync() {
       let allOk = true;
       for (const report of unsynced) {
         try {
-          const ok = await syncReport(toSyncPayload(report));
+          const ok = await syncReport(await toSyncPayload(report));
           if (ok) {
-            markSynced(report.id);
+            await markSynced(report.id);
           } else {
             allOk = false;
           }

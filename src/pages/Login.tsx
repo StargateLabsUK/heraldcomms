@@ -2,23 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_KEY = 'herald_login_lockout';
-
-function getLockout(): { count: number; lockedUntil: number | null } {
-  try {
-    const raw = localStorage.getItem(LOCKOUT_KEY);
-    if (!raw) return { count: 0, lockedUntil: null };
-    return JSON.parse(raw);
-  } catch {
-    return { count: 0, lockedUntil: null };
-  }
-}
-
-function setLockout(count: number, lockedUntil: number | null) {
-  localStorage.setItem(LOCKOUT_KEY, JSON.stringify({ count, lockedUntil }));
-}
+const LOCKOUT_DURATION_MINUTES = 15;
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -75,13 +60,6 @@ export default function Login() {
   const handleLogin = async () => {
     if (submitting) return;
 
-    // Check lockout
-    const lockout = getLockout();
-    if (lockout.lockedUntil && Date.now() < lockout.lockedUntil) {
-      setError('Account temporarily locked — try again in 15 minutes');
-      return;
-    }
-
     if (!email || !password) {
       setError('Email and password required');
       return;
@@ -90,35 +68,60 @@ export default function Login() {
     setSubmitting(true);
     setError('');
 
+    // Check server-side lockout before attempting login
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('locked, locked_until, failed_login_attempts')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (profile?.locked && profile?.locked_until) {
+      const lockedUntil = new Date(profile.locked_until);
+      if (lockedUntil > new Date()) {
+        setError('Account temporarily locked — try again in 15 minutes');
+        setSubmitting(false);
+        return;
+      }
+    }
+
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (authError || !data.session) {
-      const count = (lockout.lockedUntil && Date.now() >= lockout.lockedUntil ? 0 : lockout.count) + 1;
-      if (count >= MAX_ATTEMPTS) {
-        setLockout(count, Date.now() + LOCKOUT_DURATION_MS);
+      // Increment server-side failure counter
+      if (profile) {
+        const attempts = (profile.failed_login_attempts ?? 0) + 1;
+        const updates: Record<string, unknown> = { failed_login_attempts: attempts };
+        if (attempts >= MAX_ATTEMPTS) {
+          updates.locked = true;
+          updates.locked_until = new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60_000).toISOString();
+        }
+        await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('email', email);
+      }
+
+      if (profile && (profile.failed_login_attempts ?? 0) + 1 >= MAX_ATTEMPTS) {
         setError('Account temporarily locked — try again in 15 minutes');
       } else {
-        setLockout(count, null);
         setError('Email or password incorrect');
       }
       setSubmitting(false);
       return;
     }
 
-    // MFA validation — check if Arion Test Trust (accept 000000)
-    // For real MFA, this would verify with TOTP
-    // For now, check if code is provided and either matches 000000 (test) or a real TOTP
-    if (mfaCode && mfaCode !== '000000') {
-      // In production, validate TOTP here
-      // For now, only Arion Test Trust bypasses with 000000
-    }
+    // MFA validation placeholder — TOTP verification to be implemented
+    // when MFA is enabled for trusts
 
-    // Reset lockout on success
-    setLockout(0, null);
-    
+    // Reset lockout on successful login
+    await supabase
+      .from('profiles')
+      .update({ failed_login_attempts: 0, locked: false, locked_until: null })
+      .eq('id', data.session.user.id);
+
     await checkRoleAndRedirect(data.session.user.id);
     setSubmitting(false);
   };

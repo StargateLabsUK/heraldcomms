@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { isRateLimited } from "../_shared/rate-limit.ts";
 
 const MAX_TRANSCRIPT_LENGTH = 10000;
 const MAX_HEADLINE_LENGTH = 500;
@@ -45,8 +42,15 @@ function validateReport(report: Record<string, unknown>): string | null {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  const preflight = handleCors(req);
+  if (preflight) return preflight;
+  const corsHeaders = getCorsHeaders(req);
+
+  if (isRateLimited(req, { name: "sync-report", maxRequests: 30, windowMs: 60_000 })) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -325,6 +329,12 @@ serve(async (req) => {
           .eq("id", parentId);
       }
 
+      await supabase.from("audit_log").insert({
+        action: "report_synced",
+        trust_id: report.trust_id || null,
+        details: { report_id: parentId, callsign: report.session_callsign },
+      });
+
       return new Response(
         JSON.stringify({ ok: true, follow_up: true, parent_id: parentId }),
         { status: 201, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -363,6 +373,12 @@ serve(async (req) => {
       operator_id: reportData.session_operator_id ?? null,
       session_callsign: reportData.session_callsign ?? null,
       trust_id: reportData.trust_id ?? null,
+    });
+
+    await supabase.from("audit_log").insert({
+      action: "report_synced",
+      trust_id: report.trust_id || null,
+      details: { report_id: report.id, callsign: report.session_callsign },
     });
 
     return new Response(

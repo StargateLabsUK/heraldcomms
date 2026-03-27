@@ -30,7 +30,11 @@ const IncidentsPage = () => {
   const initialTab = (location.state as any)?.tab === 'reports' ? 'reports' : 'incidents';
   const [activeTab, setActiveTab] = useState<'live' | 'reports' | 'incidents'>(initialTab as any);
   const [reports, setReports] = useState<HeraldReport[]>([]);
-  const [session, setSession] = useState<HeraldSession | null>(getSession());
+  const [session, setSession] = useState<HeraldSession | null>(null);
+
+  useEffect(() => {
+    getSession().then(setSession);
+  }, []);
   const [incidentRefresh, setIncidentRefresh] = useState(0);
   const [closedCasualties, setClosedCasualties] = useState<CasualtyDisposition[]>([]);
   const [hospitalAlert, setHospitalAlert] = useState<HospitalAlert | null>(null);
@@ -48,7 +52,7 @@ const IncidentsPage = () => {
   }, [reports]);
 
   const refreshReports = useCallback(async () => {
-    const localReports = getReports();
+    const localReports = await getReports();
     setIncidentRefresh(n => n + 1);
     if (!session) {
       setReports(localReports);
@@ -58,7 +62,7 @@ const IncidentsPage = () => {
     const todayStart = session.session_date + 'T00:00:00.000Z';
 
     // Get local dispositions first
-    const localDisps = getDispositionsForShift(session.callsign, session.session_date);
+    const localDisps = await getDispositionsForShift(session.callsign, session.session_date);
 
     try {
       const { reports: remoteReports, dispositions: remoteDisps } = await fetchIncidentsRemote({

@@ -47,10 +47,18 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
     }
   };
 
+  // Validate collar number: alphanumeric, hyphens, underscores, spaces, max 30 chars
+  const COLLAR_PATTERN = /^[a-zA-Z0-9\-_ ]{1,30}$/;
+
   const handleSubmit = async (code: string) => {
     if (submitting) return;
     setSubmitting(true);
     const trimmedCollar = collarNumber.trim();
+    if (trimmedCollar && !COLLAR_PATTERN.test(trimmedCollar)) {
+      setError('Invalid collar number format');
+      setSubmitting(false);
+      return;
+    }
     const result = await redeemLinkCode(code, trimmedCollar || undefined);
     if ('error' in result) {
       setError(result.error);
@@ -61,7 +69,7 @@ export function LinkCodeEntry({ onShiftLinked }: Props) {
     }
     const session = result.session_data;
     session.operator_id = collarNumber.trim() || null;
-    saveSession(session);
+    await saveSession(session);
     onShiftLinked(session);
     setSubmitting(false);
   };

@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { isRateLimited } from "../_shared/rate-limit.ts";
 
 const MAX_TRANSCRIPT_LENGTH = 5000;
 const MAX_DIFFS_COUNT = 50;
@@ -193,8 +190,15 @@ async function validateTrust(trust_id: string): Promise<boolean> {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  const preflight = handleCors(req);
+  if (preflight) return preflight;
+  const corsHeaders = getCorsHeaders(req);
+
+  if (isRateLimited(req, { name: "assess", maxRequests: 15, windowMs: 60_000 })) {
+    return new Response(JSON.stringify({ error: "Too many requests" }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
