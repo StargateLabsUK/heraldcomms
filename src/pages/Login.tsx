@@ -194,35 +194,42 @@ export default function Login() {
     setSubmitting(true);
     setError('');
 
-    // Challenge then verify to complete enrollment
-    const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
-      factorId: mfaFactorId,
-    });
+    try {
+      // Challenge then verify to complete enrollment
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: mfaFactorId,
+      });
 
-    if (challengeError || !challenge) {
-      setError('Failed to start verification');
+      if (challengeError || !challenge) {
+        setError('Challenge failed: ' + (challengeError?.message || 'unknown error'));
+        setSubmitting(false);
+        return;
+      }
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaCode,
+      });
+
+      if (verifyError) {
+        setError('Verify failed: ' + verifyError.message);
+        setMfaCode('');
+        setSubmitting(false);
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await checkRoleAndRedirect(session.user.id);
+      } else {
+        setError('MFA verified but no session found');
+      }
       setSubmitting(false);
-      return;
-    }
-
-    const { error: verifyError } = await supabase.auth.mfa.verify({
-      factorId: mfaFactorId,
-      challengeId: challenge.id,
-      code: mfaCode,
-    });
-
-    if (verifyError) {
-      setError('Invalid code — make sure your authenticator app is synced');
-      setMfaCode('');
+    } catch (e: any) {
+      setError('Error: ' + (e?.message || String(e)));
       setSubmitting(false);
-      return;
     }
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await checkRoleAndRedirect(session.user.id);
-    }
-    setSubmitting(false);
   };
 
   const handleSkipMfa = async () => {
