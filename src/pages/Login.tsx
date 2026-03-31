@@ -49,15 +49,27 @@ export default function Login() {
   }, []);
 
   const checkRoleAndRedirect = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error: roleError } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userId);
 
-    if (data?.some(r => r.role === 'admin')) {
-      navigate('/admin');
-    } else if (data?.some(r => r.role === 'command')) {
-      navigate('/command');
+    if (roleError) {
+      setError('Role check failed: ' + roleError.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      setError('No roles found for this account. Contact your administrator.');
+      return;
+    }
+
+    if (data.some(r => r.role === 'admin')) {
+      window.location.href = '/admin';
+    } else if (data.some(r => r.role === 'command')) {
+      window.location.href = '/command';
+    } else {
+      setError('Account has no admin or command role. Roles: ' + data.map(r => r.role).join(', '));
     }
   };
 
