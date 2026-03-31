@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MINUTES = 15;
-
-type LoginStep = 'credentials' | 'mfa';
+type LoginStep = 'credentials' | 'mfa-verify' | 'mfa-enroll';
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -39,13 +36,14 @@ export default function Login() {
 
   // MFA state
   const [mfaFactorId, setMfaFactorId] = useState('');
-  const [mfaChallengeId, setMfaChallengeId] = useState('');
+  const [qrCode, setQrCode] = useState('');
+  const [mfaSecret, setMfaSecret] = useState('');
 
   // Check for existing session on mount
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        checkRoleAndRedirect(session.user.id);
+        checkMfaAndRedirect(session.user.id);
       }
     });
   }, []);
@@ -63,9 +61,18 @@ export default function Login() {
     }
   };
 
+  const checkMfaAndRedirect = async (userId: string) => {
+    // Check AAL level - if user has MFA but session is AAL1, don't redirect
+    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (aalData?.currentLevel === 'aal1' && aalData?.nextLevel === 'aal2') {
+      // Need MFA verification still
+      return;
+    }
+    await checkRoleAndRedirect(userId);
+  };
+
   const handleLogin = async () => {
     if (submitting) return;
-
     if (!email || !password) {
       setError('Email and password required');
       return;
@@ -80,12 +87,12 @@ export default function Login() {
     });
 
     if (authError || !data.session) {
-      setError(authError?.message || 'Login failed — no session returned');
+      setError(authError?.message || 'Login failed');
       setSubmitting(false);
       return;
     }
 
-    // Check lockout status
+    // Check lockout
     const { data: profile } = await supabase
       .from('profiles')
       .select('locked, locked_until, failed_login_attempts')
@@ -102,7 +109,6 @@ export default function Login() {
       }
     }
 
-    // Reset lockout on successful login
     if (profile && (profile.failed_login_attempts ?? 0) > 0) {
       await supabase
         .from('profiles')
@@ -110,64 +116,135 @@ export default function Login() {
         .eq('id', data.session.user.id);
     }
 
-    // Check if user has MFA enrolled
+    // Check MFA status
     const { data: factorsData } = await supabase.auth.mfa.listFactors();
     const totpFactors = factorsData?.totp ?? [];
     const verifiedFactor = totpFactors.find(f => f.status === 'verified');
 
     if (verifiedFactor) {
-      // User has MFA — need to verify
-      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
-        factorId: verifiedFactor.id,
-      });
-
-      if (challengeError || !challenge) {
-        setError('Failed to start MFA challenge');
-        setSubmitting(false);
-        return;
-      }
-
+      // Has MFA — go to verify step
       setMfaFactorId(verifiedFactor.id);
-      setMfaChallengeId(challenge.id);
-      setStep('mfa');
+      setStep('mfa-verify');
       setSubmitting(false);
       return;
     }
 
-    // No MFA — proceed directly. MFA can be enabled from admin settings.
-    await checkRoleAndRedirect(data.session.user.id);
+    // Clean up any unverified factors from previous failed attempts
+    for (const f of totpFactors.filter(f => f.status === 'unverified')) {
+      await supabase.auth.mfa.unenroll({ factorId: f.id });
+    }
+
+    // No MFA — enroll now
+    // FIX: Set issuer to 'Herald' so authenticator app shows correct name
+    const { data: enrollData, error: enrollError } = await supabase.auth.mfa.enroll({
+      factorType: 'totp',
+      friendlyName: 'Herald',
+      issuer: 'Herald',
+    });
+
+    if (enrollError || !enrollData) {
+      setError('MFA setup failed: ' + (enrollError?.message || 'unknown'));
+      setSubmitting(false);
+      return;
+    }
+
+    setMfaFactorId(enrollData.id);
+    setQrCode(enrollData.totp.qr_code);
+    setMfaSecret(enrollData.totp.secret);
+    setStep('mfa-enroll');
     setSubmitting(false);
   };
 
+  // FIX: Create a FRESH challenge for every verify attempt
+  // This prevents stale challenge IDs from causing failures
   const handleMfaVerify = async () => {
     if (submitting || mfaCode.length !== 6) return;
     setSubmitting(true);
     setError('');
 
-    const { error: verifyError } = await supabase.auth.mfa.verify({
-      factorId: mfaFactorId,
-      challengeId: mfaChallengeId,
-      code: mfaCode,
-    });
+    try {
+      // Always create a new challenge right before verify
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: mfaFactorId,
+      });
 
-    if (verifyError) {
-      setError('Invalid code — try again');
-      setMfaCode('');
+      if (challengeError || !challenge) {
+        setError('Challenge error: ' + (challengeError?.message || 'no challenge returned'));
+        setSubmitting(false);
+        return;
+      }
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaCode,
+      });
+
+      if (verifyError) {
+        setError('Invalid code: ' + verifyError.message);
+        setMfaCode('');
+        setSubmitting(false);
+        return;
+      }
+
+      // MFA verified — redirect
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await checkRoleAndRedirect(session.user.id);
+      }
       setSubmitting(false);
-      return;
+    } catch (e: any) {
+      setError('Error: ' + (e?.message || String(e)));
+      setSubmitting(false);
     }
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await checkRoleAndRedirect(session.user.id);
-    }
-    setSubmitting(false);
   };
 
-  const handleSkipMfa = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await checkRoleAndRedirect(session.user.id);
+  // MFA enrollment verify — same flow but for first-time setup
+  const handleMfaEnrollVerify = async () => {
+    if (submitting || mfaCode.length !== 6) return;
+    setSubmitting(true);
+    setError('');
+
+    try {
+      // FIX: Fresh challenge for enrollment verification too
+      const { data: challenge, error: challengeError } = await supabase.auth.mfa.challenge({
+        factorId: mfaFactorId,
+      });
+
+      if (challengeError || !challenge) {
+        setError('Challenge error: ' + (challengeError?.message || 'no challenge returned'));
+        setSubmitting(false);
+        return;
+      }
+
+      const { error: verifyError } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: challenge.id,
+        code: mfaCode,
+      });
+
+      if (verifyError) {
+        // FIX: Show specific error to help debug clock skew vs wrong code
+        const msg = verifyError.message || '';
+        if (msg.includes('expired') || msg.includes('invalid')) {
+          setError('Code rejected. Make sure your phone clock is set to automatic/network time, then try a fresh code.');
+        } else {
+          setError('Verify failed: ' + msg);
+        }
+        setMfaCode('');
+        setSubmitting(false);
+        return;
+      }
+
+      // Enrollment verified — redirect
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await checkRoleAndRedirect(session.user.id);
+      }
+      setSubmitting(false);
+    } catch (e: any) {
+      setError('Error: ' + (e?.message || String(e)));
+      setSubmitting(false);
     }
   };
 
@@ -193,7 +270,8 @@ export default function Login() {
           }}
         >
           {step === 'credentials' && 'COMMAND LOGIN'}
-          {step === 'mfa' && 'ENTER MFA CODE'}
+          {step === 'mfa-verify' && 'ENTER MFA CODE'}
+          {step === 'mfa-enroll' && 'SET UP MFA'}
         </p>
 
         {/* STEP 1: Email + Password */}
@@ -277,8 +355,8 @@ export default function Login() {
           </>
         )}
 
-        {/* STEP 2: MFA Code Entry (returning user) */}
-        {step === 'mfa' && (
+        {/* STEP 2: MFA Verify (returning user with MFA) */}
+        {step === 'mfa-verify' && (
           <>
             <p style={{ color: '#C8D0CC', fontSize: 14, textAlign: 'center', marginBottom: 24 }}>
               Open your authenticator app and enter the 6-digit code
@@ -344,6 +422,111 @@ export default function Login() {
           </>
         )}
 
+        {/* STEP 3: MFA Enrollment (first time) */}
+        {step === 'mfa-enroll' && (
+          <>
+            <p style={{ color: '#C8D0CC', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>
+              Scan this QR code with your authenticator app
+            </p>
+            <p style={{ color: '#4A6058', fontSize: 12, textAlign: 'center', marginBottom: 20 }}>
+              Google Authenticator, Authy, or Microsoft Authenticator
+            </p>
+
+            {qrCode && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                <img
+                  src={qrCode}
+                  alt="MFA QR Code"
+                  style={{ width: 200, height: 200, borderRadius: 8, background: '#FFF', padding: 8 }}
+                />
+              </div>
+            )}
+
+            {mfaSecret && (
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ color: '#4A6058', fontSize: 11, letterSpacing: '0.15em', textAlign: 'center', marginBottom: 4 }}>
+                  OR ENTER THIS CODE MANUALLY
+                </p>
+                <p style={{
+                  color: '#C8D0CC',
+                  fontSize: 13,
+                  textAlign: 'center',
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  background: '#0D1117',
+                  border: '1px solid #0F1820',
+                  padding: '8px 12px',
+                  borderRadius: 3,
+                  wordBreak: 'break-all',
+                  userSelect: 'all',
+                }}>
+                  {mfaSecret}
+                </p>
+              </div>
+            )}
+
+            <p style={{ color: '#FF9500', fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
+              Make sure your phone clock is set to automatic time
+            </p>
+
+            <div className="mb-6">
+              <label style={labelStyle}>ENTER CODE FROM APP</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+                autoFocus
+                style={{ ...inputStyle, textAlign: 'center', letterSpacing: '0.5em', fontSize: 24 }}
+                onKeyDown={(e) => e.key === 'Enter' && handleMfaEnrollVerify()}
+              />
+            </div>
+
+            {error && (
+              <p style={{ color: '#FF3B30', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>
+                {error}
+              </p>
+            )}
+
+            <button
+              onClick={handleMfaEnrollVerify}
+              disabled={submitting || mfaCode.length !== 6}
+              style={{
+                width: '100%',
+                padding: 12,
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: '#FFFFFF',
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 14,
+                fontWeight: 500,
+                letterSpacing: '0.15em',
+                cursor: submitting ? 'not-allowed' : 'pointer',
+                borderRadius: 3,
+                marginBottom: 12,
+              }}
+            >
+              {submitting ? 'VERIFYING...' : 'ACTIVATE MFA'}
+            </button>
+
+            <button
+              onClick={() => { setStep('credentials'); setMfaCode(''); setError(''); }}
+              style={{
+                width: '100%',
+                padding: 8,
+                background: 'transparent',
+                border: 'none',
+                color: '#4A6058',
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              BACK TO LOGIN
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
