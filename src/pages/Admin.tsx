@@ -475,7 +475,7 @@ export default function Admin() {
                 </div>
               </div>
             ) : (
-              <p style={{ color: '#4A6058' }}>No trust assigned to your account.</p>
+              <p style={{ color: '#4A6058' }}>No trust assigned to your account. (trust_id: {userTrustId || 'null'}, trusts loaded: {trusts.length})</p>
             )}
           </div>
         )}
