@@ -151,13 +151,12 @@ export default function Admin() {
       }
 
       // Get user's trust_id
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('trust_id')
         .eq('id', session.user.id)
         .maybeSingle();
 
-      console.log('ADMIN DEBUG:', { userId: session.user.id, profile, profileError });
       setUserTrustId(profile?.trust_id || null);
       setLoading(false);
     };
@@ -476,7 +475,7 @@ export default function Admin() {
                 </div>
               </div>
             ) : (
-              <p style={{ color: '#4A6058' }}>No trust assigned to your account. (trust_id: {userTrustId || 'null'}, trusts loaded: {trusts.length})</p>
+              <p style={{ color: '#4A6058' }}>No trust assigned to your account.</p>
             )}
           </div>
         )}
