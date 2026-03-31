@@ -506,7 +506,7 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
     // so we reload the page data instead. The polling will catch it in 10s,
     // but let's trigger an immediate visual update.
     window.dispatchEvent(new CustomEvent('herald-action-resolved'));
-  }, [report, a]);
+  }, [report]);
 
   const atmist = a?.atmist ?? null;
   const treatmentGiven: string[] = a?.treatment_given ?? [];
@@ -637,8 +637,8 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
           {activeActions.length > 0 && (
             <div className="flex flex-col gap-2 mb-3">
               {activeActions.map((item, i) => {
-                const text = typeof item === 'object' ? (item as ActionItem).text : String(item);
-                const openedAt = typeof item === 'object' ? (item as ActionItem).opened_at : report.created_at || report.timestamp;
+                const text = typeof item === 'object' && item !== null ? String((item as ActionItem).text ?? '') : String(item ?? '');
+                const openedAt = typeof item === 'object' && item !== null ? String((item as ActionItem).opened_at ?? '') : String(report.created_at || report.timestamp || '');
                 // Find the original index in the full action_items array
                 let originalIndex = -1;
                 try { originalIndex = actionItems.indexOf(item); } catch { /* silent */ }
@@ -649,7 +649,7 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
                     <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
                     <div className="flex-1 min-w-0">
                       <span className="text-lg text-foreground font-medium break-words">{text}</span>
-                      <span className="text-lg ml-2 opacity-60" style={{ color: '#FF9500' }}>— {formatActionAge(openedAt)}</span>
+                      <span className="text-lg ml-2 opacity-60" style={{ color: '#FF9500' }}>— {openedAt ? formatActionAge(openedAt) : ''}</span>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); resolveActionItem(resolveIdx); }}
