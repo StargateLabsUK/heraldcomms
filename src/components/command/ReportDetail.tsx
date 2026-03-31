@@ -483,29 +483,37 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
   const hospitalFromAssessment: string[] = a?.receiving_hospital ?? [];
   const hospitalStr = localHospital ?? (report as any).receiving_hospital ?? (hospitalFromAssessment.length > 0 ? hospitalFromAssessment.join(', ') : '');
 
-  const resolveActionItem = useCallback(async (itemIndex: number) => {
-    if (!report?.id) return;
-    const rawAssessment = report.assessment as any;
-    if (!rawAssessment) return;
-    const items = [...(rawAssessment.action_items ?? [])];
-    const item = items[itemIndex];
-    if (!item) return;
+  const resolveActionItem = useCallback(async (activeIndex: number) => {
+    try {
+      if (!report?.id) return;
+      const rawAssessment = report.assessment as any;
+      if (!rawAssessment) return;
+      const items = [...(rawAssessment.action_items ?? [])];
 
-    // Mark as resolved
-    if (typeof item === 'string') {
-      items[itemIndex] = { text: item, opened_at: report.created_at || report.timestamp || new Date().toISOString(), resolved_at: new Date().toISOString() };
-    } else {
-      (item as ActionItem).resolved_at = new Date().toISOString();
+      // Map activeIndex to the correct item in the full array (skip resolved ones)
+      let count = 0;
+      for (let j = 0; j < items.length; j++) {
+        const it = items[j];
+        const isResolved = typeof it === 'object' && it !== null && it.resolved_at;
+        if (!isResolved) {
+          if (count === activeIndex) {
+            if (typeof it === 'string') {
+              items[j] = { text: it, opened_at: new Date().toISOString(), resolved_at: new Date().toISOString() };
+            } else {
+              items[j] = { ...it, resolved_at: new Date().toISOString() };
+            }
+            break;
+          }
+          count++;
+        }
+      }
+
+      const updatedAssessment = { ...rawAssessment, action_items: items };
+      await supabase.from('herald_reports').update({ assessment: updatedAssessment as any }).eq('id', report.id);
+      window.dispatchEvent(new CustomEvent('herald-action-resolved'));
+    } catch {
+      // silent
     }
-
-    // Update the assessment in the database (use raw, not sanitized)
-    const updatedAssessment = { ...rawAssessment, action_items: items };
-    await supabase.from('herald_reports').update({ assessment: updatedAssessment as any }).eq('id', report.id);
-
-    // Force re-render by updating local state would require lifting state up,
-    // so we reload the page data instead. The polling will catch it in 10s,
-    // but let's trigger an immediate visual update.
-    window.dispatchEvent(new CustomEvent('herald-action-resolved'));
   }, [report]);
 
   const atmist = a?.atmist ?? null;
@@ -637,25 +645,29 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
           {activeActions.length > 0 && (
             <div className="flex flex-col gap-2 mb-3">
               {activeActions.map((item, i) => {
-                const text = typeof item === 'object' && item !== null ? String((item as ActionItem).text ?? '') : String(item ?? '');
-                const openedAt = typeof item === 'object' && item !== null ? String((item as ActionItem).opened_at ?? '') : String(report.created_at || report.timestamp || '');
-                // Find the original index in the full action_items array
-                let originalIndex = -1;
-                try { originalIndex = actionItems.indexOf(item); } catch { /* silent */ }
-                const resolveIdx = originalIndex >= 0 ? originalIndex : i;
+                let text = '';
+                let openedAt = '';
+                try {
+                  text = typeof item === 'object' && item !== null ? String((item as any).text ?? JSON.stringify(item)) : String(item ?? '');
+                  openedAt = typeof item === 'object' && item !== null ? String((item as any).opened_at ?? '') : '';
+                } catch { text = 'Action item'; }
+                if (!openedAt) openedAt = String(report.created_at || report.timestamp || '');
+
                 return (
                   <div key={i} className="rounded p-3 flex gap-3 items-start"
                     style={{ background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.3)' }}>
-                    <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
+                    <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>{'⚠'}</span>
                     <div className="flex-1 min-w-0">
                       <span className="text-lg text-foreground font-medium break-words">{text}</span>
-                      <span className="text-lg ml-2 opacity-60" style={{ color: '#FF9500' }}>— {openedAt ? formatActionAge(openedAt) : ''}</span>
+                      {openedAt ? (
+                        <span className="text-lg ml-2 opacity-60" style={{ color: '#FF9500' }}>{' — '}{formatActionAge(openedAt)}</span>
+                      ) : null}
                     </div>
                     <button
-                      onClick={(e) => { e.stopPropagation(); resolveActionItem(resolveIdx); }}
+                      onClick={(e) => { e.stopPropagation(); resolveActionItem(i); }}
                       className="flex-shrink-0 text-lg font-bold rounded-sm px-2 py-0.5 cursor-pointer transition-colors hover:opacity-80"
                       style={{ color: '#34C759', border: '1px solid rgba(52,199,89,0.4)', background: 'rgba(52,199,89,0.08)' }}>
-                      RESOLVE
+                      {'RESOLVE'}
                     </button>
                   </div>
                 );
