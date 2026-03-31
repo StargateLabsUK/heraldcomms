@@ -31,7 +31,9 @@ serve(async (req) => {
       .select("role")
       .eq("user_id", user.id);
 
-    if (!roles?.some((r: any) => r.role === "admin")) {
+    const isOwner = roles?.some((r: any) => r.role === "owner");
+    const isAdmin = roles?.some((r: any) => r.role === "admin");
+    if (!isOwner && !isAdmin) {
       return new Response(JSON.stringify({ error: "Admin access required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -41,6 +43,12 @@ serve(async (req) => {
     const body = await req.json();
 
     if (body.action === "create") {
+      if (!isOwner) {
+        return new Response(JSON.stringify({ error: "Only the Herald owner can create trusts" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { name, slug, pin } = body;
       if (!name || !slug || !pin) {
         return new Response(JSON.stringify({ error: "Missing fields" }), {
@@ -88,6 +96,17 @@ serve(async (req) => {
 
     if (body.action === "reset_pin") {
       const { trust_id, pin } = body;
+      // Trust admins can only reset their own trust's PIN
+      if (isAdmin && !isOwner) {
+        const { data: profile } = await supabase
+          .from("profiles").select("trust_id").eq("id", user.id).maybeSingle();
+        if (profile?.trust_id !== trust_id) {
+          return new Response(JSON.stringify({ error: "You can only reset your own trust's PIN" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
       if (!trust_id || !pin) {
         return new Response(JSON.stringify({ error: "Missing trust_id or pin" }), {
           status: 400,
@@ -138,6 +157,25 @@ serve(async (req) => {
         });
       }
 
+      // Trust admins can only create command users for their own trust
+      if (isAdmin && !isOwner) {
+        if (role !== "command") {
+          return new Response(JSON.stringify({ error: "Trust admins can only create command users" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: profile } = await supabase
+          .from("profiles").select("trust_id").eq("id", user.id).maybeSingle();
+        if (profile?.trust_id !== trust_id) {
+          return new Response(JSON.stringify({ error: "You can only create users for your own trust" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      // Owner can create admin or command; trust admin can only create command
       if (!["admin", "command"].includes(role)) {
         return new Response(JSON.stringify({ error: "Role must be admin or command" }), {
           status: 400,

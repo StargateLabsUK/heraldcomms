@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
-type AdminTab = 'trusts' | 'users' | 'audit' | 'devices';
+type OwnerTab = 'trusts' | 'users' | 'audit' | 'devices';
+type AdminTab = 'my-trust' | 'users' | 'audit' | 'devices';
 
 interface Trust {
   id: string;
@@ -79,12 +80,27 @@ const btnSmall: React.CSSProperties = {
   fontFamily: "'IBM Plex Mono', monospace",
 };
 
+const inputSmall: React.CSSProperties = {
+  background: '#0D1117',
+  border: '1px solid #0F1820',
+  color: '#C8D0CC',
+  padding: '8px 12px',
+  borderRadius: 3,
+  fontFamily: "'IBM Plex Mono', monospace",
+  fontSize: 14,
+  outline: 'none',
+};
+
 export default function Admin() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<AdminTab>('trusts');
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<'owner' | 'admin' | null>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userTrustId, setUserTrustId] = useState<string | null>(null);
+
+  // Tab state
+  const [ownerTab, setOwnerTab] = useState<OwnerTab>('trusts');
+  const [adminTab, setAdminTab] = useState<AdminTab>('my-trust');
 
   // Trusts state
   const [trusts, setTrusts] = useState<Trust[]>([]);
@@ -100,7 +116,7 @@ export default function Admin() {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
   const [newUserTrust, setNewUserTrust] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'command' | 'admin'>('command');
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'command'>('command');
   const [inviteStatus, setInviteStatus] = useState('');
 
   // Audit state
@@ -119,16 +135,29 @@ export default function Admin() {
         return;
       }
       setUserId(session.user.id);
+
       const { data: roles } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', session.user.id);
-      
-      if (!roles?.some(r => r.role === 'admin')) {
+
+      if (roles?.some(r => r.role === 'owner')) {
+        setRole('owner');
+      } else if (roles?.some(r => r.role === 'admin')) {
+        setRole('admin');
+      } else {
         navigate('/login');
         return;
       }
-      setIsAdmin(true);
+
+      // Get user's trust_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('trust_id')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      setUserTrustId(profile?.trust_id || null);
       setLoading(false);
     };
     checkAuth();
@@ -143,7 +172,7 @@ export default function Admin() {
     const { data: profiles } = await supabase.from('profiles').select('*');
     const { data: roles } = await supabase.from('user_roles').select('*');
     if (profiles) {
-      const userList: UserRow[] = profiles.map((p: any) => ({
+      let userList: UserRow[] = profiles.map((p: any) => ({
         id: p.id,
         email: p.email,
         full_name: p.full_name,
@@ -151,13 +180,16 @@ export default function Admin() {
         trust_id: p.trust_id,
         roles: (roles || []).filter((r: any) => r.user_id === p.id).map((r: any) => r.role),
       }));
+      // Trust admins only see users in their trust
+      if (role === 'admin' && userTrustId) {
+        userList = userList.filter(u => u.trust_id === userTrustId);
+      }
       setUsers(userList);
     }
-  }, []);
+  }, [role, userTrustId]);
 
   const loadAudit = useCallback(async () => {
-    let query = supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(200);
-    const { data } = await query;
+    const { data } = await supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(200);
     if (data) setAuditLogs(data as AuditEntry[]);
   }, []);
 
@@ -177,27 +209,33 @@ export default function Admin() {
     }
   }, []);
 
+  // Load data based on active tab
+  const activeTab = role === 'owner' ? ownerTab : adminTab;
   useEffect(() => {
-    if (!isAdmin) return;
-    if (tab === 'trusts') loadTrusts();
-    else if (tab === 'users') { loadUsers(); loadTrusts(); }
-    else if (tab === 'audit') loadAudit();
-    else if (tab === 'devices') loadShifts();
-  }, [isAdmin, tab, loadTrusts, loadUsers, loadAudit, loadShifts]);
+    if (!role) return;
+    if (activeTab === 'trusts' || activeTab === 'my-trust') loadTrusts();
+    else if (activeTab === 'users') { loadUsers(); loadTrusts(); }
+    else if (activeTab === 'audit') loadAudit();
+    else if (activeTab === 'devices') loadShifts();
+  }, [role, activeTab, loadTrusts, loadUsers, loadAudit, loadShifts]);
 
-  const handleCreateTrust = async () => {
-    if (!newTrustName || !newTrustSlug) return;
-    const pin = String(Math.floor(100000 + Math.random() * 900000));
-    // Hash via edge function
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-trust`, {
+  const callAdminApi = async (body: Record<string, unknown>) => {
+    const session = (await supabase.auth.getSession()).data.session;
+    return fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-trust`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
-      body: JSON.stringify({ action: 'create', name: newTrustName, slug: newTrustSlug, pin }),
+      body: JSON.stringify(body),
     });
+  };
+
+  const handleCreateTrust = async () => {
+    if (!newTrustName || !newTrustSlug) return;
+    const pin = String(Math.floor(100000 + Math.random() * 900000));
+    const res = await callAdminApi({ action: 'create', name: newTrustName, slug: newTrustSlug, pin });
     if (res.ok) {
       setGeneratedPin(pin);
       setNewTrustName('');
@@ -208,15 +246,7 @@ export default function Admin() {
 
   const handleResetPin = async (trustId: string) => {
     const pin = String(Math.floor(100000 + Math.random() * 900000));
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-trust`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-      },
-      body: JSON.stringify({ action: 'reset_pin', trust_id: trustId, pin }),
-    });
+    const res = await callAdminApi({ action: 'reset_pin', trust_id: trustId, pin });
     if (res.ok) {
       setResetPinTrustId(trustId);
       setResetPinValue(pin);
@@ -229,27 +259,27 @@ export default function Admin() {
   };
 
   const handleInviteUser = async () => {
-    if (!newUserEmail || !newUserPassword || !newUserTrust) {
-      setInviteStatus('Email, password, and trust are required');
+    if (!newUserEmail || !newUserPassword) {
+      setInviteStatus('Email and password are required');
       return;
     }
+    const trustId = role === 'owner' ? newUserTrust : userTrustId;
+    if (!trustId) {
+      setInviteStatus('Please select a trust');
+      return;
+    }
+    // Trust admins can only create command users
+    const inviteRole = role === 'admin' ? 'command' : newUserRole;
+
     setInviteStatus('Creating account...');
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-trust`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
-        body: JSON.stringify({
-          action: 'invite_user',
-          email: newUserEmail,
-          password: newUserPassword,
-          full_name: newUserName,
-          trust_id: newUserTrust,
-          role: newUserRole,
-        }),
+      const res = await callAdminApi({
+        action: 'invite_user',
+        email: newUserEmail,
+        password: newUserPassword,
+        full_name: newUserName,
+        trust_id: trustId,
+        role: inviteRole,
       });
       const result = await res.json();
       if (res.ok) {
@@ -275,7 +305,7 @@ export default function Admin() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/login');
+    window.location.href = '/login';
   };
 
   if (loading) {
@@ -294,6 +324,12 @@ export default function Admin() {
       )
     : auditLogs;
 
+  const myTrust = trusts.find(t => t.id === userTrustId);
+
+  // Determine which tabs to show
+  const ownerTabs: OwnerTab[] = ['trusts', 'users', 'audit', 'devices'];
+  const adminTabs: AdminTab[] = ['my-trust', 'users', 'audit', 'devices'];
+
   return (
     <div className="min-h-screen" style={{ background: '#080B10' }}>
       {/* Top bar */}
@@ -302,23 +338,38 @@ export default function Admin() {
           <span style={{ color: '#FFFFFF', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 20, letterSpacing: '0.08em' }}>
             HERALD
           </span>
-          <span style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em' }}>ADMIN</span>
+          <span style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em' }}>
+            {role === 'owner' ? 'OWNER ADMIN' : 'TRUST ADMIN'}
+          </span>
+          {role === 'admin' && myTrust && (
+            <span style={{ color: 'hsl(147, 100%, 62%)', fontSize: 12, letterSpacing: '0.1em' }}>
+              {myTrust.name}
+            </span>
+          )}
         </div>
         <button onClick={handleLogout} style={{ ...btnSmall, fontSize: 11 }}>SIGN OUT</button>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b" style={{ borderColor: '#0F1820' }}>
-        {(['trusts', 'users', 'audit', 'devices'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} style={tabStyle(tab === t)}>
-            {t.toUpperCase()}
-          </button>
-        ))}
+        {role === 'owner'
+          ? ownerTabs.map((t) => (
+              <button key={t} onClick={() => setOwnerTab(t)} style={tabStyle(ownerTab === t)}>
+                {t.toUpperCase()}
+              </button>
+            ))
+          : adminTabs.map((t) => (
+              <button key={t} onClick={() => setAdminTab(t)} style={tabStyle(adminTab === t)}>
+                {t === 'my-trust' ? 'MY TRUST' : t.toUpperCase()}
+              </button>
+            ))
+        }
       </div>
 
       <div className="p-4" style={{ maxWidth: 1200, margin: '0 auto' }}>
-        {/* TRUSTS TAB */}
-        {tab === 'trusts' && (
+
+        {/* ═══════════════ OWNER: TRUSTS TAB ═══════════════ */}
+        {role === 'owner' && ownerTab === 'trusts' && (
           <div>
             <div className="mb-6 p-4 rounded" style={{ background: '#0D1117', border: '1px solid #0F1820' }}>
               <p style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em', marginBottom: 12 }}>ADD NEW TRUST</p>
@@ -345,7 +396,7 @@ export default function Admin() {
               </div>
               {generatedPin && (
                 <p style={{ color: 'hsl(147, 100%, 62%)', fontSize: 16, marginTop: 12, fontFamily: "'IBM Plex Mono', monospace" }}>
-                  Generated PIN: <strong>{generatedPin}</strong> — share securely with station managers
+                  Generated PIN: <strong>{generatedPin}</strong> — share securely with trust admin
                 </p>
               )}
             </div>
@@ -366,7 +417,7 @@ export default function Admin() {
                     <td style={cellStyle}>
                       {t.name}
                       {t.slug === 'arion-test' && (
-                        <span style={{ color: '#FF9500', fontSize: 11, marginLeft: 8 }}>TEST ENVIRONMENT</span>
+                        <span style={{ color: '#FF9500', fontSize: 11, marginLeft: 8 }}>TEST</span>
                       )}
                     </td>
                     <td style={cellStyle}>{t.slug}</td>
@@ -378,13 +429,8 @@ export default function Admin() {
                     <td style={cellStyle}>{new Date(t.created_at).toLocaleDateString()}</td>
                     <td style={cellStyle}>
                       <div className="flex gap-2 items-center flex-wrap">
-                        <button onClick={() => handleResetPin(t.id)} style={btnSmall}>
-                          RESET PIN
-                        </button>
-                        <button
-                          onClick={() => handleToggleTrust(t.id, t.active)}
-                          style={btnSmall}
-                        >
+                        <button onClick={() => handleResetPin(t.id)} style={btnSmall}>RESET PIN</button>
+                        <button onClick={() => handleToggleTrust(t.id, t.active)} style={btnSmall}>
                           {t.active ? 'DEACTIVATE' : 'ACTIVATE'}
                         </button>
                       </div>
@@ -401,11 +447,44 @@ export default function Admin() {
           </div>
         )}
 
-        {/* USERS TAB */}
-        {tab === 'users' && (
+        {/* ═══════════════ TRUST ADMIN: MY TRUST TAB ═══════════════ */}
+        {role === 'admin' && adminTab === 'my-trust' && (
+          <div>
+            {myTrust ? (
+              <div className="p-4 rounded" style={{ background: '#0D1117', border: '1px solid #0F1820' }}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em', marginBottom: 8 }}>TRUST DETAILS</p>
+                    <p style={{ color: '#FFFFFF', fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{myTrust.name}</p>
+                    <p style={{ color: '#4A6058', fontSize: 13 }}>Slug: {myTrust.slug}</p>
+                    <p style={{ color: '#4A6058', fontSize: 13 }}>Created: {new Date(myTrust.created_at).toLocaleDateString()}</p>
+                    <p style={{ color: myTrust.active ? 'hsl(147, 100%, 62%)' : '#FF3B30', fontSize: 13, marginTop: 4 }}>
+                      {myTrust.active ? 'ACTIVE' : 'INACTIVE'}
+                    </p>
+                  </div>
+                  <div>
+                    <button onClick={() => handleResetPin(myTrust.id)} style={btnSmall}>RESET CREW PIN</button>
+                    {resetPinTrustId === myTrust.id && resetPinValue && (
+                      <p style={{ color: 'hsl(147, 100%, 62%)', fontSize: 14, marginTop: 8, fontFamily: "'IBM Plex Mono', monospace" }}>
+                        New PIN: <strong>{resetPinValue}</strong>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p style={{ color: '#4A6058' }}>No trust assigned to your account.</p>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════ USERS TAB (both roles) ═══════════════ */}
+        {activeTab === 'users' && (
           <div>
             <div className="mb-6 p-4 rounded" style={{ background: '#0D1117', border: '1px solid #0F1820' }}>
-              <p style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em', marginBottom: 12 }}>ADD NEW USER</p>
+              <p style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em', marginBottom: 12 }}>
+                {role === 'owner' ? 'ADD NEW USER' : 'ADD COMMAND USER'}
+              </p>
               <div className="flex gap-3 items-end flex-wrap">
                 <div>
                   <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>EMAIL</label>
@@ -436,30 +515,35 @@ export default function Admin() {
                     style={{ ...inputSmall, width: 160 }}
                   />
                 </div>
-                <div>
-                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>TRUST</label>
-                  <select
-                    value={newUserTrust}
-                    onChange={(e) => setNewUserTrust(e.target.value)}
-                    style={{ ...inputSmall, width: 200 }}
-                  >
-                    <option value="">Select trust...</option>
-                    {trusts.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>ROLE</label>
-                  <select
-                    value={newUserRole}
-                    onChange={(e) => setNewUserRole(e.target.value as 'command' | 'admin')}
-                    style={{ ...inputSmall, width: 130 }}
-                  >
-                    <option value="command">Command</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
+                {/* Owner picks trust + role; admin has fixed trust and can only create command */}
+                {role === 'owner' && (
+                  <>
+                    <div>
+                      <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>TRUST</label>
+                      <select
+                        value={newUserTrust}
+                        onChange={(e) => setNewUserTrust(e.target.value)}
+                        style={{ ...inputSmall, width: 200 }}
+                      >
+                        <option value="">Select trust...</option>
+                        {trusts.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ color: '#4A6058', fontSize: 11, display: 'block', marginBottom: 4 }}>ROLE</label>
+                      <select
+                        value={newUserRole}
+                        onChange={(e) => setNewUserRole(e.target.value as 'admin' | 'command')}
+                        style={{ ...inputSmall, width: 150 }}
+                      >
+                        <option value="admin">Trust Admin</option>
+                        <option value="command">Command</option>
+                      </select>
+                    </div>
+                  </>
+                )}
                 <button onClick={handleInviteUser} style={btnSmall}>CREATE ACCOUNT</button>
               </div>
               {inviteStatus && (
@@ -479,7 +563,7 @@ export default function Admin() {
                 <tr>
                   <th style={headerCellStyle}>EMAIL</th>
                   <th style={headerCellStyle}>NAME</th>
-                  <th style={headerCellStyle}>TRUST</th>
+                  {role === 'owner' && <th style={headerCellStyle}>TRUST</th>}
                   <th style={headerCellStyle}>ROLES</th>
                   <th style={headerCellStyle}>STATUS</th>
                   <th style={headerCellStyle}>ACTIONS</th>
@@ -490,9 +574,11 @@ export default function Admin() {
                   <tr key={u.id}>
                     <td style={cellStyle}>{u.email || '—'}</td>
                     <td style={cellStyle}>{u.full_name || '—'}</td>
-                    <td style={cellStyle}>
-                      {u.trust_id ? trusts.find(t => t.id === u.trust_id)?.name || u.trust_id.slice(0, 8) : '—'}
-                    </td>
+                    {role === 'owner' && (
+                      <td style={cellStyle}>
+                        {u.trust_id ? trusts.find(t => t.id === u.trust_id)?.name || u.trust_id.slice(0, 8) : '—'}
+                      </td>
+                    )}
                     <td style={cellStyle}>{u.roles.join(', ') || 'none'}</td>
                     <td style={cellStyle}>
                       <span style={{ color: u.locked ? '#FF3B30' : 'hsl(147, 100%, 62%)' }}>
@@ -511,8 +597,8 @@ export default function Admin() {
           </div>
         )}
 
-        {/* AUDIT TAB */}
-        {tab === 'audit' && (
+        {/* ═══════════════ AUDIT TAB (both roles) ═══════════════ */}
+        {activeTab === 'audit' && (
           <div>
             <input
               value={auditFilter}
@@ -603,12 +689,12 @@ export default function Admin() {
           </div>
         )}
 
-        {/* DEVICES TAB */}
-        {tab === 'devices' && (
+        {/* ═══════════════ DEVICES TAB (both roles) ═══════════════ */}
+        {activeTab === 'devices' && (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={headerCellStyle}>TRUST</th>
+                {role === 'owner' && <th style={headerCellStyle}>TRUST</th>}
                 <th style={headerCellStyle}>CALLSIGN</th>
                 <th style={headerCellStyle}>OPERATOR ID</th>
                 <th style={headerCellStyle}>STATION</th>
@@ -619,7 +705,7 @@ export default function Admin() {
             <tbody>
               {shifts.map((s) => (
                 <tr key={s.id}>
-                  <td style={cellStyle}>{s.trust_name || '—'}</td>
+                  {role === 'owner' && <td style={cellStyle}>{s.trust_name || '—'}</td>}
                   <td style={cellStyle}>{s.callsign || '—'}</td>
                   <td style={cellStyle}>{s.operator_id || '—'}</td>
                   <td style={cellStyle}>{s.station || '—'}</td>
@@ -634,14 +720,3 @@ export default function Admin() {
     </div>
   );
 }
-
-const inputSmall: React.CSSProperties = {
-  background: '#0D1117',
-  border: '1px solid #0F1820',
-  color: '#C8D0CC',
-  padding: '8px 12px',
-  borderRadius: 3,
-  fontFamily: "'IBM Plex Mono', monospace",
-  fontSize: 14,
-  outline: 'none',
-};

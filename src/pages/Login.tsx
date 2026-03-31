@@ -64,7 +64,9 @@ export default function Login() {
       return;
     }
 
-    if (data.some(r => r.role === 'admin')) {
+    if (data.some(r => r.role === 'owner')) {
+      window.location.href = '/admin';
+    } else if (data.some(r => r.role === 'admin')) {
       window.location.href = '/admin';
     } else if (data.some(r => r.role === 'command')) {
       window.location.href = '/command';
