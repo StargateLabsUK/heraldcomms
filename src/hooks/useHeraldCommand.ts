@@ -132,6 +132,8 @@ export function useHeraldCommand() {
     }
   }, []);
 
+  const connectedRef = useRef(false);
+
   const subscribe = useCallback(() => {
     const channel = supabase
       .channel('herald-command')
@@ -241,7 +243,9 @@ export function useHeraldCommand() {
         }
       )
       .subscribe((status) => {
-        setConnected(status === 'SUBSCRIBED');
+        const isConnected = status === 'SUBSCRIBED';
+        connectedRef.current = isConnected;
+        setConnected(isConnected);
       });
 
     return channel;
@@ -252,7 +256,7 @@ export function useHeraldCommand() {
     const channel = subscribe();
 
     retryRef.current = setInterval(() => {
-      if (!connected) {
+      if (!connectedRef.current) {
         supabase.removeChannel(channel);
         subscribe();
       }
