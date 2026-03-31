@@ -804,18 +804,24 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
                   </div>
                   {tx.headline && <p className="text-lg text-foreground font-medium mb-1 break-words">{tx.headline}</p>}
                   {tx.transcript && <p className="text-lg text-foreground italic opacity-80 break-words mb-2">&ldquo;{tx.transcript}&rdquo;</p>}
-                  {txStructured && Object.keys(txStructured).length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-border">
-                      <div className="flex flex-col gap-1.5">
-                        {Object.entries(txStructured).map(([k, v]) => (
-                          <div key={k}>
-                            <span className="text-lg font-bold" style={{ color: txCol }}>{k}: </span>
-                            <span className="text-lg text-foreground whitespace-pre-wrap">{renderStructuredValue(v)}</span>
-                          </div>
-                        ))}
+                  {txStructured && (() => {
+                    // Filter out empty values and fields already shown elsewhere
+                    const HIDDEN_KEYS = new Set(['callsign', 'operator_id', 'incident_number', 'emergency_services', 'number_of_casualties', 'access', 'hazards']);
+                    const filtered = Object.entries(txStructured).filter(([k, v]) => !HIDDEN_KEYS.has(k) && v != null && String(v).trim() !== '');
+                    if (filtered.length === 0) return null;
+                    return (
+                      <div className="mt-2 pt-2 border-t border-border">
+                        <div className="flex flex-col gap-1.5">
+                          {filtered.map(([k, v]) => (
+                            <div key={k}>
+                              <span className="text-lg font-bold" style={{ color: txCol }}>{k}: </span>
+                              <span className="text-lg text-foreground whitespace-pre-wrap">{renderStructuredValue(v)}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </DetailCard>
               );
             })}
