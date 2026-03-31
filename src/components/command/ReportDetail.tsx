@@ -605,33 +605,33 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
         />
       </div>
 
-      {/* 2. METHANE */}
-      <div>
-        <SectionLabel color={col}>METHANE</SectionLabel>
-        <DetailCard>
-          <div className="flex flex-col gap-3">
-            {[
-              { key: 'M', label: 'Major incident', value: methane.M },
-              { key: 'E', label: 'Exact location', value: methane.E },
-              { key: 'T', label: 'Type of incident', value: methane.T },
-              { key: 'H', label: 'Hazards', value: methane.H },
-              { key: 'A', label: 'Access routes', value: methane.A_access },
-              { key: 'N', label: 'Number of casualties', value: methane.N },
-              { key: 'E2', label: 'Emergency services', value: methane.E_emergency },
-            ].map(({ key, label, value }) => (
-              <div key={key}>
-                <div className="flex gap-2">
-                  <span className="text-lg font-bold min-w-[24px]" style={{ color: col }}>{key === 'E2' ? 'E' : key}</span>
-                  <span className="text-lg font-bold" style={{ color: col }}>{label}</span>
-                </div>
-                <div className="text-lg text-foreground ml-8 break-words">{value || '—'}</div>
-              </div>
-            ))}
-          </div>
-        </DetailCard>
-      </div>
+      {/* 1. ACTION ITEMS — first so command sees what needs response */}
+      {(activeActions.length > 0 || allResolved.length > 0) && (
+        <div>
+          <SectionLabel color="#FF9500">⚠ ACTION ITEMS</SectionLabel>
+          {activeActions.length > 0 && (
+            <div className="flex flex-col gap-2 mb-3">
+              {activeActions.map((item, i) => {
+                const text = typeof item === 'object' ? (item as ActionItem).text : item;
+                const openedAt = typeof item === 'object' ? (item as ActionItem).opened_at : report.created_at || report.timestamp;
+                return (
+                  <div key={i} className="rounded p-3 flex gap-3 items-start"
+                    style={{ background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.3)' }}>
+                    <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-lg text-foreground font-medium break-words">{text}</span>
+                      <span className="text-lg ml-2 opacity-60" style={{ color: '#FF9500' }}>— {formatActionAge(openedAt)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {allResolved.length > 0 && <ResolvedSection items={allResolved} />}
+        </div>
+      )}
 
-      {/* 3. Casualties */}
+      {/* 2. CASUALTIES */}
       {atmist && Object.keys(atmist).length > 0 && (
         <div>
           <SectionLabel color="#1E90FF">CASUALTIES</SectionLabel>
@@ -731,33 +731,33 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
         );
       })()}
 
-      {/* 5. Action Items */}
-      {(activeActions.length > 0 || allResolved.length > 0) && (
-        <div>
-          <SectionLabel color="#FF9500">⚠ ACTION ITEMS</SectionLabel>
-          {activeActions.length > 0 && (
-            <div className="flex flex-col gap-2 mb-3">
-              {activeActions.map((item, i) => {
-                const text = typeof item === 'object' ? (item as ActionItem).text : item;
-                const openedAt = typeof item === 'object' ? (item as ActionItem).opened_at : report.created_at || report.timestamp;
-                return (
-                  <div key={i} className="rounded p-3 flex gap-3 items-start"
-                    style={{ background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.3)' }}>
-                    <span className="text-lg font-bold flex-shrink-0" style={{ color: '#FF9500' }}>⚠</span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-lg text-foreground font-medium break-words">{text}</span>
-                      <span className="text-lg ml-2 opacity-60" style={{ color: '#FF9500' }}>— {formatActionAge(openedAt)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {allResolved.length > 0 && <ResolvedSection items={allResolved} />}
-        </div>
-      )}
+      {/* METHANE */}
+      <div>
+        <SectionLabel color={col}>METHANE</SectionLabel>
+        <DetailCard>
+          <div className="flex flex-col gap-3">
+            {[
+              { key: 'M', label: 'Major incident', value: methane.M },
+              { key: 'E', label: 'Exact location', value: methane.E },
+              { key: 'T', label: 'Type of incident', value: methane.T },
+              { key: 'H', label: 'Hazards', value: methane.H },
+              { key: 'A', label: 'Access routes', value: methane.A_access },
+              { key: 'N', label: 'Number of casualties', value: methane.N },
+              { key: 'E2', label: 'Emergency services', value: methane.E_emergency },
+            ].map(({ key, label, value }) => (
+              <div key={key}>
+                <div className="flex gap-2">
+                  <span className="text-lg font-bold min-w-[24px]" style={{ color: col }}>{key === 'E2' ? 'E' : key}</span>
+                  <span className="text-lg font-bold" style={{ color: col }}>{label}</span>
+                </div>
+                <div className="text-lg text-foreground ml-8 break-words">{value || '—'}</div>
+              </div>
+            ))}
+          </div>
+        </DetailCard>
+      </div>
 
-      {/* 6. Transmission Log */}
+      {/* TRANSMISSION LOG */}
       {transmissions.length > 0 && (
         <div>
           <SectionLabel color="#1E90FF">TRANSMISSION LOG ({transmissions.length})</SectionLabel>
