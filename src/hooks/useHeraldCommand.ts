@@ -242,7 +242,8 @@ export function useHeraldCommand() {
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
+        console.log('REALTIME STATUS:', status, err);
         const isConnected = status === 'SUBSCRIBED';
         connectedRef.current = isConnected;
         setConnected(isConnected);
