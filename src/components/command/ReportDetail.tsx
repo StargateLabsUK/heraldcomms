@@ -484,8 +484,10 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
   const hospitalStr = localHospital ?? (report as any).receiving_hospital ?? (hospitalFromAssessment.length > 0 ? hospitalFromAssessment.join(', ') : '');
 
   const resolveActionItem = useCallback(async (itemIndex: number) => {
-    if (!report?.id || !a) return;
-    const items = [...(a.action_items ?? [])];
+    if (!report?.id) return;
+    const rawAssessment = report.assessment as any;
+    if (!rawAssessment) return;
+    const items = [...(rawAssessment.action_items ?? [])];
     const item = items[itemIndex];
     if (!item) return;
 
@@ -496,8 +498,8 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
       (item as ActionItem).resolved_at = new Date().toISOString();
     }
 
-    // Update the assessment in the database
-    const updatedAssessment = { ...a, action_items: items };
+    // Update the assessment in the database (use raw, not sanitized)
+    const updatedAssessment = { ...rawAssessment, action_items: items };
     await supabase.from('herald_reports').update({ assessment: updatedAssessment as any }).eq('id', report.id);
 
     // Force re-render by updating local state would require lifting state up,
@@ -635,10 +637,12 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
           {activeActions.length > 0 && (
             <div className="flex flex-col gap-2 mb-3">
               {activeActions.map((item, i) => {
-                const text = typeof item === 'object' ? (item as ActionItem).text : item;
+                const text = typeof item === 'object' ? (item as ActionItem).text : String(item);
                 const openedAt = typeof item === 'object' ? (item as ActionItem).opened_at : report.created_at || report.timestamp;
                 // Find the original index in the full action_items array
-                const originalIndex = actionItems.indexOf(item);
+                let originalIndex = -1;
+                try { originalIndex = actionItems.indexOf(item); } catch { /* silent */ }
+                const resolveIdx = originalIndex >= 0 ? originalIndex : i;
                 return (
                   <div key={i} className="rounded p-3 flex gap-3 items-start"
                     style={{ background: 'rgba(255,149,0,0.08)', border: '1px solid rgba(255,149,0,0.3)' }}>
@@ -648,7 +652,7 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
                       <span className="text-lg ml-2 opacity-60" style={{ color: '#FF9500' }}>— {formatActionAge(openedAt)}</span>
                     </div>
                     <button
-                      onClick={() => resolveActionItem(originalIndex >= 0 ? originalIndex : i)}
+                      onClick={(e) => { e.stopPropagation(); resolveActionItem(resolveIdx); }}
                       className="flex-shrink-0 text-lg font-bold rounded-sm px-2 py-0.5 cursor-pointer transition-colors hover:opacity-80"
                       style={{ color: '#34C759', border: '1px solid rgba(52,199,89,0.4)', background: 'rgba(52,199,89,0.08)' }}>
                       RESOLVE
