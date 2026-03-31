@@ -266,9 +266,14 @@ export function useHeraldCommand() {
       fetchData();
     }, 10000);
 
+    // Listen for action resolved events for immediate refresh
+    const handleResolved = () => fetchData();
+    window.addEventListener('herald-action-resolved', handleResolved);
+
     return () => {
       supabase.removeChannel(channel);
       clearInterval(pollInterval);
+      window.removeEventListener('herald-action-resolved', handleResolved);
       if (retryRef.current) clearInterval(retryRef.current);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
