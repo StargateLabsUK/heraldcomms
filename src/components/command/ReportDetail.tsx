@@ -493,7 +493,10 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
       if (!report?.id) return;
       const rawAssessment = report.assessment as any;
       if (!rawAssessment) return;
-      const items = [...(rawAssessment.action_items ?? [])];
+
+      // Deep clone to avoid mutating the original
+      const cloned = JSON.parse(JSON.stringify(rawAssessment));
+      const items = cloned.action_items ?? [];
 
       // Map activeIndex to the correct item in the full array (skip resolved ones)
       let count = 0;
@@ -513,8 +516,8 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
         }
       }
 
-      const updatedAssessment = { ...rawAssessment, action_items: items };
-      await supabase.from('herald_reports').update({ assessment: updatedAssessment as any }).eq('id', report.id);
+      cloned.action_items = items;
+      await supabase.from('herald_reports').update({ assessment: cloned }).eq('id', report.id);
       window.dispatchEvent(new CustomEvent('herald-action-resolved'));
     } catch {
       // silent
@@ -523,12 +526,13 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
 
   const atmist = a?.atmist ?? null;
   const treatmentGiven: string[] = a?.treatment_given ?? [];
-  const actionItems: (string | ActionItem)[] = (a as any)?.action_items ?? [];
-  const resolvedActionItems: ActionItem[] = (a as any)?.resolved_action_items ?? [];
+  // Use RAW assessment for action items (sanitizer filters/rewrites them which breaks resolve)
+  const rawActionItems: (string | ActionItem)[] = (rawA as any)?.action_items ?? [];
+  const resolvedActionItems: ActionItem[] = (rawA as any)?.resolved_action_items ?? [];
 
   const activeActions: (string | ActionItem)[] = [];
   const resolvedFromItems: ActionItem[] = [];
-  for (const item of actionItems) {
+  for (const item of rawActionItems) {
     if (typeof item === 'object' && (item as ActionItem).resolved_at) {
       resolvedFromItems.push(item as ActionItem);
     } else {
@@ -749,7 +753,7 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
                     </div>
                   </div>
                 )}
-                {actionItems.some(item => /HEMS/i.test(typeof item === 'string' ? item : (item as ActionItem).text)) && (
+                {rawActionItems.some(item => /HEMS/i.test(typeof item === 'string' ? item : (item as ActionItem).text)) && (
                   <div className="flex justify-between">
                     <span className="text-lg text-foreground font-bold">HEMS</span>
                     <span className="text-lg" style={{ color: '#FF9500' }}>
