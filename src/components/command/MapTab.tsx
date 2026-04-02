@@ -96,15 +96,83 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
         weight: 2,
       }).addTo(map);
 
-      marker.bindPopup(`
-        <div style="font-family: monospace; min-width: 180px;">
-          <div style="font-weight: 700; margin-bottom: 4px;">${p} · ${label}</div>
-          <div style="margin-bottom: 4px;">${headline}</div>
-          <div style="opacity: 0.7; font-size: 11px;">${timeStr}</div>
-        </div>
-      `);
+      const popupEl = document.createElement('div');
+      popupEl.style.fontFamily = "'IBM Plex Mono', monospace";
+      popupEl.style.minWidth = '240px';
+      popupEl.style.fontSize = '13px';
 
-      marker.on('click', () => onSelectReport(r.id));
+      const priorityRow = document.createElement('div');
+      priorityRow.style.display = 'flex';
+      priorityRow.style.alignItems = 'center';
+      priorityRow.style.gap = '8px';
+      priorityRow.style.marginBottom = '6px';
+
+      const priorityBadge = document.createElement('span');
+      priorityBadge.textContent = p;
+      priorityBadge.style.fontWeight = '700';
+      priorityBadge.style.color = color;
+      priorityBadge.style.border = `1px solid ${color}`;
+      priorityBadge.style.padding = '2px 6px';
+      priorityBadge.style.borderRadius = '3px';
+      priorityBadge.style.fontSize = '14px';
+
+      const timeEl = document.createElement('span');
+      timeEl.textContent = timeStr;
+      timeEl.style.opacity = '0.7';
+
+      const callsignEl = document.createElement('span');
+      callsignEl.textContent = String(r.session_callsign ?? '');
+      callsignEl.style.fontWeight = '600';
+      callsignEl.style.color = '#3DFF8C';
+
+      priorityRow.append(priorityBadge, timeEl, callsignEl);
+
+      const headlineEl = document.createElement('div');
+      headlineEl.textContent = headline;
+      headlineEl.style.marginBottom = '8px';
+      headlineEl.style.lineHeight = '1.4';
+
+      const metaEl = document.createElement('div');
+      metaEl.style.display = 'flex';
+      metaEl.style.flexDirection = 'column';
+      metaEl.style.gap = '4px';
+      metaEl.style.marginBottom = '8px';
+      metaEl.style.opacity = '0.8';
+      metaEl.style.fontSize = '12px';
+
+      if (r.session_operator_id) {
+        const opEl = document.createElement('div');
+        opEl.textContent = `Collar: ${r.session_operator_id}`;
+        metaEl.appendChild(opEl);
+      }
+      if (r.incident_number) {
+        const incEl = document.createElement('div');
+        incEl.textContent = `Incident #: ${r.incident_number}`;
+        metaEl.appendChild(incEl);
+      }
+
+      const viewBtn = document.createElement('button');
+      viewBtn.textContent = 'VIEW FULL REPORT';
+      viewBtn.style.width = '100%';
+      viewBtn.style.padding = '8px';
+      viewBtn.style.fontWeight = '700';
+      viewBtn.style.fontSize = '12px';
+      viewBtn.style.letterSpacing = '0.1em';
+      viewBtn.style.borderRadius = '4px';
+      viewBtn.style.border = `1px solid ${color}`;
+      viewBtn.style.background = `${color}1A`;
+      viewBtn.style.color = color;
+      viewBtn.style.cursor = 'pointer';
+      viewBtn.style.fontFamily = "'IBM Plex Mono', monospace";
+      viewBtn.onclick = (e) => {
+        e.stopPropagation();
+        onSelectReport(r.id);
+      };
+
+      popupEl.append(priorityRow, headlineEl, metaEl, viewBtn);
+
+      marker.bindPopup(popupEl, { maxWidth: 300 });
+      marker.on('click', () => marker.openPopup());
       markersRef.current.set(r.id, marker);
     });
 
