@@ -7,7 +7,8 @@ import { BottomNav } from '@/components/herald/BottomNav';
 import { ReportsTab } from '@/components/herald/ReportsTab';
 import { IncidentsTab } from '@/components/herald/IncidentsTab';
 import { ShiftLogin } from '@/components/herald/ShiftLogin';
-import { clearSession, endShiftRemote } from '@/lib/herald-session';
+import { clearSession, endShiftRemote, leaveShiftRemote } from '@/lib/herald-session';
+import { supabase } from '@/integrations/supabase/client';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
 import { useCommandPull } from '@/lib/useCommandPull';
 import { getReports, getDispositionsForShift } from '@/lib/herald-storage';
@@ -28,7 +29,7 @@ interface HospitalAlert {
 const IncidentsPage = () => {
   const location = useLocation();
   const initialTab = (location.state as any)?.tab === 'reports' ? 'reports' : 'incidents';
-  const [activeTab, setActiveTab] = useState<'live' | 'reports' | 'incidents'>(initialTab as any);
+  const [activeTab, setActiveTab] = useState<'live' | 'reports' | 'incidents' | 'crew'>(initialTab as any);
   const [reports, setReports] = useState<HeraldReport[]>([]);
   const [session, setSession] = useState<HeraldSession | null>(null);
 
@@ -182,7 +183,7 @@ const IncidentsPage = () => {
     navigate('/');
   }, [navigate, session]);
 
-  const handleTabChange = useCallback((tab: 'live' | 'reports' | 'incidents') => {
+  const handleTabChange = useCallback((tab: 'live' | 'reports' | 'incidents' | 'crew') => {
     if (tab === 'live') {
       navigate('/');
     } else {
@@ -202,6 +203,8 @@ const IncidentsPage = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {activeTab === 'incidents' ? (
           <IncidentsTab session={session} onCasualtyClosed={handleCasualtyClosed} refreshKey={incidentRefresh} />
+        ) : activeTab === 'crew' ? (
+          <CrewTab session={session} />
         ) : (
           <ReportsTab closedCasualties={closedCasualties} reports={reports} session={session} />
         )}
@@ -253,5 +256,92 @@ const IncidentsPage = () => {
     </div>
   );
 };
+
+function CrewTab({ session }: { session: import('@/lib/herald-session').HeraldSession }) {
+  const [crew, setCrew] = useState<{ operator_id: string | null; used_at: string | null; left_at: string | null }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchCrew = useCallback(async () => {
+    if (!session.shift_id) return;
+    try {
+      const { data } = await supabase
+        .from('shift_link_codes')
+        .select('operator_id, used_at, left_at')
+        .eq('shift_id', session.shift_id)
+        .not('used_at', 'is', null)
+        .not('operator_id', 'is', null);
+      setCrew((data ?? []) as any);
+    } catch { /* silent */ }
+    setLoading(false);
+  }, [session.shift_id]);
+
+  useEffect(() => {
+    fetchCrew();
+    const id = setInterval(fetchCrew, 15000);
+    return () => clearInterval(id);
+  }, [fetchCrew]);
+
+  const handleRemoveCrew = async (operatorId: string) => {
+    if (!session.shift_id) return;
+    await leaveShiftRemote(session.shift_id, operatorId);
+    fetchCrew();
+  };
+
+  return (
+    <div className="flex-1 overflow-auto p-4">
+      <p style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.2em', color: '#4A6058', marginBottom: 16 }}>
+        CREW ON SHIFT ({crew.filter(c => !c.left_at).length})
+      </p>
+
+      {loading ? (
+        <p style={{ color: '#4A6058', fontSize: 14 }}>Loading...</p>
+      ) : crew.length === 0 ? (
+        <p style={{ color: '#4A6058', fontSize: 14 }}>No crew members linked yet. Share the link code above.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {crew.map((c, i) => {
+            const isActive = !c.left_at;
+            return (
+              <div key={i} className="flex items-center justify-between p-3 rounded-lg border"
+                style={{
+                  background: isActive ? 'rgba(61,255,140,0.04)' : 'rgba(136,136,136,0.04)',
+                  borderColor: isActive ? 'rgba(61,255,140,0.15)' : 'rgba(136,136,136,0.15)',
+                }}>
+                <div>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: isActive ? '#FFFFFF' : '#888' }}>
+                    {c.operator_id || 'Unknown'}
+                  </p>
+                  <p style={{ fontSize: 12, color: '#4A6058' }}>
+                    {isActive ? 'Active' : 'Left shift'}
+                    {c.used_at ? ` · joined ${new Date(c.used_at).toLocaleTimeString()}` : ''}
+                  </p>
+                </div>
+                {isActive && (
+                  <button
+                    onClick={() => c.operator_id && handleRemoveCrew(c.operator_id)}
+                    style={{
+                      padding: '6px 16px',
+                      background: 'transparent',
+                      border: '1px solid rgba(255,149,0,0.4)',
+                      color: '#FF9500',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: '0.1em',
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontFamily: "'IBM Plex Mono', monospace",
+                    }}
+                  >
+                    REMOVE
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default IncidentsPage;

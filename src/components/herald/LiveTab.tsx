@@ -598,7 +598,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
   }, []);
 
   // ─── STATES 1-3: IDLE, RECORDING, PROCESSING ───
-  // Button stays fixed in center; text changes above/below
   if (state === 'idle' || state === 'recording' || state === 'processing') {
     const isRecording = state === 'recording';
     const isProcessing = state === 'processing';
@@ -608,8 +607,6 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
       if (isRecording) stopRecordingAndProcess();
       else startRecording();
     };
-
-    const buttonLabel = isProcessing ? 'PROCESSING' : isRecording ? 'END' : 'RECORD';
 
     return (
       <div className="flex flex-col items-center flex-1 px-6" style={{ position: 'relative' }}>
@@ -650,11 +647,10 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
             <div
               className="absolute rounded-full"
               style={{
-                inset: -6,
-                border: '4px solid transparent',
+                inset: -8,
+                border: '4px solid rgba(255,255,255,0.15)',
                 borderTopColor: '#FFFFFF',
-                borderRightColor: 'rgba(255,255,255,0.3)',
-                animation: 'spin 1.2s linear infinite',
+                animation: 'pulse-ring 2s ease-in-out infinite',
               }}
             />
           )}
@@ -677,98 +673,114 @@ export function LiveTab({ onAiStatus, onReportSaved }: LiveTabProps) {
               opacity: isProcessing ? 0.9 : 1,
             }}
           >
-            <span className="flex flex-col items-center" style={{ color: '#FFFFFF', fontSize: isProcessing ? 22 : 28, letterSpacing: '0.25em', fontWeight: 700 }}>
-              {buttonLabel}
-              {isProcessing && (
-                <span className="flex gap-2 mt-2">
-                  <span className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-2 h-2 rounded-full bg-white animate-bounce" style={{ animationDelay: '300ms' }} />
-                </span>
-              )}
+            <span style={{ color: '#FFFFFF', fontSize: isProcessing ? 22 : isRecording ? 24 : 28, letterSpacing: '0.25em', fontWeight: 700 }}>
+              {isProcessing ? 'PROCESSING' : isRecording ? 'STOP' : 'RECORD'}
             </span>
           </button>
         </div>
 
-        {/* Bottom area — helper text below button */}
+        {/* Bottom area — helper text / discard button */}
         <div className="flex flex-col items-center justify-start" style={{ height: 'calc(50% - 150px)', paddingTop: 24 }}>
           {isProcessing ? (
-            <p style={{ color: '#C8D0CC', fontSize: 20, letterSpacing: '0.2em', fontWeight: 700, textAlign: 'center' }}>
-              RUNNING INTELLIGENCE ASSESSMENT
+            <p style={{ color: '#C8D0CC', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700, textAlign: 'center' }}>
+              TRANSCRIBING & ASSESSING
             </p>
           ) : isRecording ? (
-            <p style={{ color: '#FFFFFF', fontSize: 20, letterSpacing: '0.2em', fontWeight: 700 }}>
-              TAP TO STOP AND PROCESS
-            </p>
+            <div className="flex flex-col items-center gap-4">
+              <p style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
+                TAP TO STOP
+              </p>
+              <button
+                onClick={(e) => { e.stopPropagation(); cleanupRecording(); setState('idle'); }}
+                style={{
+                  padding: '10px 28px',
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  color: 'rgba(255,255,255,0.5)',
+                  fontSize: 16,
+                  letterSpacing: '0.15em',
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                }}
+              >
+                DISCARD
+              </button>
+            </div>
           ) : (
             <>
-              <p style={{ color: '#FFFFFF', fontSize: 20, letterSpacing: '0.2em', fontWeight: 700 }}>
+              <p style={{ color: '#FFFFFF', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700 }}>
                 TAP TO START
               </p>
               {error && (
-                <p className="mt-3" style={{ color: '#FF9500', fontSize: 20, letterSpacing: '0.2em' }}>{error}</p>
+                <p className="mt-3" style={{ color: '#FF9500', fontSize: 18, letterSpacing: '0.2em' }}>{error}</p>
               )}
             </>
           )}
         </div>
+
+        <style>{`
+          @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.08); opacity: 0.4; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+        `}</style>
       </div>
     );
   }
 
-  // ─── STATE 4: READY ───
+  // ─── STATE 4: READY (SEND) ───
   if (state === 'ready' && assessment) {
     const pc = PRIORITY_COLORS[assessment.priority] || 'hsl(var(--foreground))';
 
     return (
-      <div className="fixed inset-0 z-40 flex flex-col overflow-hidden" style={{ background: '#1A1E24' }}>
-        {/* Transcript display */}
-        <div className="flex-1 overflow-auto px-6 pt-8 pb-4">
-          {isFollowUp && followUpIncidentNumber && (
-            <div className="mb-5 p-4 rounded-lg border" style={{ background: 'rgba(30,144,255,0.08)', borderColor: '#1E90FF' }}>
-              <p style={{ fontSize: 22, fontWeight: 700, color: '#1E90FF', letterSpacing: '0.15em' }}>
-                🔄 FOLLOW-UP — Incident #{followUpIncidentNumber}
-              </p>
-            </div>
-          )}
-
-          <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: '0.15em', color: pc, marginBottom: 16 }}>TRANSCRIPT</p>
-          <div className="p-5 rounded-lg border border-border bg-card">
-            <p style={{ fontSize: 22, lineHeight: 1.6, fontStyle: 'italic', color: 'hsl(var(--foreground))' }}>
-              "{transcript}"
-            </p>
-          </div>
-
-          {capturedDuration > 0 && (
-            <p style={{ fontSize: 20, color: 'hsl(var(--foreground))', opacity: 0.5, marginTop: 16, textAlign: 'center' }}>
-              Duration: {formatDuration(capturedDuration)}
-            </p>
-          )}
+      <div className="flex flex-col items-center flex-1 px-6" style={{ position: 'relative' }}>
+        {/* Top area */}
+        <div className="flex flex-col items-center justify-end" style={{ height: 'calc(50% - 150px)', paddingBottom: 24 }}>
+          <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: '0.15em', color: pc }}>
+            {assessment.priority} — {assessment.headline ? assessment.headline.slice(0, 60) : 'Ready'}
+          </p>
         </div>
 
-        {/* Bottom buttons */}
-        <div className="px-6 pb-8 pt-3 flex flex-col gap-4">
+        {/* Green SEND button */}
+        <div style={{ position: 'relative', width: 280, height: 280, flexShrink: 0 }}>
           <button
             onClick={handleConfirm}
-            className="w-full font-heading font-bold rounded-lg"
+            className="flex items-center justify-center rounded-full"
             style={{
-              fontSize: 24,
-              letterSpacing: '0.15em',
-              padding: '20px 0',
-              background: `${pc}1A`,
-              border: `2px solid ${pc}`,
-              color: pc,
-              boxShadow: `0 0 24px ${pc}33`,
+              width: 280,
+              height: 280,
+              background: '#1B5E20',
+              boxShadow: '0 0 60px rgba(52,199,89,0.4), 0 0 120px rgba(52,199,89,0.15)',
+              border: 'none',
+              cursor: 'pointer',
             }}
-          >✦ HERALD</button>
+          >
+            <span style={{ color: '#FFFFFF', fontSize: 32, letterSpacing: '0.3em', fontWeight: 700 }}>
+              SEND
+            </span>
+          </button>
+        </div>
+
+        {/* Bottom — discard option */}
+        <div className="flex flex-col items-center justify-start" style={{ height: 'calc(50% - 150px)', paddingTop: 24 }}>
           <button
             onClick={handleDiscard}
-            className="w-full font-heading font-bold rounded-lg bg-transparent border border-border text-foreground opacity-70"
             style={{
-              fontSize: 22,
+              padding: '10px 28px',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.2)',
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: 16,
               letterSpacing: '0.15em',
-              padding: '16px 0',
+              fontWeight: 600,
+              borderRadius: 6,
+              cursor: 'pointer',
             }}
-          >DISMISS</button>
+          >
+            DISCARD
+          </button>
         </div>
       </div>
     );

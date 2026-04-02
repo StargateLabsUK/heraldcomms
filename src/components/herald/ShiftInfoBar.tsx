@@ -55,28 +55,6 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
           </span>
         )}
 
-        {/* Always show leave/end button on handheld */}
-        {isLinkedDevice && (
-          <button
-            onClick={() => setConfirming(true)}
-            style={{
-              marginTop: 8,
-              padding: '8px 24px',
-              background: 'transparent',
-              color: '#FF9500',
-              fontSize: 14,
-              fontWeight: 600,
-              letterSpacing: '0.1em',
-              border: '1px solid rgba(255, 149, 0, 0.4)',
-              borderRadius: 3,
-              cursor: 'pointer',
-              fontFamily: "'IBM Plex Mono', monospace",
-            }}
-          >
-            LEAVE SHIFT
-          </button>
-        )}
-
         {showEndShift && !isLinkedDevice && (
           <button
             onClick={() => setConfirming(true)}

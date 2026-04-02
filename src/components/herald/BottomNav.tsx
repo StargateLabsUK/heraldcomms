@@ -1,14 +1,17 @@
+type TabId = 'live' | 'reports' | 'incidents' | 'crew';
+
 interface BottomNavProps {
-  activeTab: 'live' | 'reports' | 'incidents';
-  onTabChange: (tab: 'live' | 'reports' | 'incidents') => void;
-  hideTabs?: ('live' | 'reports' | 'incidents')[];
+  activeTab: TabId;
+  onTabChange: (tab: TabId) => void;
+  hideTabs?: TabId[];
 }
 
 export function BottomNav({ activeTab, onTabChange, hideTabs = [] }: BottomNavProps) {
-  const tabs: { id: 'live' | 'reports' | 'incidents'; label: string }[] = [
+  const tabs: { id: TabId; label: string }[] = [
     { id: 'live', label: 'LIVE' },
     { id: 'incidents', label: 'INCIDENTS' },
     { id: 'reports', label: 'REPORTS' },
+    { id: 'crew', label: 'CREW' },
   ];
 
   const visible = tabs.filter(t => !hideTabs.includes(t.id));
