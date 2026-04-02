@@ -48,9 +48,9 @@ clinical_findings — always use ABCDE structure. If a category is not mentioned
 
 treatment_given — completed clinical actions only. IV access, fluids, airway adjuncts, drugs, CPR, packaging, immobilisation. Do not include pending requests, instructions to crew, or actions not yet confirmed as done. "Confirm receiving hospital" is NOT treatment — put it in action_items.
 
-atmist — generate per casualty for MCIs, keyed by priority (P1, P2, P3 etc.). The A field must ONLY contain age and sex (e.g. "35, Male", "Elderly female", "Approximately 60, Male"). NEVER put a patient's name in the A field — names go in the separate patient_name field. Populate T_treatment from any interventions mentioned even if Age or Mechanism are unknown. Never leave T_treatment blank if treatment is mentioned. If only one casualty, use their priority as the key.
+atmist — generate per casualty for MCIs, keyed by priority (P1, P2, P3 etc.). The A field must contain BOTH age AND sex together (e.g. "35-year-old male", "84-year-old female", "Elderly female", "Approximately 60, Male"). Words like "male", "female", "man", "woman", "boy", "girl" are SEX descriptors and MUST go in the A field — they are NOT names. NEVER put a patient's name in the A field — names go in the separate patient_name field. Populate T_treatment from any interventions mentioned even if Age or Mechanism are unknown. Never leave T_treatment blank if treatment is mentioned. If only one casualty, use their priority as the key.
 
-patient_name — if the crew states a patient's name (e.g. "patient name is Margaret", "she's called Margaret", "patient Margaret Smith"), extract it into patient_name. This is separate from ATMIST and must never appear in the A field.
+patient_name — ONLY extract a name if the crew explicitly states the patient's name using phrases like "patient's name is", "her name is", "his name is", "called", "patient John Smith". Generic sex descriptors like "male", "female", "elderly woman" are NOT names. Set to null if no name is explicitly stated.
 
 action_items — generate as open loops the crew must close. Frame each item as an unresolved task requiring crew action. Use these patterns:
 
@@ -111,7 +111,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
   },
   "atmist": {
     "P1": {
-      "A": "Age and sex ONLY — e.g. '35, Male'. NEVER include patient name here",
+      "A": "Age AND sex together — e.g. '84-year-old female', '35-year-old male'. Words like male/female/man/woman go HERE not in patient_name",
       "T": "Time of injury",
       "M": "Mechanism of injury",
       "I": "Injuries found",
@@ -119,7 +119,7 @@ Return only valid JSON matching the ePRF schema below. No preamble, no explanati
       "T_treatment": "Treatment given"
     }
   },
-  "patient_name": "Patient's name if explicitly stated (e.g. 'patient is Margaret', 'his name is John'). null if not mentioned. NEVER put the name in the ATMIST A field.",
+  "patient_name": "Only if crew explicitly says the patient's name (e.g. 'patient is Margaret', 'his name is John'). null if not stated. Words like 'male', 'female', 'woman', 'man' are sex descriptors NOT names.",
   "safeguarding": {
     "concern_identified": "true if crew mentions unexplained injuries, safeguarding concern, domestic abuse/violence, vulnerable adult, child protection, neglect, or requests police for non-trauma/non-RTC reasons. false otherwise",
     "details": "brief description of the safeguarding concern, or null if none",
