@@ -13,7 +13,15 @@ const Index = () => {
   const [session, setSession] = useState<HeraldSession | null>(null);
 
   useEffect(() => {
-    getSession().then(setSession);
+    getSession().then(s => {
+      // Only accept sessions that have an operator_id (linked via collar number + link code)
+      // Sessions from /incidents (crew login) won't have operator_id set
+      if (s && s.operator_id) {
+        setSession(s);
+      } else {
+        setSession(null);
+      }
+    });
   }, []);
   const syncStatus = useHeraldSync();
 
