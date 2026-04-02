@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { CommandReport } from '@/hooks/useHeraldCommand';
@@ -183,11 +183,85 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
     }
   }, [geoReports, onSelectReport]);
 
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [listOpen, setListOpen] = useState(true);
+
+  const sortedReports = useMemo(() =>
+    [...reports].sort((a, b) => new Date(b.created_at ?? b.timestamp).getTime() - new Date(a.created_at ?? a.timestamp).getTime()),
+    [reports]
+  );
+
+  const handleListClick = (r: CommandReport) => {
+    const map = mapRef.current;
+    if (map && r.lat != null && r.lng != null) {
+      map.flyTo([r.lat, r.lng], 17, { duration: 1 });
+      const marker = markersRef.current.get(r.id);
+      if (marker) setTimeout(() => marker.openPopup(), 500);
+    }
+  };
+
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="absolute inset-0 z-0" />
+
+      {/* Incident list panel */}
+      <div
+        className="absolute top-2 left-2 z-10 flex flex-col"
+        style={{ maxHeight: 'calc(100% - 16px)', width: listOpen ? 260 : 36 }}
+      >
+        <button
+          onClick={() => setListOpen(!listOpen)}
+          className="rounded-t-lg px-2 py-1.5 border border-border bg-card text-foreground font-bold text-sm tracking-wider cursor-pointer"
+          style={{ borderBottom: listOpen ? 'none' : undefined, borderRadius: listOpen ? '6px 6px 0 0' : '6px' }}
+        >
+          {listOpen ? '◀ INCIDENTS' : '▶'}
+        </button>
+        {listOpen && (
+          <div className="flex-1 overflow-y-auto border border-t-0 border-border bg-card/95 rounded-b-lg" style={{ scrollbarWidth: 'thin' }}>
+            {sortedReports.length === 0 ? (
+              <div className="p-3 text-sm text-foreground opacity-50">No incidents</div>
+            ) : (
+              sortedReports.map((r) => {
+                const p = getReportPriority(r);
+                const color = PRIORITY_COLORS[p] ?? '#34C759';
+                const ts = new Date(r.created_at ?? r.timestamp);
+                const timeStr = ts.getUTCHours().toString().padStart(2, '0') + ':' + ts.getUTCMinutes().toString().padStart(2, '0') + 'Z';
+                const hasGeo = r.lat != null && r.lng != null;
+                return (
+                  <button
+                    key={r.id}
+                    onClick={() => handleListClick(r)}
+                    onMouseEnter={() => setHoveredId(r.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    className="w-full text-left block px-3 py-2 border-b border-border cursor-pointer transition-colors"
+                    style={{
+                      background: hoveredId === r.id ? `${color}15` : 'transparent',
+                      opacity: hasGeo ? 1 : 0.4,
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ color, border: `1px solid ${color}66` }}>{p}</span>
+                      <span className="text-xs text-foreground">{timeStr}</span>
+                      {r.session_callsign && (
+                        <span className="text-xs font-semibold" style={{ color: '#3DFF8C' }}>{String(r.session_callsign)}</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-foreground truncate">
+                      {String(r.assessment?.headline ?? r.headline ?? '—')}
+                    </div>
+                    {!hasGeo && (
+                      <div className="text-xs mt-0.5" style={{ color: '#FF9500' }}>No location</div>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
       {geoReports.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
+        <div className="absolute inset-0 flex items-center justify-center z-5">
           <div className="rounded-lg px-4 py-3 border border-muted bg-card/80">
             <p className="text-lg text-foreground opacity-60 tracking-wider font-semibold">
               AWAITING GEO DATA
@@ -195,17 +269,19 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
           </div>
         </div>
       )}
-      <div className="absolute bottom-4 left-4 rounded-lg px-3 py-2.5 z-10 border border-border bg-card">
-        <div className="flex flex-col gap-1.5">
+
+      {/* Legend */}
+      <div className="absolute bottom-4 right-14 rounded-lg px-3 py-2 z-10 border border-border bg-card/90">
+        <div className="flex gap-4">
           {[
-            { p: 'P1', label: 'IMMEDIATE' },
-            { p: 'P2', label: 'URGENT' },
-            { p: 'P3', label: 'ROUTINE' },
+            { p: 'P1', label: 'IMM' },
+            { p: 'P2', label: 'URG' },
+            { p: 'P3', label: 'RTN' },
           ].map(({ p, label }) => (
-            <div key={p} className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PRIORITY_COLORS[p] }} />
-              <span className="text-lg text-foreground font-bold tracking-wider">{p}</span>
-              <span className="text-lg text-foreground opacity-70">{label}</span>
+            <div key={p} className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: PRIORITY_COLORS[p] }} />
+              <span className="text-xs text-foreground font-bold">{p}</span>
+              <span className="text-xs text-foreground opacity-60">{label}</span>
             </div>
           ))}
         </div>
