@@ -17,6 +17,16 @@ interface Props {
   transfers?: PatientTransfer[];
 }
 
+/* ── Safe string helper — prevents React #310 crashes ── */
+function s(val: unknown): string {
+  if (val === null || val === undefined) return '—';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number' || typeof val === 'boolean') return String(val);
+  if (Array.isArray(val)) return val.map(v => typeof v === 'object' && v !== null ? (v as any).text ?? JSON.stringify(v) : String(v ?? '')).join(', ');
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+}
+
 /* ── Small UI helpers ── */
 
 function CopyBtn({ text, label }: { text: string; label: string }) {
@@ -217,7 +227,7 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold" style={{ color: cCol }}>{casualtyKey}</span>
-          <span className="text-lg text-foreground">{String(val?.M ?? '—')}</span>
+          <span className="text-lg text-foreground">{s(val?.M ?? '—')}</span>
         </div>
         {statusInfo ? (
           <span className="text-lg font-bold rounded-sm px-2 py-0.5"
@@ -263,7 +273,7 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
 
       {/* Clinical summary only — no PII */}
       <div className="text-lg text-foreground opacity-80 mt-1">
-        {val?.I ? `Injuries: ${String(val.I)}` : 'Injuries: —'}
+        {val?.I ? `Injuries: ${s(val.I)}` : 'Injuries: —'}
       </div>
       {reportCallsign && (
         <div className="text-lg mt-1" style={{ color: '#3DFF8C' }}>Crew: {reportCallsign}</div>
@@ -275,13 +285,13 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
           {disp.disposition === 'conveyed' && (
             <div className="flex flex-col gap-0.5">
               {dispFields.receiving_hospital && (
-                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#34C759' }}>Hospital:</span> {String(dispFields.receiving_hospital)}</div>
+                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#34C759' }}>Hospital:</span> {s(dispFields.receiving_hospital)}</div>
               )}
               {dispFields.time_of_handover && (
-                <div className="text-lg text-foreground opacity-70">Handover: {String(dispFields.time_of_handover)}</div>
+                <div className="text-lg text-foreground opacity-70">Handover: {s(dispFields.time_of_handover)}</div>
               )}
               {dispFields.handover_given_to && (
-                <div className="text-lg text-foreground opacity-70">Given to: {String(dispFields.handover_given_to)}</div>
+                <div className="text-lg text-foreground opacity-70">Given to: {s(dispFields.handover_given_to)}</div>
               )}
             </div>
           )}
@@ -289,7 +299,7 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
           {disp.disposition === 'see_and_treat' && (
             <div className="flex flex-col gap-0.5">
               {dispFields.time_of_discharge && (
-                <div className="text-lg text-foreground opacity-70">Discharged: {String(dispFields.time_of_discharge)}</div>
+                <div className="text-lg text-foreground opacity-70">Discharged: {s(dispFields.time_of_discharge)}</div>
               )}
               <div className="text-lg text-foreground opacity-70">
                 Advice given: {dispFields.advice_given ? 'Yes' : '—'}
@@ -300,10 +310,10 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
           {disp.disposition === 'see_and_refer' && (
             <div className="flex flex-col gap-0.5">
               {dispFields.referral_destination && (
-                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#1E90FF' }}>Referred to:</span> {String(dispFields.referral_destination)}</div>
+                <div className="text-lg text-foreground"><span className="font-bold" style={{ color: '#1E90FF' }}>Referred to:</span> {s(dispFields.referral_destination)}</div>
               )}
               {dispFields.time_of_discharge && (
-                <div className="text-lg text-foreground opacity-70">Time: {String(dispFields.time_of_discharge)}</div>
+                <div className="text-lg text-foreground opacity-70">Time: {s(dispFields.time_of_discharge)}</div>
               )}
             </div>
           )}
@@ -318,7 +328,7 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
                   Capacity assessed: {dispFields.capacity_assessed ? (dispFields.patient_has_capacity ? 'Has capacity' : 'Lacks capacity') : 'Not assessed'}
                 </div>
                 {dispFields.time_of_refusal && (
-                  <div className="text-lg text-foreground opacity-70">Refusal: {String(dispFields.time_of_refusal)}</div>
+                  <div className="text-lg text-foreground opacity-70">Refusal: {s(dispFields.time_of_refusal)}</div>
                 )}
               </div>
             </div>
@@ -327,7 +337,7 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
           {disp.disposition === 'role' && (
             <div className="flex flex-col gap-0.5">
               {dispFields.time_of_recognition && (
-                <div className="text-lg text-foreground opacity-70">Recognition: {String(dispFields.time_of_recognition)}</div>
+                <div className="text-lg text-foreground opacity-70">Recognition: {s(dispFields.time_of_recognition)}</div>
               )}
               <div className="text-lg text-foreground opacity-70">
                 GP: {dispFields.gp_notified ? '✓' : '—'} · Police: {dispFields.police_notified ? '✓' : '—'}
@@ -476,21 +486,6 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
     );
   }
 
-  // DEBUG: Minimal render to find crash source
-  const assessmentKeys = report.assessment ? Object.keys(report.assessment) : [];
-  return (
-    <div className="p-4 bg-card min-h-full">
-      <p className="text-lg font-bold text-foreground">Report ID: {String(report.id)}</p>
-      <p className="text-lg text-foreground">Headline: {String(report.headline ?? '—')}</p>
-      <p className="text-lg text-foreground">Priority: {String(report.priority ?? '—')}</p>
-      <p className="text-lg text-foreground">Callsign: {String(report.session_callsign ?? '—')}</p>
-      <p className="text-lg text-foreground">Assessment keys: {assessmentKeys.join(', ')}</p>
-      <p className="text-lg text-foreground">Transmissions: {transmissions.length}</p>
-      <p className="text-lg text-foreground">Dispositions: {dispositions.length}</p>
-      <p className="text-lg" style={{ color: '#34C759' }}>DEBUG: Minimal render works</p>
-    </div>
-  );
-
   const rawA = report.assessment;
   let a: ReturnType<typeof sanitizeAssessment> | null = null;
   try {
@@ -498,9 +493,9 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
   } catch {
     a = null;
   }
-  const priority = String(a?.priority ?? report.priority ?? 'P3');
+  const priority = s(a?.priority ?? report.priority ?? 'P3');
   const col = PRIORITY_COLORS[priority] ?? '#34C759';
-  const service = String(a?.service ?? report.service ?? 'unknown');
+  const service = s(a?.service ?? report.service ?? 'unknown');
   const serviceLabel = SERVICE_LABELS[service] ?? service.toUpperCase();
   const vtCode = (report as any).vehicle_type;
   const vtLabel = getVehicleLabel(vtCode);
@@ -514,18 +509,18 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
   const dateStr = ts.toISOString().slice(0, 10);
 
   const structured = a?.structured ?? {};
-  const formattedReport = String(a?.formatted_report ?? '');
-  const headline = String(a?.headline ?? report.headline ?? '');
-  const priorityLabel = String(a?.priority_label ?? '');
+  const formattedReport = s(a?.formatted_report ?? '');
+  const headline = s(a?.headline ?? report.headline ?? '');
+  const priorityLabel = s(a?.priority_label ?? '');
 
-  const incidentType = String(a?.incident_type ?? a?.protocol ?? 'Unknown');
+  const incidentType = s(a?.incident_type ?? a?.protocol ?? 'Unknown');
   const majorIncident = a?.major_incident ?? false;
-  const sceneLocation = String(a?.scene_location ?? structured['E'] ?? structured['Location'] ?? structured['grid'] ?? 'Not specified');
+  const sceneLocation = s(a?.scene_location ?? structured['E'] ?? structured['Location'] ?? structured['grid'] ?? 'Not specified');
 
   // Editable fields — local override > report column > assessment
-  const incidentNumber = String(localIncidentNum ?? report.incident_number ?? structured['incident_number'] ?? '');
+  const incidentNumber = s(localIncidentNum ?? report.incident_number ?? structured['incident_number'] ?? '');
   const hospitalFromAssessment: string[] = a?.receiving_hospital ?? [];
-  const hospitalStr = String(localHospital ?? (report as any).receiving_hospital ?? (hospitalFromAssessment.length > 0 ? hospitalFromAssessment.join(', ') : ''));
+  const hospitalStr = s(localHospital ?? (report as any).receiving_hospital ?? (hospitalFromAssessment.length > 0 ? hospitalFromAssessment.join(', ') : ''));
 
   const resolveActionItem = useCallback(async (_activeIndex: number) => {
     // temporarily disabled for debugging
@@ -569,12 +564,12 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
 
   const methane = {
     M: majorIncident ? 'MAJOR INCIDENT DECLARED' : 'Not declared',
-    E: String(sceneLocation),
-    T: String(incidentType !== 'Unknown' ? incidentType : (structured['incident_type'] ?? headline)),
-    H: String(methaneHazards),
-    A_access: String(methaneAccess),
-    N: String(methaneNumCas),
-    E_emergency: String(methaneEmergency),
+    E: s(sceneLocation),
+    T: s(incidentType !== 'Unknown' ? incidentType : (structured['incident_type'] ?? headline)),
+    H: s(methaneHazards),
+    A_access: s(methaneAccess),
+    N: s(methaneNumCas),
+    E_emergency: s(methaneEmergency),
   };
 
   /* ── Save handlers ── */
@@ -860,14 +855,14 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
                 <DetailCard key={tx.id}>
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>#{i + 1}</span>
-                    <span className="text-lg font-bold rounded-sm px-1.5 py-0.5" style={{ color: txCol, border: `1px solid ${txCol}66` }}>{txPriority}</span>
+                    <span className="text-lg font-bold rounded-sm px-1.5 py-0.5" style={{ color: txCol, border: `1px solid ${txCol}66` }}>{s(txPriority)}</span>
                     <span className="text-lg text-foreground">{txTimeStr}</span>
                     {tx.session_callsign && (
-                      <span className="text-lg font-semibold" style={{ color: '#3DFF8C' }}>{tx.session_callsign}</span>
+                      <span className="text-lg font-semibold" style={{ color: '#3DFF8C' }}>{s(tx.session_callsign)}</span>
                     )}
                   </div>
-                  {tx.headline && <p className="text-lg text-foreground font-medium mb-1 break-words">{tx.headline}</p>}
-                  {tx.transcript && <p className="text-lg text-foreground italic opacity-80 break-words mb-2">&ldquo;{tx.transcript}&rdquo;</p>}
+                  {tx.headline && <p className="text-lg text-foreground font-medium mb-1 break-words">{s(tx.headline)}</p>}
+                  {tx.transcript && <p className="text-lg text-foreground italic opacity-80 break-words mb-2">{'"'}{s(tx.transcript)}{'"'}</p>}
                   {txStructured && (() => {
                     // Filter out empty values and fields already shown elsewhere
                     const HIDDEN_KEYS = new Set(['callsign', 'operator_id', 'incident_number', 'emergency_services', 'number_of_casualties', 'access', 'hazards']);
@@ -943,7 +938,7 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
     return (
       <div className="p-6 text-center bg-card min-h-full">
         <p className="text-lg font-bold" style={{ color: '#FF3B30' }}>Report render error</p>
-        <p className="text-lg mt-2" style={{ color: '#4A6058' }}>{String(renderErr?.message || renderErr)}</p>
+        <p className="text-lg mt-2" style={{ color: '#4A6058' }}>{s(renderErr?.message || renderErr)}</p>
       </div>
     );
   }
