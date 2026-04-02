@@ -216,7 +216,7 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold" style={{ color: cCol }}>{casualtyKey}</span>
-          <span className="text-lg text-foreground">{val?.M ?? '—'}</span>
+          <span className="text-lg text-foreground">{String(val?.M ?? '—')}</span>
         </div>
         {statusInfo ? (
           <span className="text-lg font-bold rounded-sm px-2 py-0.5"
@@ -262,7 +262,7 @@ function CasualtyCard({ casualtyKey, val, cCol, disp, reportCallsign, report, tr
 
       {/* Clinical summary only — no PII */}
       <div className="text-lg text-foreground opacity-80 mt-1">
-        {val?.I ? `Injuries: ${val.I}` : 'Injuries: —'}
+        {val?.I ? `Injuries: ${String(val.I)}` : 'Injuries: —'}
       </div>
       {reportCallsign && (
         <div className="text-lg mt-1" style={{ color: '#3DFF8C' }}>Crew: {reportCallsign}</div>
@@ -453,10 +453,15 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
   }
 
   const rawA = report.assessment;
-  const a = rawA ? sanitizeAssessment(rawA) : null;
-  const priority = a?.priority ?? report.priority ?? 'P3';
+  let a: ReturnType<typeof sanitizeAssessment> | null = null;
+  try {
+    a = rawA ? sanitizeAssessment(rawA) : null;
+  } catch {
+    a = null;
+  }
+  const priority = String(a?.priority ?? report.priority ?? 'P3');
   const col = PRIORITY_COLORS[priority] ?? '#34C759';
-  const service = a?.service ?? report.service ?? 'unknown';
+  const service = String(a?.service ?? report.service ?? 'unknown');
   const serviceLabel = SERVICE_LABELS[service] ?? service.toUpperCase();
   const vtCode = (report as any).vehicle_type;
   const vtLabel = getVehicleLabel(vtCode);
@@ -470,18 +475,18 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
   const dateStr = ts.toISOString().slice(0, 10);
 
   const structured = a?.structured ?? {};
-  const formattedReport = a?.formatted_report ?? '';
-  const headline = a?.headline ?? report.headline ?? '';
-  const priorityLabel = a?.priority_label ?? '';
+  const formattedReport = String(a?.formatted_report ?? '');
+  const headline = String(a?.headline ?? report.headline ?? '');
+  const priorityLabel = String(a?.priority_label ?? '');
 
-  const incidentType = a?.incident_type ?? a?.protocol ?? 'Unknown';
+  const incidentType = String(a?.incident_type ?? a?.protocol ?? 'Unknown');
   const majorIncident = a?.major_incident ?? false;
-  const sceneLocation = a?.scene_location ?? structured['E'] ?? structured['Location'] ?? structured['grid'] ?? 'Not specified';
+  const sceneLocation = String(a?.scene_location ?? structured['E'] ?? structured['Location'] ?? structured['grid'] ?? 'Not specified');
 
   // Editable fields — local override > report column > assessment
-  const incidentNumber = localIncidentNum ?? report.incident_number ?? structured['incident_number'] ?? '';
+  const incidentNumber = String(localIncidentNum ?? report.incident_number ?? structured['incident_number'] ?? '');
   const hospitalFromAssessment: string[] = a?.receiving_hospital ?? [];
-  const hospitalStr = localHospital ?? (report as any).receiving_hospital ?? (hospitalFromAssessment.length > 0 ? hospitalFromAssessment.join(', ') : '');
+  const hospitalStr = String(localHospital ?? (report as any).receiving_hospital ?? (hospitalFromAssessment.length > 0 ? hospitalFromAssessment.join(', ') : ''));
 
   const resolveActionItem = useCallback(async (activeIndex: number) => {
     try {
@@ -553,12 +558,12 @@ export function ReportDetail({ report, dispositions = [], transfers = [] }: Prop
 
   const methane = {
     M: majorIncident ? 'MAJOR INCIDENT DECLARED' : 'Not declared',
-    E: sceneLocation,
-    T: incidentType !== 'Unknown' ? incidentType : (structured['incident_type'] ?? headline),
-    H: methaneHazards,
-    A_access: methaneAccess,
-    N: methaneNumCas,
-    E_emergency: methaneEmergency,
+    E: String(sceneLocation),
+    T: String(incidentType !== 'Unknown' ? incidentType : (structured['incident_type'] ?? headline)),
+    H: String(methaneHazards),
+    A_access: String(methaneAccess),
+    N: String(methaneNumCas),
+    E_emergency: String(methaneEmergency),
   };
 
   /* ── Save handlers ── */
