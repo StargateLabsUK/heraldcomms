@@ -513,41 +513,9 @@ function ReportDetailInner({ report, dispositions = [], transfers = [] }: Props)
   const hospitalFromAssessment: string[] = a?.receiving_hospital ?? [];
   const hospitalStr = String(localHospital ?? (report as any).receiving_hospital ?? (hospitalFromAssessment.length > 0 ? hospitalFromAssessment.join(', ') : ''));
 
-  const resolveActionItem = useCallback(async (activeIndex: number) => {
-    try {
-      if (!report?.id) return;
-      const rawAssessment = report.assessment as any;
-      if (!rawAssessment) return;
-
-      // Deep clone to avoid mutating the original
-      const cloned = JSON.parse(JSON.stringify(rawAssessment));
-      const items = cloned.action_items ?? [];
-
-      // Map activeIndex to the correct item in the full array (skip resolved ones)
-      let count = 0;
-      for (let j = 0; j < items.length; j++) {
-        const it = items[j];
-        const isResolved = typeof it === 'object' && it !== null && it.resolved_at;
-        if (!isResolved) {
-          if (count === activeIndex) {
-            if (typeof it === 'string') {
-              items[j] = { text: it, opened_at: new Date().toISOString(), resolved_at: new Date().toISOString() };
-            } else {
-              items[j] = { ...it, resolved_at: new Date().toISOString() };
-            }
-            break;
-          }
-          count++;
-        }
-      }
-
-      cloned.action_items = items;
-      await supabase.from('herald_reports').update({ assessment: cloned }).eq('id', report.id);
-      window.dispatchEvent(new CustomEvent('herald-action-resolved'));
-    } catch {
-      // silent
-    }
-  }, [report]);
+  const resolveActionItem = useCallback(async (_activeIndex: number) => {
+    // temporarily disabled for debugging
+  }, []);
 
   const atmist = a?.atmist ?? null;
   const treatmentGiven: string[] = a?.treatment_given ?? [];
