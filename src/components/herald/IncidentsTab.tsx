@@ -475,6 +475,45 @@ function DropdownSelect({ value, onChange, options, placeholder }: {
       <option value="">{placeholder || 'Select...'}</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
     </select>
+
+function EditableField2({ value, onSave, color }: { value: string; onSave: (v: string) => void; color?: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  if (!editing) {
+    return (
+      <span
+        className="text-lg text-foreground break-words cursor-pointer"
+        style={{ borderBottom: '1px dashed transparent' }}
+        onClick={() => { setDraft(value); setEditing(true); }}
+      >
+        {value || '—'}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2 w-full">
+      <input
+        type="text"
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        autoFocus
+        className="flex-1 text-lg px-2 py-1 rounded border border-border bg-card text-foreground"
+      />
+      <button
+        onClick={() => { onSave(draft); setEditing(false); }}
+        className="text-lg font-bold px-2 py-1 rounded"
+        style={{ color: '#34C759', border: '1px solid rgba(52,199,89,0.4)', background: 'rgba(52,199,89,0.08)' }}
+      >SAVE</button>
+      <button
+        onClick={() => setEditing(false)}
+        className="text-lg px-2 py-1 rounded"
+        style={{ color: '#888', border: '1px solid rgba(136,136,136,0.3)' }}
+      >X</button>
+    </span>
+  );
+}
   );
 }
 
@@ -497,6 +536,23 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
     receiving_hospital: cas.receivingHospital || '',
   });
   const [confirming, setConfirming] = useState(false);
+
+  // Save an ATMIST field edit back to the report assessment
+  const saveAtmistField = useCallback(async (fieldKey: string, newValue: string) => {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const rawAssessment = inc.assessment as any;
+      if (!rawAssessment?.atmist) return;
+      const updatedAtmist = { ...rawAssessment.atmist };
+      // Update the specific casualty's field
+      const casKey = cas.key;
+      if (updatedAtmist[casKey]) {
+        updatedAtmist[casKey] = { ...updatedAtmist[casKey], [fieldKey]: newValue };
+      }
+      const updatedAssessment = { ...rawAssessment, atmist: updatedAtmist };
+      await supabase.from('herald_reports').update({ assessment: updatedAssessment as any }).eq('id', inc.id);
+    } catch { /* silent */ }
+  }, [inc, cas.key]);
 
   const updateField = useCallback(<K extends keyof DispositionFields>(key: K, val: DispositionFields[K]) => {
     setFields(prev => ({ ...prev, [key]: val }));
@@ -628,30 +684,28 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
             ].map(({ k, label }) => (
               <div key={k} className="mb-2">
                 <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>{label}: </span>
-                <span className="text-lg text-foreground break-words">{cas.atmist[k] ?? '—'}</span>
+                <EditableField2 value={cas.atmist[k] ?? ''} onSave={v => saveAtmistField(k, v)} />
               </div>
             ))}
-            {/* Status (e.g. ROSC achieved) — between Injuries and Signs */}
             {cas.atmist.status && (
               <div className="mb-2">
                 <span className="text-lg font-bold" style={{ color: '#34C759' }}>Status: </span>
-                <span className="text-lg font-bold break-words" style={{ color: '#34C759' }}>{cas.atmist.status}</span>
+                <EditableField2 value={cas.atmist.status} onSave={v => saveAtmistField('status', v)} />
               </div>
             )}
             <div className="mb-2">
               <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Signs / Vitals: </span>
-              <span className="text-lg text-foreground break-words">{cas.atmist.S ?? '—'}</span>
+              <EditableField2 value={cas.atmist.S ?? ''} onSave={v => saveAtmistField('S', v)} />
             </div>
-            {/* Downtime — after Signs/Vitals */}
             {cas.atmist.downtime && (
               <div className="mb-2">
                 <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Downtime: </span>
-                <span className="text-lg text-foreground break-words">{cas.atmist.downtime}</span>
+                <EditableField2 value={cas.atmist.downtime} onSave={v => saveAtmistField('downtime', v)} />
               </div>
             )}
             <div className="mb-2 last:mb-0">
               <span className="text-lg font-bold" style={{ color: '#1E90FF' }}>Treatment Given: </span>
-              <span className="text-lg text-foreground break-words">{cas.atmist.T_treatment ?? '—'}</span>
+              <EditableField2 value={cas.atmist.T_treatment ?? ''} onSave={v => saveAtmistField('T_treatment', v)} />
             </div>
           </div>
         </div>
