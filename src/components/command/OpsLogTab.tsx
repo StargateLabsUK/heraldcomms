@@ -11,7 +11,9 @@ import { sanitizeAssessment } from '@/lib/sanitize-assessment';
 function fmtTime(iso: string | null) {
   if (!iso) return '—';
   const d = new Date(iso);
-  return d.getUTCHours().toString().padStart(2, '0') + ':' + d.getUTCMinutes().toString().padStart(2, '0') + 'Z';
+  const date = d.toISOString().slice(0, 10);
+  const time = d.getUTCHours().toString().padStart(2, '0') + ':' + d.getUTCMinutes().toString().padStart(2, '0') + 'Z';
+  return `${date} ${time}`;
 }
 
 function fmtDate(iso: string | null) {
