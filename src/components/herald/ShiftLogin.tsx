@@ -298,30 +298,6 @@ export function ShiftLogin({ onShiftStarted }: Props) {
         >
           BEGIN SHIFT
         </button>
-
-        {/* LINK TO EXISTING SHIFT */}
-        <button
-          onClick={() => {
-            setLinkMode(true);
-            setTimeout(() => linkInputRefs.current[0]?.focus(), 100);
-          }}
-          style={{
-            width: '100%',
-            padding: 12,
-            marginTop: 12,
-            background: 'transparent',
-            border: '1px solid rgba(61, 255, 140, 0.2)',
-            color: 'hsl(147, 100%, 62%)',
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 13,
-            fontWeight: 500,
-            letterSpacing: '0.15em',
-            cursor: 'pointer',
-            borderRadius: 3,
-          }}
-        >
-          LINK TO EXISTING SHIFT
-        </button>
       </div>
     </div>
   );
