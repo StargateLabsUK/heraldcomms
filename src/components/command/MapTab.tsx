@@ -33,7 +33,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       try {
         const map = mapRef.current;
         if (!map || report.lat == null || report.lng == null) return;
-        map.flyTo([report.lat, report.lng], 14, { duration: 1.2 });
+        map.setView([report.lat, report.lng], 16, { animate: false });
         const marker = markersRef.current.get(report.id);
         if (marker) marker.openPopup();
       } catch {
@@ -194,9 +194,10 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
   const handleListClick = (r: CommandReport) => {
     const map = mapRef.current;
     if (map && r.lat != null && r.lng != null) {
-      map.flyTo([r.lat, r.lng], 17, { duration: 1 });
+      // Instant jump — no animation lag
+      map.setView([r.lat, r.lng], 17, { animate: false });
       const marker = markersRef.current.get(r.id);
-      if (marker) setTimeout(() => marker.openPopup(), 500);
+      if (marker) marker.openPopup();
     }
   };
 
@@ -207,11 +208,11 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
       {/* Incident list panel */}
       <div
         className="absolute top-2 left-2 z-10 flex flex-col"
-        style={{ maxHeight: 'calc(100% - 16px)', width: listOpen ? 260 : 36 }}
+        style={{ maxHeight: 'calc(100% - 16px)', width: listOpen ? 340 : 40 }}
       >
         <button
           onClick={() => setListOpen(!listOpen)}
-          className="rounded-t-lg px-2 py-1.5 border border-border bg-card text-foreground font-bold text-sm tracking-wider cursor-pointer"
+          className="rounded-t-lg px-3 py-2 border border-border bg-card text-foreground font-bold text-lg tracking-wider cursor-pointer"
           style={{ borderBottom: listOpen ? 'none' : undefined, borderRadius: listOpen ? '6px 6px 0 0' : '6px' }}
         >
           {listOpen ? '◀ INCIDENTS' : '▶'}
@@ -219,7 +220,7 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
         {listOpen && (
           <div className="flex-1 overflow-y-auto border border-t-0 border-border bg-card/95 rounded-b-lg" style={{ scrollbarWidth: 'thin' }}>
             {sortedReports.length === 0 ? (
-              <div className="p-3 text-sm text-foreground opacity-50">No incidents</div>
+              <div className="p-3 text-lg text-foreground opacity-50">No incidents</div>
             ) : (
               sortedReports.map((r) => {
                 const p = getReportPriority(r);
@@ -233,24 +234,24 @@ export const MapTab = forwardRef<MapTabHandle, Props>(({ reports, onSelectReport
                     onClick={() => handleListClick(r)}
                     onMouseEnter={() => setHoveredId(r.id)}
                     onMouseLeave={() => setHoveredId(null)}
-                    className="w-full text-left block px-3 py-2 border-b border-border cursor-pointer transition-colors"
+                    className="w-full text-left block px-3 py-3 border-b border-border cursor-pointer transition-colors"
                     style={{
                       background: hoveredId === r.id ? `${color}15` : 'transparent',
                       opacity: hasGeo ? 1 : 0.4,
                     }}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-bold px-1.5 py-0.5 rounded" style={{ color, border: `1px solid ${color}66` }}>{p}</span>
-                      <span className="text-xs text-foreground">{timeStr}</span>
+                      <span className="text-sm font-bold px-1.5 py-0.5 rounded" style={{ color, border: `1px solid ${color}66` }}>{p}</span>
+                      <span className="text-sm text-foreground">{timeStr}</span>
                       {r.session_callsign && (
-                        <span className="text-xs font-semibold" style={{ color: '#3DFF8C' }}>{String(r.session_callsign)}</span>
+                        <span className="text-sm font-semibold" style={{ color: '#3DFF8C' }}>{String(r.session_callsign)}</span>
                       )}
                     </div>
-                    <div className="text-xs text-foreground truncate">
+                    <div className="text-sm text-foreground" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {String(r.assessment?.headline ?? r.headline ?? '—')}
                     </div>
                     {!hasGeo && (
-                      <div className="text-xs mt-0.5" style={{ color: '#FF9500' }}>No location</div>
+                      <div className="text-sm mt-0.5" style={{ color: '#FF9500' }}>No location</div>
                     )}
                   </button>
                 );
