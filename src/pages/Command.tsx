@@ -78,10 +78,10 @@ export default function Command() {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>('ops');
+  const [mobileTab, setMobileTab] = useState<MobileTab>('map');
   const [filters] = useState({ service: '', callsign: '', timeRange: 'today' as const });
   const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
-  const [desktopUpperTab, setDesktopUpperTab] = useState<'ops' | 'sla' | 'map'>('ops');
+  const [desktopUpperTab, setDesktopUpperTab] = useState<'map' | 'ops' | 'sla'>('map');
   const [opsReportId, setOpsReportId] = useState<string | null>(null);
   const viewMode = useViewMode();
   const mapRef = useRef<MapTabHandle>(null);
@@ -293,7 +293,7 @@ export default function Command() {
         <div className={`flex flex-col p-3 gap-3 ${desktopUpperTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
           <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${desktopUpperTab !== 'status' ? 'flex-1 flex flex-col min-h-0' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
-              {(['ops', 'map', 'sla'] as const).map((tab) => (
+              {(['map', 'ops', 'sla'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setDesktopUpperTab(tab)}
@@ -347,7 +347,7 @@ export default function Command() {
         <div className={`flex flex-col p-2 gap-2 ${tabletTab !== 'status' ? 'flex-1 min-h-0 overflow-hidden' : ''}`}>
           <div className={`rounded-lg border border-border bg-card shadow-sm overflow-hidden ${tabletTab !== 'status' ? 'flex-1 flex flex-col min-h-0' : 'flex-shrink-0'}`}>
             <div className="flex border-b border-border flex-shrink-0">
-              {(['ops', 'map', 'sla'] as const).map((tab) => (
+              {(['map', 'ops', 'sla'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setDesktopUpperTab(tab)}
@@ -429,8 +429,8 @@ export default function Command() {
         )}
       </div>
       <div className="flex flex-shrink-0 border-t border-border bg-card">
-        {mobileTabBtn('ops', 'OPS')}
         {mobileTabBtn('map', 'MAP')}
+        {mobileTabBtn('ops', 'OPS')}
         {mobileTabBtn('sla', 'SLA')}
       </div>
     </div>
