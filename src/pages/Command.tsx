@@ -330,8 +330,18 @@ export default function Command() {
                 <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
               </div>
             ) : desktopUpperTab === 'ops' ? (
-              <div className="flex-1 overflow-y-auto">
-                <OpsLogTab onSelectReport={handleOpsReportSelect} />
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <CommandStatus
+                  todayReports={filteredReports}
+                  priorityCounts={filteredPriorityCounts}
+                  serviceCounts={filteredServiceCounts}
+                  uniqueDevices={uniqueDevices}
+                  connected={connected}
+                  activeShifts={activeShifts} transfers={transfers}
+                />
+                <div className="flex-1 overflow-y-auto">
+                  <OpsLogTab onSelectReport={handleOpsReportSelect} />
+                </div>
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto">
@@ -395,8 +405,18 @@ export default function Command() {
                 <MapTab ref={mapRef} reports={filteredReports} onSelectReport={handleMapSelect} />
               </div>
             ) : tabletTab === 'ops' ? (
-              <div className="flex-1 overflow-y-auto">
-                <OpsLogTab onSelectReport={handleOpsReportSelect} />
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <CommandStatus
+                  todayReports={filteredReports}
+                  priorityCounts={filteredPriorityCounts}
+                  serviceCounts={filteredServiceCounts}
+                  uniqueDevices={uniqueDevices}
+                  connected={connected}
+                  activeShifts={activeShifts} transfers={transfers}
+                />
+                <div className="flex-1 overflow-y-auto">
+                  <OpsLogTab onSelectReport={handleOpsReportSelect} />
+                </div>
               </div>
             ) : (
               <div className="flex-1 overflow-y-auto">
@@ -460,8 +480,18 @@ export default function Command() {
           </div>
         )}
         {mobileTab === 'ops' && (
-          <div className="h-full">
-            <OpsLogTab onSelectReport={handleOpsReportSelect} />
+          <div className="h-full flex flex-col">
+            <CommandStatus
+              todayReports={filteredReports}
+              priorityCounts={filteredPriorityCounts}
+              serviceCounts={filteredServiceCounts}
+              uniqueDevices={uniqueDevices}
+              connected={connected}
+              activeShifts={activeShifts} transfers={transfers}
+            />
+            <div className="flex-1 overflow-y-auto">
+              <OpsLogTab onSelectReport={handleOpsReportSelect} />
+            </div>
           </div>
         )}
         {mobileTab === 'sla' && (
