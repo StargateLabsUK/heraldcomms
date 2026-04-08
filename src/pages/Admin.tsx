@@ -222,21 +222,18 @@ export default function Admin() {
   }, [role, activeTab, loadTrusts, loadUsers, loadAudit, loadShifts]);
 
   const callAdminApi = async (body: Record<string, unknown>) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('admin-trust', {
-        body,
-      });
-      if (error) {
-        return { ok: false, status: 500, text: async () => String(error.message ?? error) };
-      }
-      // Check if data itself contains an error
-      if (data?.error) {
-        return { ok: false, status: 400, text: async () => JSON.stringify(data) };
-      }
-      return { ok: true, status: 200, text: async () => JSON.stringify(data) };
-    } catch (e: any) {
-      return { ok: false, status: 500, text: async () => e?.message || 'Network error' };
-    }
+    const session = (await supabase.auth.getSession()).data.session;
+    const supabaseUrl = supabase.supabaseUrl || (import.meta.env.VITE_SUPABASE_URL || '').trim();
+    const anonKey = supabase.supabaseKey || (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+    return fetch(`${supabaseUrl}/functions/v1/admin-trust`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': anonKey,
+        'Authorization': `Bearer ${session?.access_token || anonKey}`,
+      },
+      body: JSON.stringify(body),
+    });
   };
 
   const handleCreateTrust = async () => {
