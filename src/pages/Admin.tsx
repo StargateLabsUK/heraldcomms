@@ -249,18 +249,29 @@ export default function Admin() {
   const handleResetPin = async (trustId: string) => {
     const pin = String(Math.floor(100000 + Math.random() * 900000));
     try {
-      const res = await callAdminApi({ action: 'reset_pin', trust_id: trustId, pin });
-      if (res.ok) {
+      // Hash the PIN using SHA-256 (same as edge function)
+      const encoder = new TextEncoder();
+      const data = encoder.encode(pin + 'herald-salt-2026');
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hash = '$sha256$' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // Update directly via Supabase client
+      const { error } = await supabase
+        .from('trusts')
+        .update({ trust_pin_hash: hash })
+        .eq('id', trustId);
+
+      if (error) {
+        setResetPinTrustId(trustId);
+        setResetPinValue(`ERROR: ${error.message}`);
+      } else {
         setResetPinTrustId(trustId);
         setResetPinValue(pin);
-      } else {
-        const text = await res.text();
-        setResetPinTrustId(trustId);
-        setResetPinValue(`ERROR ${res.status}: ${text.slice(0, 100)}`);
       }
     } catch (e: any) {
       setResetPinTrustId(trustId);
-      setResetPinValue(`ERROR: ${e?.message || 'Network error'}`);
+      setResetPinValue(`ERROR: ${e?.message || 'Failed'}`);
     }
   };
 
