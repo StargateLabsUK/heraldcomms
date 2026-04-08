@@ -62,7 +62,7 @@ export function TrustPinEntry({ onValidated }: Props) {
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen px-4"
-      style={{ background: '#080B10' }}
+      style={{ background: '#1A1E24' }}
     >
       <div className="w-full" style={{ maxWidth: 400 }}>
         <h1

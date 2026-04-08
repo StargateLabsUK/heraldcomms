@@ -312,7 +312,7 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ background: '#080B10' }}>
+      <div className="flex items-center justify-center min-h-screen" style={{ background: '#1A1E24' }}>
         <p style={{ color: '#4A6058', letterSpacing: '0.15em' }}>LOADING...</p>
       </div>
     );
@@ -333,14 +333,14 @@ export default function Admin() {
   const adminTabs: AdminTab[] = ['my-trust', 'users', 'audit', 'devices'];
 
   return (
-    <div className="min-h-screen" style={{ background: '#080B10' }}>
+    <div className="min-h-screen" style={{ background: '#1A1E24' }}>
       {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#0F1820' }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#2A3A32' }}>
         <div className="flex items-center gap-4">
-          <span style={{ color: '#FFFFFF', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 20, letterSpacing: '0.08em' }}>
+          <span style={{ color: '#FFFFFF', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: '0.08em' }}>
             HERALD
           </span>
-          <span style={{ color: '#4A6058', fontSize: 12, letterSpacing: '0.15em' }}>
+          <span style={{ color: '#8A9B94', fontSize: 12, letterSpacing: '0.15em' }}>
             {role === 'owner' ? 'OWNER ADMIN' : 'TRUST ADMIN'}
           </span>
           {role === 'admin' && myTrust && (
@@ -353,7 +353,7 @@ export default function Admin() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b" style={{ borderColor: '#0F1820' }}>
+      <div className="flex border-b" style={{ borderColor: '#2A3A32' }}>
         {role === 'owner'
           ? ownerTabs.map((t) => (
               <button key={t} onClick={() => setOwnerTab(t)} style={tabStyle(ownerTab === t)}>

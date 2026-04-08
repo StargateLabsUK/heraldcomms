@@ -79,7 +79,7 @@ export function ShiftInfoBar({ session, onEndShift, position, showEndShift = fal
       {confirming && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6"
-          style={{ background: '#080B10' }}
+          style={{ background: '#1A1E24' }}
         >
           <span style={{
             color: isLinkedDevice ? '#FF9500' : '#FF3B30',

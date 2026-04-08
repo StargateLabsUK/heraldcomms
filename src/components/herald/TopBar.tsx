@@ -70,7 +70,7 @@ export function TopBar({ micStatus, aiStatus, syncStatus, onEndShift, onRefresh 
       </div>
 
       {confirmEnd && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6" style={{ background: '#080B10' }}>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6" style={{ background: '#1A1E24' }}>
           <span style={{ color: '#FF3B30', fontSize: 18, letterSpacing: '0.2em', fontWeight: 700, marginBottom: 8 }}>
             END SHIFT?
           </span>

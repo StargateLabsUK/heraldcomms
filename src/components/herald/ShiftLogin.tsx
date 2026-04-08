@@ -123,7 +123,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
     return (
       <div
         className="flex flex-col items-center justify-center min-h-screen px-4"
-        style={{ background: '#080B10' }}
+        style={{ background: '#1A1E24' }}
       >
         <div className="w-full" style={{ maxWidth: 400 }}>
           <h1
@@ -210,7 +210,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen px-4"
-      style={{ background: '#080B10' }}
+      style={{ background: '#1A1E24' }}
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         <h1 className="font-heading text-4xl text-foreground tracking-[0.08em] text-center mb-1">

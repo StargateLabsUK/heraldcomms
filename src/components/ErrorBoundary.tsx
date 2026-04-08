@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           className="flex flex-col items-center justify-center min-h-screen px-4"
-          style={{ background: '#080B10' }}
+          style={{ background: '#1A1E24' }}
         >
           <h1
             className="text-xl font-bold tracking-[0.08em] text-center mb-4"
