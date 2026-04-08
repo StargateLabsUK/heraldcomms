@@ -248,10 +248,19 @@ export default function Admin() {
 
   const handleResetPin = async (trustId: string) => {
     const pin = String(Math.floor(100000 + Math.random() * 900000));
-    const res = await callAdminApi({ action: 'reset_pin', trust_id: trustId, pin });
-    if (res.ok) {
+    try {
+      const res = await callAdminApi({ action: 'reset_pin', trust_id: trustId, pin });
+      if (res.ok) {
+        setResetPinTrustId(trustId);
+        setResetPinValue(pin);
+      } else {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        setResetPinTrustId(trustId);
+        setResetPinValue(`ERROR: ${err.error || res.status}`);
+      }
+    } catch (e: any) {
       setResetPinTrustId(trustId);
-      setResetPinValue(pin);
+      setResetPinValue(`ERROR: ${e?.message || 'Network error'}`);
     }
   };
 
