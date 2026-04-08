@@ -62,6 +62,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Also fetch incidents where this crew has accepted patient transfers
+    let transferredReportIds: string[] = [];
+    if (callsign) {
+      const { data: acceptedTransfers } = await supabase
+        .from("patient_transfers")
+        .select("report_id")
+        .eq("to_callsign", callsign)
+        .eq("status", "accepted");
+      if (acceptedTransfers?.length) {
+        const ids = [...new Set(acceptedTransfers.map(t => t.report_id))];
+        // Fetch any reports not already in results
+        const existingIds = new Set((reports ?? []).map(r => r.id));
+        const missingIds = ids.filter(id => !existingIds.has(id));
+        if (missingIds.length > 0) {
+          const { data: transferReports } = await supabase
+            .from("herald_reports")
+            .select("*")
+            .in("id", missingIds)
+            .eq("status", "active");
+          if (transferReports?.length) {
+            (reports ?? []).push(...transferReports);
+          }
+        }
+      }
+    }
+
     // Fetch dispositions for same scope
     let dispQuery = supabase
       .from("casualty_dispositions")
@@ -82,6 +108,17 @@ Deno.serve(async (req) => {
 
     const { data: dispositions } = await dispQuery;
 
+    // Fetch accepted transfers for this crew (so frontend can filter to transferred casualties only)
+    let acceptedTransfersForCrew: any[] = [];
+    if (callsign) {
+      const { data: transfers } = await supabase
+        .from("patient_transfers")
+        .select("id, report_id, casualty_key, casualty_label, priority, from_callsign, to_callsign, clinical_snapshot, accepted_at, status")
+        .eq("to_callsign", callsign)
+        .eq("status", "accepted");
+      acceptedTransfersForCrew = transfers ?? [];
+    }
+
     await supabase.from("audit_log").insert({
       action: "incidents_fetched",
       trust_id: trust_id || null,
@@ -89,7 +126,7 @@ Deno.serve(async (req) => {
     });
 
     return new Response(
-      JSON.stringify({ reports: reports ?? [], dispositions: dispositions ?? [] }),
+      JSON.stringify({ reports: reports ?? [], dispositions: dispositions ?? [], accepted_transfers: acceptedTransfersForCrew }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

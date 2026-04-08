@@ -49,7 +49,7 @@ export async function fetchIncidentsRemote(params: {
   trust_id?: string;
   callsign: string;
   session_date: string;
-}): Promise<{ reports: Record<string, unknown>[]; dispositions: Record<string, unknown>[] }> {
+}): Promise<{ reports: Record<string, unknown>[]; dispositions: Record<string, unknown>[]; accepted_transfers?: Record<string, unknown>[] }> {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/fetch-incidents`, {
       method: 'POST',

@@ -223,15 +223,9 @@ serve(async (req) => {
         trust_id: transfer.trust_id,
       });
 
-      // Update the report's session_callsign to the receiving crew
-      await supabase
-        .from("herald_reports")
-        .update({
-          session_callsign: transfer.to_callsign,
-          session_operator_id: null,
-          latest_transmission_at: acceptedAt,
-        })
-        .eq("id", transfer.report_id);
+      // NOTE: Do NOT update session_callsign on the report — the original
+      // crew retains ownership of the incident. The receiving crew sees
+      // only the transferred casualty via the patient_transfers table.
 
       // Log to audit_log
       await supabase.from("audit_log").insert({
