@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     if (callsign) {
       const { data: transfers } = await supabase
         .from("patient_transfers")
-        .select("id, report_id, casualty_key, casualty_label, priority, from_callsign, to_callsign, clinical_snapshot, accepted_at, status")
+        .select("id, report_id, casualty_key, casualty_label, priority, from_callsign, to_callsign, clinical_snapshot, handover_notes, accepted_at, status")
         .eq("to_callsign", callsign)
         .eq("status", "accepted");
       acceptedTransfersForCrew = transfers ?? [];

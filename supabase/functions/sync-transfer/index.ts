@@ -47,6 +47,7 @@ serve(async (req) => {
       const toCallsign = asText(body?.to_callsign, 120);
       const toShiftId = asText(body?.to_shift_id, 64);
       const trustId = asText(body?.trust_id, 64);
+      const handoverNotes = asText(body?.handover_notes, 2000);
       const clinicalSnapshot = jsonSafe(body?.clinical_snapshot);
 
       if (!reportId || !casualtyKey || !casualtyLabel || !priority || !fromCallsign || !toCallsign) {
@@ -115,6 +116,7 @@ serve(async (req) => {
           to_callsign: toCallsign,
           to_shift_id: toShiftId,
           clinical_snapshot: clinicalSnapshot,
+          handover_notes: handoverNotes,
           initiated_at: initiatedAt,
           status: "pending",
           trust_id: trustId,
@@ -141,6 +143,7 @@ serve(async (req) => {
           from_callsign: fromCallsign,
           to_callsign: toCallsign,
           initiated_at: initiatedAt,
+          has_handover_notes: !!handoverNotes,
         },
       });
 

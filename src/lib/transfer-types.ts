@@ -16,6 +16,7 @@ export interface PatientTransfer {
   declined_at: string | null;
   declined_reason: string | null;
   clinical_snapshot: Record<string, unknown>;
+  handover_notes: string | null;
   status: 'pending' | 'accepted' | 'declined';
   trust_id: string | null;
   created_at: string | null;
@@ -41,6 +42,7 @@ export async function initiateTransfer(payload: {
   to_callsign: string;
   to_shift_id?: string | null;
   clinical_snapshot: Record<string, unknown>;
+  handover_notes?: string | null;
   trust_id?: string | null;
 }): Promise<{ ok: boolean; transfer_id?: string; initiated_at?: string; error?: string }> {
   try {

@@ -336,6 +336,7 @@ export type Database = {
           from_callsign: string
           from_operator_id: string | null
           from_shift_id: string | null
+          handover_notes: string | null
           id: string
           initiated_at: string
           priority: string
@@ -356,6 +357,7 @@ export type Database = {
           from_callsign: string
           from_operator_id?: string | null
           from_shift_id?: string | null
+          handover_notes?: string | null
           id?: string
           initiated_at?: string
           priority: string
@@ -376,6 +378,7 @@ export type Database = {
           from_callsign?: string
           from_operator_id?: string | null
           from_shift_id?: string | null
+          handover_notes?: string | null
           id?: string
           initiated_at?: string
           priority?: string

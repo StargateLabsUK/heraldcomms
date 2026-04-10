@@ -127,6 +127,18 @@ export function PendingTransfers({ session, onTransferAccepted }: Props) {
                     </div>
                   )}
 
+                  {/* Handover notes from sending crew (optional freetext) */}
+                  {t.handover_notes && (
+                    <div className="rounded-lg border border-border bg-card p-2 mb-3">
+                      <p className="text-lg font-bold tracking-[0.15em] mb-1" style={{ color: '#1E90FF' }}>
+                        HANDOVER NOTES
+                      </p>
+                      <p className="text-lg text-foreground opacity-80 whitespace-pre-wrap break-words">
+                        {t.handover_notes}
+                      </p>
+                    </div>
+                  )}
+
                   {isDeclining ? (
                     <div className="flex flex-col gap-2">
                       <textarea

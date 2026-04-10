@@ -35,6 +35,7 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
   const [shifts, setShifts] = useState<ActiveShift[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ActiveShift | null>(null);
+  const [handoverNotes, setHandoverNotes] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,6 +142,7 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
       snapshot_timestamp: new Date().toISOString(),
     };
 
+    const trimmedNotes = handoverNotes.trim();
     const result = await initiateTransfer({
       report_id: incident.id,
       casualty_key: casualty.key,
@@ -152,6 +154,7 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
       to_callsign: selected.callsign,
       to_shift_id: selected.id,
       clinical_snapshot: snapshot,
+      handover_notes: trimmedNotes ? trimmedNotes.slice(0, 2000) : null,
       trust_id: session.trust_id ?? null,
     });
 
@@ -163,7 +166,7 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
     } else {
       setError(result.error ?? 'Failed to initiate transfer');
     }
-  }, [selected, casualty, incident, session, onTransferInitiated]);
+  }, [selected, casualty, incident, session, handoverNotes, onTransferInitiated]);
 
   if (success) {
     return (
@@ -248,6 +251,24 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
             })}
           </div>
         )}
+
+        {/* Optional handover notes — freetext for the receiving crew */}
+        <div className="mb-4">
+          <p className="text-lg font-bold tracking-[0.2em] mb-2" style={{ color: '#1E90FF' }}>
+            HANDOVER NOTES (OPTIONAL)
+          </p>
+          <textarea
+            value={handoverNotes}
+            onChange={e => setHandoverNotes(e.target.value)}
+            placeholder="Anything the receiving crew should know — context, allergies, family present, etc."
+            rows={3}
+            maxLength={2000}
+            className="w-full text-lg px-3 py-2 rounded-lg border border-border bg-card text-foreground resize-y"
+          />
+          <p className="text-lg text-foreground opacity-40 mt-1">
+            {handoverNotes.length}/2000
+          </p>
+        </div>
 
         {error && (
           <div className="rounded-lg p-3 mb-4" style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.3)' }}>
