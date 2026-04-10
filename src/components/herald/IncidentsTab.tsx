@@ -540,12 +540,13 @@ const ROLE_CRITERIA = ['Obvious signs of death', 'JRCALC criteria met', 'Traumat
 
 // ── Level 3: Casualty Handover Report ──
 
-function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
+function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer, transferInfo }: {
   cas: CasualtyData;
   inc: Incident;
   onBack: () => void;
   onHandover: (d: CasualtyDisposition) => void;
   onTransfer: () => void;
+  transferInfo?: TransferInfo;
 }) {
   const col = PRIORITY_COLORS[cas.priority] ?? '#34C759';
   const [showEprf, setShowEprf] = useState(false);
@@ -673,6 +674,22 @@ function CasualtyReportView({ cas, inc, onBack, onHandover, onTransfer }: {
           </div>
           <p className="text-lg text-foreground font-medium">{cas.label}</p>
         </div>
+
+        {/* Handover from another crew (post-transfer) */}
+        {transferInfo && (
+          <div className="rounded-lg p-3 mb-4" style={{ background: 'rgba(30,144,255,0.08)', border: '1px solid rgba(30,144,255,0.35)' }}>
+            <p className="text-lg font-bold tracking-[0.15em] mb-1" style={{ color: '#1E90FF' }}>
+              HANDOVER FROM {transferInfo.from_callsign}
+            </p>
+            {transferInfo.handover_notes ? (
+              <p className="text-lg text-foreground opacity-90 whitespace-pre-wrap break-words">
+                {transferInfo.handover_notes}
+              </p>
+            ) : (
+              <p className="text-lg text-foreground opacity-50">No handover notes recorded.</p>
+            )}
+          </div>
+        )}
 
         {/* Safeguarding alert */}
         {inc.assessment?.safeguarding?.concern_identified && (
@@ -1034,11 +1051,21 @@ function ResolvedActions({ items }: { items: ActionItem[] }) {
 // Map of report_id -> set of casualty_keys that were transferred TO this crew
 type TransferMap = Map<string, Set<string>>;
 
+// Per-casualty transfer metadata visible to the receiving crew, keyed by
+// `${report_id}:${casualty_key}`. Used to surface handover notes and origin.
+interface TransferInfo {
+  from_callsign: string;
+  handover_notes: string | null;
+  accepted_at: string | null;
+}
+type TransferDetails = Map<string, TransferInfo>;
+
 export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [nav, setNav] = useState<NavState>({ view: 'list' });
   const [closedKeys, setClosedKeys] = useState<Set<string>>(new Set());
   const [transferredCasualties, setTransferredCasualties] = useState<TransferMap>(new Map());
+  const [transferDetails, setTransferDetails] = useState<TransferDetails>(new Map());
   const navRef = useRef<NavState>(nav);
   navRef.current = nav;
 
@@ -1094,15 +1121,23 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
         }));
       }
 
-      // Build map of transferred casualties for this crew
+      // Build map of transferred casualties for this crew (and their details)
       if (accepted_transfers?.length) {
         const tMap: TransferMap = new Map();
+        const dMap: TransferDetails = new Map();
         for (const t of accepted_transfers as any[]) {
           const rid = t.report_id as string;
+          const ckey = t.casualty_key as string;
           if (!tMap.has(rid)) tMap.set(rid, new Set());
-          tMap.get(rid)!.add(t.casualty_key as string);
+          tMap.get(rid)!.add(ckey);
+          dMap.set(`${rid}:${ckey}`, {
+            from_callsign: t.from_callsign as string,
+            handover_notes: (t.handover_notes as string | null) ?? null,
+            accepted_at: (t.accepted_at as string | null) ?? null,
+          });
         }
         setTransferredCasualties(tMap);
+        setTransferDetails(dMap);
       }
     } catch {
       // fall through with empty remote
@@ -1245,6 +1280,7 @@ export function IncidentsTab({ session, onCasualtyClosed, refreshKey }: Props) {
         }}
         onHandover={handleCasualtyClosed}
         onTransfer={() => setNav({ view: 'transfer', incident: nav.incident, casualty: nav.casualty })}
+        transferInfo={transferDetails.get(`${nav.incident.id}:${nav.casualty.key}`)}
       />
     );
   }
