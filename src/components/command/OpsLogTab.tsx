@@ -145,6 +145,77 @@ const badgeStyle = (color: string) => ({
   whiteSpace: 'nowrap' as const,
 });
 
+// ── Clinical Snapshot (formatted) ──
+
+function ClinicalSnapshotView({ snapshot }: { snapshot: Record<string, unknown> }) {
+  const atmist = (snapshot.atmist ?? {}) as Record<string, string | undefined>;
+  const actionItems = (snapshot.action_items ?? []) as Array<string | { text?: string }>;
+  const timestamp = snapshot.snapshot_timestamp as string | undefined;
+  const assessmentSnapshot = snapshot.assessment_snapshot as Record<string, unknown> | undefined;
+  const patientName = (assessmentSnapshot?.patient_name ?? null) as string | null;
+
+  const atmistFields: Array<[string, string | undefined]> = [
+    ['Age / Sex', atmist.A],
+    ['Time of Injury', atmist.T],
+    ['Mechanism', atmist.M],
+    ['Injuries', atmist.I],
+    ['Signs / Vitals', atmist.S],
+    ['Treatment Given', atmist.T_treatment],
+  ];
+  const visibleAtmist = atmistFields.filter(([, v]) => v && v !== '—');
+
+  return (
+    <div className="mt-2 space-y-3">
+      {timestamp && (
+        <div className="text-xs text-muted-foreground">
+          Captured at {fmtDateTime(timestamp)}
+        </div>
+      )}
+
+      {patientName && (
+        <div>
+          <span className="text-xs font-bold tracking-widest" style={{ color: '#8B5CF6' }}>PATIENT NAME: </span>
+          <span className="text-sm text-foreground font-medium">{patientName}</span>
+        </div>
+      )}
+
+      {visibleAtmist.length > 0 && (
+        <div>
+          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#8B5CF6' }}>ATMIST</div>
+          <div className="border border-border rounded p-2 space-y-1">
+            {visibleAtmist.map(([label, val]) => (
+              <div key={label} className="text-sm">
+                <span style={{ color: '#4A6058' }}>{label}: </span>
+                <span className="text-foreground">{val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {actionItems.length > 0 && (
+        <div>
+          <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#8B5CF6' }}>ACTION ITEMS</div>
+          <div className="border border-border rounded p-2 space-y-1">
+            {actionItems.map((item, i) => {
+              const text = typeof item === 'string' ? item : (item?.text ?? '');
+              return text ? (
+                <div key={i} className="text-sm text-foreground">• {text}</div>
+              ) : null;
+            })}
+          </div>
+        </div>
+      )}
+
+      <Expandable label="RAW SNAPSHOT JSON" color="#4A6058">
+        <pre className="text-xs text-foreground whitespace-pre-wrap break-words mt-2 font-mono leading-relaxed">
+          {JSON.stringify(snapshot, null, 2)}
+        </pre>
+      </Expandable>
+    </div>
+  );
+}
+
 // ── Expandable Section ──
 
 function Expandable({ label, color, children }: { label: string; color?: string; children: React.ReactNode }) {
@@ -500,13 +571,20 @@ function IncidentDetail({
                         </>
                       )}
                     </div>
-                    {/* Clinical snapshot */}
+                    {/* Handover notes from sending crew (optional freetext) */}
+                    {t.handover_notes && (
+                      <div className="mt-2 border border-border rounded p-2">
+                        <div className="text-xs font-bold tracking-widest mb-1" style={{ color: '#8B5CF6' }}>HANDOVER NOTES</div>
+                        <p className="text-sm text-foreground whitespace-pre-wrap break-words">{t.handover_notes}</p>
+                      </div>
+                    )}
+                    {/* Clinical snapshot — formatted */}
                     {t.clinical_snapshot && Object.keys(t.clinical_snapshot).length > 0 && (
-                      <Expandable label="CLINICAL SNAPSHOT (PRE-TRANSFER)" color="#8B5CF6">
-                        <pre className="text-xs text-foreground whitespace-pre-wrap break-words mt-2 font-mono leading-relaxed">
-                          {JSON.stringify(t.clinical_snapshot, null, 2)}
-                        </pre>
-                      </Expandable>
+                      <div className="mt-2">
+                        <Expandable label="CLINICAL SNAPSHOT (PRE-TRANSFER)" color="#8B5CF6">
+                          <ClinicalSnapshotView snapshot={t.clinical_snapshot} />
+                        </Expandable>
+                      </div>
                     )}
                   </div>
                 );
@@ -515,73 +593,95 @@ function IncidentDetail({
           </div>
         )}
 
-        {/* 3. Casualty Outcomes */}
-        {(getCasualtyCount(report) > 0 || reportDisps.length > 0) && (
-          <div>
-            <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
-              CASUALTY OUTCOMES ({Math.max(getCasualtyCount(report), reportDisps.length)})
-            </h3>
-            <div className="space-y-2">
-              {reportDisps.length > 0 ? (
-                reportDisps.map(d => {
-                  const dc = PRIORITY_COLORS[d.priority] ?? '#888';
-                  const label = DISPOSITION_LABELS[d.disposition as DispositionType] ?? d.disposition;
-                  // Check if this casualty was transferred
-                  const casualtyTransfer = reportTransfers.find(t => t.casualty_key === d.casualty_key && t.status === 'accepted');
-                  return (
-                    <div key={d.id} className="border border-border rounded-lg p-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-bold" style={badgeStyle(dc)}>{d.priority}</span>
-                        <span className="text-sm text-foreground font-medium">{d.casualty_label}</span>
-                        <span className="text-sm" style={badgeStyle(d.disposition === 'conveyed' ? '#34C759' : d.disposition === 'refused_transport' ? '#FF9500' : '#888')}>
-                          {label}
-                        </span>
-                        {casualtyTransfer && (
-                          <span className="text-xs font-bold" style={badgeStyle('#8B5CF6')}>
-                            TRANSFERRED {casualtyTransfer.from_callsign} → {casualtyTransfer.to_callsign}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Closed: {fmtDateTime(d.closed_at)}
-                        {d.disposition === 'conveyed' && (d.fields as any)?.receiving_hospital && (
-                          <> · Hospital: {(d.fields as any).receiving_hospital}</>
-                        )}
-                      </p>
-                    </div>
-                  );
-                })
-              ) : (
-                Object.entries(a?.atmist ?? {}).map(([key, val]) => {
-                  const casVal = val as any;
-                  const casualtyTransfer = reportTransfers.find(t => t.casualty_key === key);
+        {/* 3. Casualty Outcomes — one row per casualty, regardless of disposition state */}
+        {(() => {
+          const atmistMap = (a?.atmist ?? {}) as Record<string, Record<string, unknown> | null>;
+          const atmistKeys = Object.keys(atmistMap);
+          // Include any disposition keys that aren't in atmist (defensive)
+          const dispOnlyKeys = reportDisps
+            .map(d => d.casualty_key)
+            .filter(k => !atmistKeys.includes(k));
+          const allKeys = [...atmistKeys, ...dispOnlyKeys];
+          if (allKeys.length === 0) return null;
+
+          // Strip any "-N" suffix to get the canonical priority code (P1/P2/P3/P4)
+          const priorityFromKey = (k: string) => {
+            const m = k.match(/^P\d+/);
+            return m ? m[0] : k;
+          };
+
+          return (
+            <div>
+              <h3 className="text-sm font-bold tracking-widest text-muted-foreground mb-2">
+                CASUALTY OUTCOMES ({allKeys.length})
+              </h3>
+              <div className="space-y-2">
+                {allKeys.map(key => {
+                  const casVal = atmistMap[key] as Record<string, unknown> | null;
+                  const disposition = reportDisps.find(d => d.casualty_key === key);
+                  const transfer = reportTransfers.find(t => t.casualty_key === key);
+                  const priority = disposition?.priority ?? priorityFromKey(key);
+                  const dc = PRIORITY_COLORS[priority] ?? '#888';
+                  const outcomeLabel = disposition
+                    ? (DISPOSITION_LABELS[disposition.disposition as DispositionType] ?? disposition.disposition)
+                    : null;
+                  const outcomeColor = !disposition ? '#888' :
+                    disposition.disposition === 'conveyed' ? '#34C759' :
+                    disposition.disposition === 'refused_transport' ? '#FF9500' :
+                    disposition.disposition === 'role' ? '#FF3B30' :
+                    disposition.disposition === 'see_and_treat' ? '#1E90FF' :
+                    disposition.disposition === 'see_and_refer' ? '#1E90FF' : '#888';
+
+                  // Patient label: prefer disposition label, otherwise build from atmist
+                  const patientLabel = disposition?.casualty_label
+                    ?? (casVal?.A ? `${key} — ${String(casVal.A)}` : key);
+
                   return (
                     <div key={key} className="border border-border rounded-lg p-3">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm text-foreground font-medium">{key}</span>
-                        {casualtyTransfer ? (
-                          <span className="text-xs font-bold" style={badgeStyle(
-                            casualtyTransfer.status === 'accepted' ? '#8B5CF6' :
-                            casualtyTransfer.status === 'pending' ? '#FF9500' : '#888'
-                          )}>
-                            {casualtyTransfer.status === 'accepted'
-                              ? `TRANSFERRED → ${casualtyTransfer.to_callsign}`
-                              : casualtyTransfer.status === 'pending'
-                                ? `TRANSFERRING → ${casualtyTransfer.to_callsign}`
-                                : 'TRANSFER DECLINED'}
-                          </span>
+                        <span className="text-sm font-bold" style={badgeStyle(dc)}>{priority}</span>
+                        <span className="text-sm text-foreground font-medium">{patientLabel}</span>
+                        {outcomeLabel ? (
+                          <span className="text-sm" style={badgeStyle(outcomeColor)}>{outcomeLabel}</span>
                         ) : (
                           <span className="text-sm text-muted-foreground">— On scene (no disposition)</span>
                         )}
+                        {transfer && transfer.status === 'accepted' && (
+                          <span className="text-xs font-bold" style={badgeStyle('#8B5CF6')}>
+                            TRANSFERRED {transfer.from_callsign} → {transfer.to_callsign}
+                          </span>
+                        )}
+                        {transfer && transfer.status === 'pending' && (
+                          <span className="text-xs font-bold" style={badgeStyle('#FF9500')}>
+                            PENDING TRANSFER → {transfer.to_callsign}
+                          </span>
+                        )}
+                        {transfer && transfer.status === 'declined' && (
+                          <span className="text-xs font-bold" style={badgeStyle('#888')}>
+                            TRANSFER DECLINED
+                          </span>
+                        )}
                       </div>
-                      {casVal?.A && <p className="text-xs text-muted-foreground mt-1">Age/Sex: {casVal.A}</p>}
+                      {disposition ? (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Closed: {fmtDateTime(disposition.closed_at)}
+                          {disposition.disposition === 'conveyed' && (disposition.fields as Record<string, unknown>)?.receiving_hospital && (
+                            <> · Hospital: {String((disposition.fields as Record<string, unknown>).receiving_hospital)}</>
+                          )}
+                          {disposition.disposition === 'see_and_refer' && (disposition.fields as Record<string, unknown>)?.referral_destination && (
+                            <> · Referred to: {String((disposition.fields as Record<string, unknown>).referral_destination)}</>
+                          )}
+                        </p>
+                      ) : casVal?.A ? (
+                        <p className="text-xs text-muted-foreground mt-1">Age/Sex: {String(casVal.A)}</p>
+                      ) : null}
                     </div>
                   );
-                })
-              )}
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* 4. Transmission Log — split by transfer event */}
         <div>
