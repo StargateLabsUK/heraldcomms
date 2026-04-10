@@ -71,6 +71,65 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
     setSubmitting(true);
     setError(null);
 
+    // Build a scoped assessment snapshot containing ONLY the transferred
+    // casualty's data — strip other casualties and any incident-level data
+    // that references them.
+    const fullAssessment = incident.assessment ?? null;
+    let scopedAssessment: Record<string, unknown> | null = null;
+    if (fullAssessment && typeof fullAssessment === 'object') {
+      const a = fullAssessment as Record<string, any>;
+      const baseP = casualty.key.replace(/-\d+$/, '');
+
+      // Extract just this casualty's ATMIST entry
+      const scopedAtmist: Record<string, unknown> = {};
+      if (a.atmist && typeof a.atmist === 'object' && a.atmist[casualty.key]) {
+        scopedAtmist[casualty.key] = a.atmist[casualty.key];
+      }
+
+      // Extract just this casualty's name if stored per-casualty, or parse from combined string
+      let scopedPatientName: string | null = null;
+      const atmistEntry = a.atmist?.[casualty.key];
+      if (atmistEntry?.name) {
+        scopedPatientName = atmistEntry.name;
+      } else if (a.patient_name && typeof a.patient_name === 'string') {
+        const re = new RegExp(`${baseP}:\\s*([^,]+)`, 'i');
+        const m = a.patient_name.match(re);
+        if (m) scopedPatientName = m[1].trim();
+        else if (!/P\d+:/.test(a.patient_name)) scopedPatientName = a.patient_name;
+      }
+
+      // Filter action items to only those relevant to this casualty
+      const filterForCasualty = (items: any[]): any[] => {
+        if (!Array.isArray(items)) return [];
+        return items.filter(item => {
+          const text = typeof item === 'object' ? item?.text ?? '' : String(item);
+          const mentionsP = /P[1-4]/.test(text);
+          return !mentionsP || text.includes(baseP);
+        });
+      };
+
+      scopedAssessment = {
+        service: a.service,
+        protocol: a.protocol,
+        priority: casualty.priority,
+        priority_label: a.priority_label,
+        headline: a.headline,
+        incident_type: a.incident_type,
+        major_incident: a.major_incident,
+        scene_location: a.scene_location,
+        structured: a.structured,
+        atmist: scopedAtmist,
+        patient_name: scopedPatientName,
+        action_items: filterForCasualty(a.action_items ?? []),
+        actions: a.actions,
+        safeguarding: a.safeguarding,
+        receiving_hospital: a.receiving_hospital,
+        // Intentionally omit: clinical_history, formatted_report, clinical_findings,
+        // treatment_given — these reference all casualties and can't be reliably
+        // scoped without re-running the AI assessment.
+      };
+    }
+
     // Build clinical snapshot from current casualty data
     const snapshot: Record<string, unknown> = {
       casualty_key: casualty.key,
@@ -78,7 +137,7 @@ export function TransferInitiate({ session, incident, casualty, onBack, onTransf
       priority: casualty.priority,
       atmist: casualty.atmist,
       action_items: casualty.actionItems.map(i => typeof i === 'object' ? i : { text: i }),
-      assessment_snapshot: incident.assessment ?? null,
+      assessment_snapshot: scopedAssessment,
       snapshot_timestamp: new Date().toISOString(),
     };
 
