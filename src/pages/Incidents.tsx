@@ -198,12 +198,12 @@ const IncidentsPage = () => {
     }
     clearSession();
     setSession(null);
-    navigate('/fieldapp');
+    navigate('/');
   }, [navigate, session]);
 
   const handleTabChange = useCallback((tab: 'live' | 'reports' | 'incidents' | 'crew') => {
     if (tab === 'live') {
-      navigate('/fieldapp');
+      navigate('/');
     } else {
       setActiveTab(tab);
     }
