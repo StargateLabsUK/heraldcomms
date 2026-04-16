@@ -61,7 +61,7 @@ export function CommandTopBar({ priorityCounts, connected }: Props) {
   );
 
   return (
-    <div className="flex-shrink-0 border-b border-border" style={{ background: 'var(--acuity-command-bg)' }}>
+    <div className="flex-shrink-0 border-b border-border" style={{ background: 'var(--acuity-command-bg)', paddingTop: 50 }}>
       <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3">
         <div className="flex items-center gap-2 md:gap-3">
           <div className="flex flex-col">
