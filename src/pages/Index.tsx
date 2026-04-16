@@ -5,6 +5,7 @@ import { ShiftInfoBar } from '@/components/herald/ShiftInfoBar';
 import { LinkCodeEntry } from '@/components/herald/LinkCodeEntry';
 import { useHeraldSync } from '@/hooks/useHeraldSync';
 import { useShiftEndedPoll } from '@/hooks/useShiftEndedPoll';
+import { useShiftPresence } from '@/hooks/useShiftPresence';
 import { getSession } from '@/lib/herald-session';
 import type { HeraldSession } from '@/lib/herald-session';
 
@@ -36,6 +37,8 @@ const Index = () => {
     });
   }, []);
   const { syncStatus, queuedCount } = useHeraldSync();
+  // Join shift presence so crew page can see this device is online
+  useShiftPresence(session?.shift_id ?? session?.callsign, 'field');
 
   const handleShiftLinked = useCallback((s: HeraldSession) => {
     setSession(s);
