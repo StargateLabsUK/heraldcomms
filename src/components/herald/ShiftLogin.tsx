@@ -127,8 +127,8 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       >
         <div className="w-full" style={{ maxWidth: 400 }}>
           <h1
-            className="text-2xl font-bold tracking-[0.08em] text-center mb-1"
-            style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const, color: '#1A1A1A' }}
+            className="font-logo text-2xl text-center mb-1"
+            style={{ color: '#1A1A1A' }}
           >
             ACUITY
           </h1>
@@ -213,7 +213,7 @@ export function ShiftLogin({ onShiftStarted }: Props) {
       style={{ background: '#F5F5F0' }}
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
-        <h1 className="font-heading text-4xl text-foreground tracking-[0.08em] text-center mb-1">
+        <h1 className="font-logo text-4xl text-foreground text-center mb-1">
           ACUITY
         </h1>
         <p style={{ color: '#666666', fontSize: 12, textAlign: 'center', letterSpacing: '0.15em', marginBottom: 6 }}>

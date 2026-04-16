@@ -32,8 +32,8 @@ export class ErrorBoundary extends Component<Props, State> {
           style={{ background: '#F5F5F0' }}
         >
           <h1
-            className="text-xl font-bold tracking-[0.08em] text-center mb-4"
-            style={{ fontFamily: "'Manrope', sans-serif", color: '#1A1A1A' }}
+            className="font-logo text-xl text-center mb-4"
+            style={{ color: '#1A1A1A' }}
           >
             ACUITY
           </h1>

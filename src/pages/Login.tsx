@@ -269,8 +269,8 @@ export default function Login() {
     >
       <div className="w-full" style={{ maxWidth: 360 }}>
         <h1
-          className="text-4xl font-bold tracking-[0.08em] text-center mb-1"
-          style={{ fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const, color: '#1A1A1A' }}
+          className="font-logo text-4xl text-center mb-1"
+          style={{ color: '#1A1A1A' }}
         >
           ACUITY
         </h1>

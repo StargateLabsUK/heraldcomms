@@ -41,7 +41,9 @@ export function TopBar({ micStatus, aiStatus, syncStatus, queuedCount, onEndShif
   return (
     <>
       <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b border-border" style={{ minHeight: 48 }}>
-        <div className="flex-1" />
+        <div className="flex-1">
+          <span className="font-logo text-lg text-foreground">ACUITY</span>
+        </div>
         <div className="flex items-center gap-3">
           {dot('MIC', micStatus === 'granted')}
           {dot('AI', aiStatus === 'ok')}

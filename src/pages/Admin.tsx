@@ -357,7 +357,7 @@ export default function Admin() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: '#2A3A32' }}>
         <div className="flex items-center gap-4">
-          <span style={{ color: '#1A1A1A', fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: '0.25em', textTransform: 'uppercase' as const, fontSize: 28, letterSpacing: '0.08em' }}>
+          <span className="font-logo" style={{ color: '#1A1A1A', fontSize: 28 }}>
             ACUITY
           </span>
           <span style={{ color: '#8A9B94', fontSize: 12, letterSpacing: '0.15em' }}>
