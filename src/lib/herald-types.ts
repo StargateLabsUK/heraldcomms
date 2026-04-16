@@ -157,7 +157,7 @@ export const DISPOSITION_LABELS: Record<DispositionType, string> = {
   role: 'Recognition of Life Extinct (ROLE)',
 };
 
-export type LiveState = 'idle' | 'recording' | 'processing' | 'ready' | 'confirmed';
+export type LiveState = 'idle' | 'recording' | 'processing' | 'ready' | 'confirmed' | 'queued';
 
 export interface Mismatch {
   field: string;

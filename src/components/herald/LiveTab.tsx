@@ -96,9 +96,10 @@ interface LiveTabProps {
   onAiStatus: (s: 'ok' | 'error') => void;
   onReportSaved: () => void;
   autoSend?: boolean;
+  queuedCount?: number;
 }
 
-export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
+export function LiveTab({ onAiStatus, onReportSaved, autoSend, queuedCount = 0 }: LiveTabProps) {
   const [state, setState] = useState<LiveState>('idle');
   const [transcript, setTranscript] = useState('');
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -536,26 +537,25 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
             }
           } catch { /* retry also failed */ }
 
-          // If offline, queue audio for later processing instead of showing error
-          if (!navigator.onLine) {
-            try {
-              const offlineBlob = new Blob(chunksRef.current, { type: mimeTypeRef.current || 'audio/webm' });
-              const offlineBase64 = await blobToBase64(offlineBlob);
-              const offlineSession = await getSession();
-              await enqueue('transcribe', {
-                audio_base64: offlineBase64,
-                mime_type: mimeTypeRef.current || 'audio/webm',
-                report_id: crypto.randomUUID(),
-                session_data: offlineSession ? { callsign: offlineSession.callsign, operator_id: offlineSession.operator_id, service: offlineSession.service, station: offlineSession.station } : null,
-                vehicle_type: offlineSession?.vehicle_type ?? null,
-                can_transport: offlineSession?.can_transport ?? true,
-              });
-              setError('Offline — recording queued, will process when back online');
-              setTimeout(() => { setError(''); setState('idle'); }, 4000);
-              resolve();
-              return;
-            } catch { /* queue failed too */ }
-          }
+          // Queue audio for later processing (offline or server error)
+          try {
+            const offlineBlob = new Blob(chunksRef.current, { type: mimeTypeRef.current || 'audio/webm' });
+            const offlineBase64 = await blobToBase64(offlineBlob);
+            const offlineSession = await getSession();
+            await enqueue('transcribe', {
+              audio_base64: offlineBase64,
+              mime_type: mimeTypeRef.current || 'audio/webm',
+              report_id: crypto.randomUUID(),
+              session_data: offlineSession ? { callsign: offlineSession.callsign, operator_id: offlineSession.operator_id, service: offlineSession.service, station: offlineSession.station } : null,
+              vehicle_type: offlineSession?.vehicle_type ?? null,
+              can_transport: offlineSession?.can_transport ?? true,
+            });
+            setSendCount(c => c + 1);
+            setState('queued');
+            setTimeout(() => setState('idle'), 2500);
+            resolve();
+            return;
+          } catch { /* queue failed too */ }
 
           onAiStatus('error');
           setError('Processing failed — tap RECORD to try again');
@@ -851,9 +851,18 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
               {error && (
                 <p className="mt-3" style={{ color: '#FF9500', fontSize: 18, letterSpacing: '0.2em' }}>{error}</p>
               )}
-              {autoSend && sendCount > 0 && !error && (
+              {!error && queuedCount > 0 && (
+                <div className="mt-4 flex items-center gap-2 px-4 py-2 rounded-full"
+                  style={{ background: 'rgba(217,119,6,0.1)', border: '1px solid rgba(217,119,6,0.25)' }}>
+                  <div className="w-2 h-2 rounded-full" style={{ background: '#D97706' }} />
+                  <span style={{ color: '#D97706', fontSize: 15, fontWeight: 600, letterSpacing: '0.08em' }}>
+                    {queuedCount} PENDING
+                  </span>
+                </div>
+              )}
+              {!error && queuedCount === 0 && autoSend && sendCount > 0 && (
                 <p className="mt-3" style={{ color: 'hsl(var(--primary))', fontSize: 16, letterSpacing: '0.1em' }}>
-                  {sendCount} transmission{sendCount !== 1 ? 's' : ''} sent
+                  {sendCount} sent this shift
                 </p>
               )}
             </>
@@ -923,6 +932,25 @@ export function LiveTab({ onAiStatus, onReportSaved, autoSend }: LiveTabProps) {
             DISCARD
           </button>
         </div>
+      </div>
+    );
+  }
+
+  // ─── STATE 5b: QUEUED (offline) ───
+  if (state === 'queued') {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 px-6">
+        <div className="flex items-center justify-center rounded-full"
+          style={{
+            width: 280, height: 280,
+            background: '#92400E',
+            boxShadow: '0 0 80px rgba(217,119,6,0.4), 0 0 160px rgba(217,119,6,0.15)',
+          }}>
+          <span style={{ color: '#FFFFFF', fontSize: 24, letterSpacing: '0.25em', fontWeight: 700 }}>QUEUED</span>
+        </div>
+        <p className="mt-6" style={{ color: '#D97706', fontSize: 16, letterSpacing: '0.1em', textAlign: 'center' }}>
+          Will send automatically when back online
+        </p>
       </div>
     );
   }

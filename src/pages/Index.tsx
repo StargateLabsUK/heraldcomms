@@ -35,7 +35,7 @@ const Index = () => {
       }
     });
   }, []);
-  const { syncStatus } = useHeraldSync();
+  const { syncStatus, queuedCount } = useHeraldSync();
 
   const handleShiftLinked = useCallback((s: HeraldSession) => {
     setSession(s);
@@ -53,10 +53,10 @@ const Index = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F5F5F0' }}>
-      <TopBar micStatus="granted" aiStatus={aiStatus} syncStatus={syncStatus} onRefresh={() => window.location.reload()} />
+      <TopBar micStatus="granted" aiStatus={aiStatus} syncStatus={syncStatus} queuedCount={queuedCount} onRefresh={() => window.location.reload()} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <LiveTab onAiStatus={setAiStatus} onReportSaved={() => {}} autoSend />
+        <LiveTab onAiStatus={setAiStatus} onReportSaved={() => {}} autoSend queuedCount={queuedCount} />
       </div>
 
       <ShiftInfoBar session={session} onEndShift={handleEndShift} position="bottom" isLinkedDevice={true} />
